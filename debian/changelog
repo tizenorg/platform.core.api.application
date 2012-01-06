@@ -1,0 +1,21 @@
+capi-appfw-application (0.1.0-13) unstable; urgency=low
+
+  * Update alarm API Doc
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-13
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 22 Dec 2011 11:01:24 +0300
+
+capi-appfw-application (0.1.0-12) unstable; urgency=low
+
+  * Fixed memory leak
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-12
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 21 Dec 2011 13:27:10 +0900
+
+capi-appfw-application (0.1.0-11) unstable; urgency=low
+
+  * Initial release.
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 07 Dec 2011 11:35:51 +0900
