@@ -46,7 +46,7 @@ typedef enum {
 	UI_NOTIFICATION_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */
 	UI_NOTIFICATION_ERROR_DB_FAILED = TIZEN_ERROR_APPLICATION_CLASS | 0x31, /**< DB operation failed */
 	UI_NOTIFICATION_ERROR_NO_SUCH_FILE = TIZEN_ERROR_NO_SUCH_FILE, /**< No such file */
-	UI_NOTIFICATION_ERROR_ALREADY_POSTED = TIZEN_ERROR_ALREADY_IN_PROGRESS, /**< Notification is already posted */
+	UI_NOTIFICATION_ERROR_INVALID_STATE = TIZEN_ERROR_APPLICATION_CLASS | 0x32, /**< Invalid state */
 } ui_notification_error_e;
 
 /**
@@ -56,6 +56,18 @@ typedef enum {
 	UI_NOTIFICATION_PROGRESS_TYPE_SIZE, /**< Size in bytes */
 	UI_NOTIFICATION_PROGRESS_TYPE_PERCENTAGE, /**< Percentage (between 0.0 and 1.0) */
 } ui_notification_progress_type_e;
+
+/**
+* @brief Called to retrieve the notifications posted.
+* @remarks You should not free @a notification returned by this function.
+* @param[in] notification The notification handle
+* @param[in] user_data The user data passed from the foreach function
+* @return @c true to continue with the next iteration of the loop, \n @c false to break out of the loop.
+* @pre ui_notification_foreach_notification_posted() will invoke this callback.
+* @see ui_notification_foreach_notification_posted()
+* @see ui_notification_clone()
+*/
+typedef bool (*ui_notification_cb)(ui_notification_h notification, void *user_data);
 
 /**
  * @brief Creates a notification handle.
@@ -81,16 +93,27 @@ int ui_notification_create(bool ongoing, ui_notification_h *notification);
 int ui_notification_destroy(ui_notification_h notification);
 
 /**
- * @brief Sets the full path of the icon image to display in the notification.
- * @remarks The @path should be the absolute path. If the icon is not set, the icon of the application will be displayed. \n
- * This function should be called before posting (see ui_notification_post()).
+ * @brief Checks whether the notification is ongoing or not
  * @param[in] notification The notification handle
- * @param[in] path The absolute path to the specified icon
+ * @param[out] ongoing A boolean value that sets whether this is an ongoing notification.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @see ui_notification_create()
+ */
+int ui_notification_is_ongoing(ui_notification_h notification, bool *ongoing);
+
+/**
+ * @brief Sets the full path of the icon image to display in the notification.
+ * @remarks The @a path should be the absolute path. If the icon is not set, the icon of the application will be displayed. \n
+ * This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
+ * @param[in] notification The notification handle
+ * @param[in] path The absolute path to the specified icon \n
+ *     If the @a path is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
  * @see ui_notification_get_icon()
  */
 int ui_notification_set_icon(ui_notification_h notification, const char *path);
@@ -110,14 +133,14 @@ int ui_notification_get_icon(ui_notification_h notification, char **path);
 
 /**
  * @brief Sets the time that the notification occurred.
- * @remarks This function should be called before posting (see ui_notification_post()).
+ * @remarks This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
  * @param[in] notification The notification handle
- * @param[in] time The time that the notification occurred
+ * @param[in] time The time that the notification occurred \n
+ *     If the @a time is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
  * @see ui_notification_get_time()
  */
 int ui_notification_set_time(ui_notification_h notification, struct tm *time);
@@ -137,14 +160,14 @@ int ui_notification_get_time(ui_notification_h notification, struct tm **time);
 /**
  * @brief Sets the title to display in the notification.
  * @remarks If the title is not set, the name of the application will be displayed. \n
- * This function should be called before posting (see ui_notification_post()).
+ * This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
  * @param[in] notification The notification handle
- * @param[in] title The title to display in the notification
+ * @param[in] title The title to display in the notification \n
+ *     If the @a title is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
  * @see ui_notification_get_title() 
  */
 int ui_notification_set_title(ui_notification_h notification, const char *title);
@@ -164,14 +187,14 @@ int ui_notification_get_title(ui_notification_h notification, char **title);
 
 /**
  * @brief Sets the content to display in the notification
- * @remarks This function should be called before posting (see ui_notification_post()).
+ * @remarks This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
  * @param[in] notification The notification handle
- * @param[in] content The content to display in the notification
+ * @param[in] content The content to display in the notification \n
+ *     If the @a content is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
  * @see ui_notification_get_content() 
  */
 int ui_notification_set_content(ui_notification_h notification, const char *content);
@@ -194,14 +217,14 @@ int ui_notification_get_content(ui_notification_h notification, char **content);
  * @details When the notification is selected from the notification tray, the application which is described by the specified service is launched. \n
  * If you want to launch the current application, use the explicit launch of the @ref CAPI_SERVICE_MODULE API
  * @remarks If the service is not set, the selected notification will be cleared from both the notification tray and the status bar without any action. \n
- * This function should be called before posting (see ui_notification_post()).
+ * This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
  * @param[in] notification The notification handle
- * @param[in] service The service handle to launch when the notification is selected
+ * @param[in] service The service handle to launch when the notification is selected \n
+ *     If the @a service is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
  * @see ui_notification_get_service()
  * @see service_create()
  */
@@ -222,27 +245,32 @@ int ui_notification_get_service(ui_notification_h notification, service_h *servi
 
 /**
  * @brief Posts the notification to display in the notification tray and the status bar
- * @remarks You cannot alter the icon, time, title, content, and service after posting the notification.
  * @param[in] notification The notification handle
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_DB_FAILED DB failed
  * @retval #UI_NOTIFICATION_ERROR_NO_SUCH_FILE DB No such icon file
- * @retval #UI_NOTIFICATION_ERROR_ALREADY_POSTED Notification is already posted
- * @see ui_notification_remove() 
- * @see ui_notification_remove_all() 
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_STATE The notification was already posted
+ * @post The posted notification can be canceled or updated.
+ * @see ui_notification_cancel()
+ * @see ui_notification_cancel_all()
+ * @see ui_notification_update()
+ * @see ui_notification_update_progress()
+ * @see ui_notification_foreach_notification_posted()
  */
 int ui_notification_post(ui_notification_h notification);
 
 /**
  * @brief Cancels the previously posted notification.
  * @details The previously posted notification is removed from the notification tray and the status bar.
- * @remarks The canceled @a notification is not be released automatically, must be released with ui_notification_destroy() by you
+ * @remarks The canceled @a notification is not be released automatically, must be released with ui_notification_destroy() by you.
  * @param[in] notification The notification handle
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_STATE The notification was not posted or the notification was either cleared or canceled.
+ * @pre The notification must be posted before canceling it.
  * @see ui_notification_post()
  * @see ui_notification_cancel_all()
  */
@@ -251,30 +279,83 @@ int ui_notification_cancel(ui_notification_h notification);
 /**
  * @brief Cancels all previously posted notifications by the current application.
  * @details All previously posted notifications are removed from the notification tray and the status bar.
- * @remarks The notifications posted by other applications are not canceled from the notification tray and the status bar
- * @return 0 on success, otherwise a negative error value.
- * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @remarks The notifications posted by other applications are not canceled from the notification tray and the status bar.
  * @see ui_notification_post()
  * @see ui_notification_cancel()
  */
-int ui_notification_cancel_all(void);
+void ui_notification_cancel_all(void);
+
+/**
+ * @brief Updates the notification posted.
+ * @remarks You cannot update the notification which was cleared or canceled.
+ * @param[in] notification The notification handle
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_DB_FAILED DB failed
+ * @retval #UI_NOTIFICATION_ERROR_NO_SUCH_FILE DB No such icon file
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_STATE The notification was not posted or the notification was either cleared or canceled.
+ * @pre The notification must be posted before updating it.
+ * @see ui_notification_post()
+ * @see ui_notification_update_progress()
+ */
+int ui_notification_update(ui_notification_h notification);
 
 /**
  * @brief Updates the progress to the specified value
+ * @remarks You cannot update the notification which was cleared or canceled.
  * @param[in] notification The notification handle \n
  *	It must be ongoing notification. \n
  *	If not, #UI_NOTIFICATION_ERROR_INVALID_PARAMETER will occur
  * @param[in] type The progress type
  * @param[in] value The value of the progress \n
- *	if @a type is #UI_NOTIFICATION_PROGRESS_TYPE_SIZE, it must be in bytes. \n
- *	If @a type is #UI_NOTIFICATION_PROGRESS_TYPE_PERCENTAGE, It must be a floating-point value between 0.0 and 1.0.
+ *    The @a value must be greater than or equal to zero. \n
+ *    if @a type is #UI_NOTIFICATION_PROGRESS_TYPE_SIZE, it must be in bytes. \n
+ *    If @a type is #UI_NOTIFICATION_PROGRESS_TYPE_PERCENTAGE, It must be a floating-point value between 0.0 and 1.0.
  * @return 0 on success, otherwise a negative error value.
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_STATE The notification was not posted or the notification was canceled.
+ * @pre The notification must be posted before updating the progress to the specified value
  * @see ui_notification_create()
+ * @see ui_notification_post()
+ * @see ui_notification_update()
  * @see #ui_notification_progress_type_e
  */
 int ui_notification_update_progress(ui_notification_h notification, ui_notification_progress_type_e type, double value);
+
+/**
+ * @brief Retrieves all posted notifications.
+ * @details This function calls ui_notification_cb() once for each notification which was posted and is being shown. \n
+ * If ui_notification_cb() callback function returns false, then iteration will be finished.
+ *
+ * @param [in] ongoing A boolean value that sets whether the type is an ongoing notification.
+ * @param [in] callback The iteration callback function
+ * @param [in] user_data The user data to be passed to the callback function
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @post This function invokes ui_notification_cb().
+ * @see ui_notification_cb()
+ */
+int ui_notification_foreach_notification_posted(bool ongoing, ui_notification_cb callback, void *user_data);
+
+/**
+ * @brief Creates and returns a copy of the given notification handle.
+ *
+ * @remarks A newly created notification handle should be destroyed by calling ui_notification_destroy() if it is no longer needed.
+ *
+ * @param [out] clone If successful, a newly created notification handle will be returned.
+ * @param [in] service The notification handle
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
+ * @see ui_notification_create()
+ * @see ui_notification_destroy()
+ */
+int ui_notification_clone(ui_notification_h *clone, ui_notification_h notification);
+
 
 /**
  * @}

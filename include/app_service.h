@@ -240,7 +240,8 @@ int service_destroy(service_h service);
  * If the operation is not specified, #SERVICE_OPERATION_DEFAULT is used for the launch request.
  * If the operation is #SERVICE_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application
  * @param [in] service The service handle
- * @param [in] operation The operation to be performed
+ * @param [in] operation The operation to be performed \n
+ *     If the @a operation is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #SERVICE_ERROR_NONE Successful
  * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
@@ -278,7 +279,8 @@ int service_get_operation(service_h service, char **operation);
  * @brief Sets the URI of the data.
  *
  * @param [in] service The service handle
- * @param [in] uri The URI of the data this service is operating on
+ * @param [in] uri The URI of the data this service is operating on \n
+ *     If the @a uri is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #SERVICE_ERROR_NONE Successful
  * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
@@ -306,7 +308,8 @@ int service_get_uri(service_h service, char **uri);
  * @brief Sets the explicit MIME type of the data
  *
  * @param [in] service The service handle
- * @param [in] mime the explicit MIME type of the data this service is operating on
+ * @param [in] mime the explicit MIME type of the data this service is operating on \n
+ *     If the @a mime is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #SERVICE_ERROR_NONE Successful
  * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
@@ -334,7 +337,8 @@ int service_get_mime(service_h service, char **uri);
  * @brief Sets the package name of the application to explicitly launch
  *
  * @param [in] service The service handle
- * @param [in] package The package name of the application to explicitly launch
+ * @param [in] package The package name of the application to explicitly launch \n
+ *     If the @a package is NULL, it clears the previous value.
  * @return 0 on success, otherwise a negative error value.
  * @retval #SERVICE_ERROR_NONE Successful
  * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
@@ -471,7 +475,6 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
  * @return 0 on success, otherwise a negative error value.
  * @retval #SERVICE_ERROR_NONE Successful
  * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #SERVICE_ERROR_KEY_NOT_FOUND Specified key not found
  * @see service_add_extra_data()
  * @see service_add_extra_data_array()
  * @see service_remove_extra_data()

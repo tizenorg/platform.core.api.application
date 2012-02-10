@@ -1,3 +1,20 @@
+capi-appfw-application (0.1.0-15) unstable; urgency=low
+
+  * Fixed invalid parameter
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-15
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 30 Jan 2012 13:52:37 +0900
+
+capi-appfw-application (0.1.0-14) unstable; urgency=low
+
+  * Update UI-Notification API
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-14
+ 
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 26 Jan 2012 16:07:50 +0900
+
 capi-appfw-application (0.1.0-13) unstable; urgency=low
 
   * Update alarm API Doc

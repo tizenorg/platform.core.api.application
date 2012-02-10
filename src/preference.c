@@ -115,7 +115,7 @@ static int _write_data(const char *key, const char *type, const char *data)
 	}
 	else 
 	{
-		buf = sqlite3_mprintf("INSERT INTO %s (%s, %s, %s) values ('%s', '%s', '%s');", 
+		buf = sqlite3_mprintf("INSERT INTO %s (%s, %s, %s) values ('%q', '%q', '%q');", 
 								PREF_TBL_NAME, PREF_F_KEY_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME, key, type, data);		
 	}
 

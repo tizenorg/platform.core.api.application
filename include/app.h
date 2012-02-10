@@ -330,9 +330,9 @@ int app_get_version(char **version);
  * and a null character is appended  in @a buffer after the path stored.
  *
  * @param [in] resource The resource's path relative to the resource directory of the application package (e.g. edje/app.edj or images/background.png)
- * @param [in] buffer The buffer where the absolute path to the resource is stored. 
+ * @param [in] buffer The pre-allocated buffer where the absolute path to the resource is stored. 
  * @param [in] size The size of @a buffer in bytes
- * @return  @a buffer on success, otherwise null.
+ * @return  @a buffer on success, otherwise NULL.
  */
 char* app_get_resource(const char *resource, char *buffer, int size);
 
@@ -345,9 +345,9 @@ char* app_get_resource(const char *resource, char *buffer, int size);
  * @remarks This function stores the absolute path into the @a buffer at most one less than @a size bytes 
  * and a null character is appended  in @a buffer after the path stored.
  *
- * @param [in] buffer The buffer where the absolute path to the application data directory
+ * @param [in] buffer The pre-allocated buffer where the absolute path to the application data directory
  * @param [in] size The size of @a buffer in bytes
- * @return  @a buffer on success, otherwise null.
+ * @return  @a buffer on success, otherwise NULL.
  */
 char* app_get_data_directory(char *buffer, int size);
 

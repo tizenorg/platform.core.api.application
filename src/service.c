@@ -27,6 +27,7 @@
 #include <dlog.h>
 
 #include <app_service.h>
+#include <app_service_private.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -44,7 +45,7 @@
 #define BUNDLE_KEY_PACKAGE	"__APP_SVC_PKG_NAME__"
 
 typedef enum {
-	SERVICE_TYPE_USER,
+	SERVICE_TYPE_REQUEST,
 	SERVICE_TYPE_EVENT,
 	SERVICE_TYPE_REPLY,
 } service_type_e;
@@ -60,8 +61,6 @@ typedef struct service_request_context_s {
 	service_reply_cb reply_cb;
 	void *user_data;
 } *service_request_context_h;
-
-static int service_create_request(service_h *service);
 
 static int service_create_reply(bundle *data, struct service_s **service);
 
@@ -167,10 +166,10 @@ static void service_request_result_broker(bundle *appsvc_bundle, int appsvc_requ
 
 int service_create(service_h *service)
 {
-	return service_create_request(service);
+	return service_create_request(NULL, service);
 }
 
-static int service_create_request(service_h *service)
+int service_create_request(bundle *data, service_h *service)
 {
 	struct service_s *service_request;
 
@@ -188,9 +187,16 @@ static int service_create_request(service_h *service)
 		return SERVICE_ERROR_OUT_OF_MEMORY;
 	}
 
-	service_request->type = SERVICE_TYPE_USER;
+	service_request->type = SERVICE_TYPE_REQUEST;
 
-	service_request->data = bundle_create();
+	if (data != NULL)
+	{
+		service_request->data = bundle_dup(data);
+	}
+	else
+	{
+		service_request->data = bundle_create();
+	}
 
 	if (service_request->data == NULL)
 	{
@@ -656,7 +662,10 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 static bool service_copy_reply_data_cb(service_h service, const char *key, void *user_data)
 {
 	bundle *reply_data;
+	bool array = false;
 	char *value;
+	const char **value_array;
+	int value_array_length;
 
 	if (user_data == NULL)
 	{
@@ -666,9 +675,19 @@ static bool service_copy_reply_data_cb(service_h service, const char *key, void 
 
 	reply_data = user_data;
 
-	service_get_extra_data(service, key, &value);
-
-	appsvc_add_data(reply_data, key, value);
+	if (!service_is_extra_data_array(service, key, &array))
+	{
+		if (array == true)
+		{
+			service_get_extra_data_array(service, key, (char***)&value_array, &value_array_length);
+			appsvc_add_data_array(reply_data, key, value_array, value_array_length);
+		}
+		else
+		{
+			service_get_extra_data(service, key, &value);
+			appsvc_add_data(reply_data, key, value);
+		}
+	}
 
 	return true;
 }
@@ -960,8 +979,6 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
 
 int service_is_extra_data_array(service_h service, const char *key, bool *array)
 {
-	int retval;
-
 	if (service_valiate_service(service))
 	{
 		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
@@ -980,26 +997,20 @@ int service_is_extra_data_array(service_h service, const char *key, bool *array)
 		return SERVICE_ERROR_INVALID_PARAMETER;
 	}
 
-	if (service_validate_internal_key(key))
+	if (!service_validate_internal_key(key))
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) :  key(%s) rejected", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;
-	}
-
-	retval = appsvc_data_is_array(service->data, key);
-
-	if (retval == 0)
-	{
-		*array = false;
-	}
-	else if (retval == 1)
-	{
-		*array = true;
+		if (!appsvc_data_is_array(service->data, key))
+		{
+			*array = false;
+		}
+		else
+		{
+			*array = true;
+		}
 	}
 	else
 	{
-		LOGE("[%s] KEY_NOT_FOUND(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_KEY_NOT_FOUND, key);
-		return SERVICE_ERROR_KEY_NOT_FOUND;	
+		*array = false;
 	}
 
 	return SERVICE_ERROR_NONE;

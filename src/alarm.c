@@ -113,38 +113,6 @@ static int _remove_alarm_cb(alarm_id_t alarm_id, void* user_param)
 	return alarmmgr_remove_alarm(alarm_id);
 }
 
-static int alarm_init()
-{
-	static bool is_alarm_init = false;
-
-	if (is_alarm_init == false)
-	{
-		char *package = NULL;
-		int errnum;
-	
-		if (app_get_package(&package) != 0)
-		{
-			return -1;
-		}
-
-		errnum = alarmmgr_init(package);
-
-		if (package != NULL)
-		{
-			free(package);
-		}
-		
-		if (errnum != ALARMMGR_RESULT_SUCCESS)
-		{
-			return -1;
-		}
-
-		is_alarm_init = true;
-	}
-
-	return 0;
-}
-
 int alarm_get_scheduled_date(int alarm_id, struct tm* date)
 {
 	alarm_error_t result;
@@ -156,12 +124,6 @@ int alarm_get_scheduled_date(int alarm_id, struct tm* date)
 		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
  	}
-
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
 
 	entry = alarmmgr_create_alarm();
 
@@ -219,12 +181,6 @@ int alarm_get_scheduled_period(int alarm_id, int* period)
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 	
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
-
 	entry = alarmmgr_create_alarm();
 
 	result = alarmmgr_get_info(alarm_id, entry);
@@ -280,12 +236,6 @@ int alarm_schedule_after_delay(service_h service, int delay, int period, int *al
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
-
 	result = alarmmgr_add_alarm_appsvc(ALARM_TYPE_DEFAULT, delay, period, bundle_data, alarm_id);
 	
 	return  convert_error_code_to_alarm(__FUNCTION__, result);
@@ -310,12 +260,6 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_sec
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 	
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
-
 	alarm_info = alarmmgr_create_alarm();
 
 	internal_time.year = date->tm_year + 1900;
@@ -369,12 +313,6 @@ int alarm_cancel(int alarm_id)
 {
 	int result;
 
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
-
 	result = alarmmgr_remove_alarm(alarm_id);
 
 	return convert_error_code_to_alarm(__FUNCTION__, result);
@@ -383,12 +321,6 @@ int alarm_cancel(int alarm_id)
 int alarm_cancel_all()
 {
 	int result;
-
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
 
 	result = alarmmgr_enum_alarm_ids( _remove_alarm_cb, NULL);
 
@@ -453,12 +385,6 @@ int alarm_schedule_with_recurrence_week_flag(service_h service, struct tm *date,
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
-	}
-
 	alarm_info = alarmmgr_create_alarm();
 
 	internal_time.year = date->tm_year + 1900;
@@ -509,12 +435,6 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 	{
 		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
-	}
-
-	if (alarm_init() != 0)
-	{
-		LOGE("[%s] CONNECTION_FAIL(0x%08x)", __FUNCTION__, ALARM_ERROR_CONNECTION_FAIL);
-		return ALARM_ERROR_CONNECTION_FAIL;
 	}
 
 	entry = alarmmgr_create_alarm();
