@@ -689,7 +689,6 @@ int ui_notification_post(ui_notification_h notification)
 		return UI_NOTIFICATION_ERROR_INVALID_STATE;
 	}
 
-	// STEP 1: notification handle
 	if (notification->ongoing == true)
 	{
 		notification->raw_handle = notification_new(NOTIFICATION_TYPE_ONGOING, NOTIFICATION_GROUP_ID_DEFAULT, NOTIFICATION_PRIV_ID_NONE);

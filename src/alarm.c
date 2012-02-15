@@ -484,3 +484,32 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 	return ALARM_ERROR_NONE;
 }
 
+int alarm_get_service(int alarm_id, service_h *service)
+{
+    bundle *b = NULL;
+    int error_code = 0;
+
+    b = alarmmgr_get_alarm_appsvc_info(alarm_id, &error_code);
+
+    if(error_code != ALARMMGR_RESULT_SUCCESS)
+    {
+        return convert_error_code_to_alarm(__FUNCTION__, error_code);
+    }
+
+    if(b == NULL)
+    {
+        return ALARM_ERROR_INVALID_PARAMETER;
+    }
+    
+    error_code = service_create_request(b, service);
+
+    if(error_code != SERVICE_ERROR_NONE)
+    {
+        return ALARM_ERROR_OUT_OF_MEMORY;
+    }
+
+    bundle_free(b);
+
+    return ALARM_ERROR_NONE;
+
+}

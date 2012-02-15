@@ -70,7 +70,7 @@ static int app_cb_broker_appcore_rotation_event(enum appcore_rm rm, void *data);
 static int app_cb_broker_appcore_lang_changed(void *data);
 static int app_cb_broker_appcore_region_changed(void *data);
 
-static void app_set_appcore_event_cb(app_context_h app_context);
+static void app_set_appcore_event_cb(void);
 static void app_unset_appcore_event_cb(void);
 
 static struct app_context_s app_context = {
@@ -117,7 +117,6 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 	char *package = NULL;;
 	char *project_name = NULL;
 
-	// STEP 1 : input parameter
 	if (argc == NULL || argv == NULL || callback == NULL)
 	{
 		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
@@ -130,14 +129,12 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 		return APP_ERROR_INVALID_PARAMETER;
 	}
 
-	// STEP 2 : app-state
 	if (app_context.state != APP_STATE_NOT_RUNNING)
 	{
 		LOGE("[%s] ALREADY_RUNNING(0x%08x)", __FUNCTION__, APP_ERROR_ALREADY_RUNNING);
 		return APP_ERROR_ALREADY_RUNNING;
 	}
 
-	// STEP 3 : package. project_name
 	if (app_get_package(&package) != 0)
 	{
 		LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
@@ -154,16 +151,12 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 
 	app_context.project_name = project_name;
 
-	// STEP 4 : set app-context
 	app_context.state = APP_STATE_CREATING;
 	app_context.callbacks = callback;
 	app_context.user_data = user_data;
-	app_context.appcore.data = &app_context;
 
-	// STEP 5 : start appcore-main
 	appcore_efl_main(app_context.project_name, argc, argv, &(app_context.appcore));
 
-	// STEP 6 : reset app-context
 	app_reset_app_context();
 
 	return APP_ERROR_NONE;
@@ -174,31 +167,31 @@ void app_efl_exit(void)
 	elm_exit();
 }
 
-static void app_set_appcore_event_cb(app_context_h app_context)
+static void app_set_appcore_event_cb()
 {
-	if (app_context->callbacks->low_memory != NULL)
+	if (app_context.callbacks->low_memory != NULL)
 	{
-		appcore_set_event_callback(APPCORE_EVENT_LOW_MEMORY, app_cb_broker_appcore_low_memory, app_context);
+		appcore_set_event_callback(APPCORE_EVENT_LOW_MEMORY, app_cb_broker_appcore_low_memory, NULL);
 	}
 
-	if (app_context->callbacks->low_battery != NULL)
+	if (app_context.callbacks->low_battery != NULL)
 	{
-		appcore_set_event_callback(APPCORE_EVENT_LOW_BATTERY, app_cb_broker_appcore_low_battery, app_context);
+		appcore_set_event_callback(APPCORE_EVENT_LOW_BATTERY, app_cb_broker_appcore_low_battery, NULL);
 	}
 
-	if (app_context->callbacks->device_orientation != NULL)
+	if (app_context.callbacks->device_orientation != NULL)
 	{
-		appcore_set_rotation_cb(app_cb_broker_appcore_rotation_event, app_context);
+		appcore_set_rotation_cb(app_cb_broker_appcore_rotation_event, NULL);
 	}
 
-	if (app_context->callbacks->language_changed != NULL)
+	if (app_context.callbacks->language_changed != NULL)
 	{
-		appcore_set_event_callback(APPCORE_EVENT_LANG_CHANGE, app_cb_broker_appcore_lang_changed, app_context);
+		appcore_set_event_callback(APPCORE_EVENT_LANG_CHANGE, app_cb_broker_appcore_lang_changed, NULL);
 	}
 
-	if (app_context->callbacks->region_format_changed != NULL)
+	if (app_context.callbacks->region_format_changed != NULL)
 	{
-		appcore_set_event_callback(APPCORE_EVENT_REGION_CHANGE, app_cb_broker_appcore_region_changed, app_context);
+		appcore_set_event_callback(APPCORE_EVENT_REGION_CHANGE, app_cb_broker_appcore_region_changed, NULL);
 	}
 }
 
@@ -214,28 +207,19 @@ static void app_unset_appcore_event_cb(void)
 
 int app_cb_broker_appcore_create(void *data)
 {
-	app_context_h app_context;
 	app_create_cb create_cb;
 	char locale_dir[TIZEN_PATH_MAX] = {0, };
 
-	app_context = (app_context_h)data;
+	app_set_appcore_event_cb();
 
-	if (app_context == NULL)
+	snprintf(locale_dir, TIZEN_PATH_MAX, PATH_FMT_LOCALE_DIR, app_context.package);
+	appcore_set_i18n(app_context.project_name, locale_dir);
+
+	create_cb = app_context.callbacks->create;
+
+	if (create_cb != NULL && create_cb(app_context.user_data) == true)
 	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	app_set_appcore_event_cb(app_context);
-
-	snprintf(locale_dir, TIZEN_PATH_MAX, PATH_FMT_LOCALE_DIR, app_context->package);
-	appcore_set_i18n(app_context->project_name, locale_dir);
-
-	create_cb = app_context->callbacks->create;
-
-	if (create_cb != NULL && create_cb(app_context->user_data) == true)
-	{
-		app_context->state = APP_STATE_RUNNING;
+		app_context.state = APP_STATE_RUNNING;
 		return 0;
 	}
 
@@ -244,41 +228,29 @@ int app_cb_broker_appcore_create(void *data)
 
 int app_cb_broker_appcore_terminate(void *data)
 {
-	app_context_h app_context;
 	app_terminate_cb terminate_cb;
 	int i;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	// STEP 1 : user event-callback
-	terminate_cb = app_context->callbacks->terminate;
+	terminate_cb = app_context.callbacks->terminate;
 
 	if (terminate_cb != NULL)
 	{
-		terminate_cb(app_context->user_data);
+		terminate_cb(app_context.user_data);
 	}
 
-	// STEP 2 : appcore event-callback
 	app_unset_appcore_event_cb();	
 
-	// STEP 3 : terminate task
 	for (i=0; i<TERMINATE_TASK_MAX; i++)
 	{
-		if (app_context->terminate_task[i].cb != NULL)
+		if (app_context.terminate_task[i].cb != NULL)
 		{	
 			app_terminate_task_cb task_cb;
 
-			task_cb = app_context->terminate_task[i].cb;
+			task_cb = app_context.terminate_task[i].cb;
 			
 			if (task_cb != NULL)
 			{
-				task_cb(app_context->terminate_task[i].data);
+				task_cb(app_context.terminate_task[i].data);
 			}
 		}
 	}
@@ -288,22 +260,13 @@ int app_cb_broker_appcore_terminate(void *data)
 
 int app_cb_broker_appcore_pause(void *data)
 {
-	app_context_h app_context;
 	app_pause_cb pause_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	pause_cb = app_context->callbacks->pause;
+	pause_cb = app_context.callbacks->pause;
 
 	if (pause_cb != NULL)
 	{
-		pause_cb(app_context->user_data);
+		pause_cb(app_context.user_data);
 	}
 
 	return 0;
@@ -311,22 +274,13 @@ int app_cb_broker_appcore_pause(void *data)
 
 int app_cb_broker_appcore_resume(void *data)
 {
-	app_context_h app_context;
 	app_resume_cb resume_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	resume_cb = app_context->callbacks->resume;
+	resume_cb = app_context.callbacks->resume;
 
 	if (resume_cb != NULL)
 	{
-		resume_cb(app_context->user_data);
+		resume_cb(app_context.user_data);
 	}
 
 	return 0;
@@ -335,17 +289,8 @@ int app_cb_broker_appcore_resume(void *data)
 
 int app_cb_broker_appcore_reset(bundle *appcore_bundle, void *data)
 {
-	app_context_h app_context;
 	app_service_cb service_cb;
 	service_h service;
-
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
 
 	if (service_create_event(appcore_bundle, &service) != 0)
 	{
@@ -353,11 +298,11 @@ int app_cb_broker_appcore_reset(bundle *appcore_bundle, void *data)
 		return -1;
 	}
 
-	service_cb = app_context->callbacks->service;
+	service_cb = app_context.callbacks->service;
 
 	if (service_cb != NULL)
 	{
-		service_cb(service, app_context->user_data);
+		service_cb(service, app_context.user_data);
 	}
 
 	service_destroy(service);
@@ -368,22 +313,13 @@ int app_cb_broker_appcore_reset(bundle *appcore_bundle, void *data)
 
 int app_cb_broker_appcore_low_memory(void *data)
 {
-	app_context_h app_context;
 	app_low_memory_cb low_memory_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	low_memory_cb = app_context->callbacks->low_memory;
+	low_memory_cb = app_context.callbacks->low_memory;
 
 	if (low_memory_cb != NULL)
 	{
-		low_memory_cb(app_context->user_data);
+		low_memory_cb(app_context.user_data);
 	}
 
 	return 0;
@@ -391,22 +327,13 @@ int app_cb_broker_appcore_low_memory(void *data)
 
 int app_cb_broker_appcore_low_battery(void *data)
 {
-	app_context_h app_context;
 	app_low_battery_cb low_battery_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	low_battery_cb = app_context->callbacks->low_battery;
+	low_battery_cb = app_context.callbacks->low_battery;
 
 	if (low_battery_cb != NULL)
 	{
-		low_battery_cb(app_context->user_data);
+		low_battery_cb(app_context.user_data);
 	}
 
 	return 0;
@@ -414,18 +341,9 @@ int app_cb_broker_appcore_low_battery(void *data)
 
 int app_cb_broker_appcore_rotation_event(enum appcore_rm rm, void *data)
 {
-	app_context_h app_context;
 	app_device_orientation_cb device_orientation_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	device_orientation_cb = app_context->callbacks->device_orientation;
+	device_orientation_cb = app_context.callbacks->device_orientation;
 
 	if (device_orientation_cb != NULL)
 	{
@@ -433,7 +351,7 @@ int app_cb_broker_appcore_rotation_event(enum appcore_rm rm, void *data)
 
 		dev_orientation = app_convert_appcore_rm(rm);
 
-		device_orientation_cb(dev_orientation, app_context->user_data);
+		device_orientation_cb(dev_orientation, app_context.user_data);
 	}
 
 	return 0;
@@ -441,22 +359,13 @@ int app_cb_broker_appcore_rotation_event(enum appcore_rm rm, void *data)
 
 int app_cb_broker_appcore_lang_changed(void *data)
 {
-	app_context_h app_context;
 	app_language_changed_cb lang_changed_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	lang_changed_cb = app_context->callbacks->language_changed;
+	lang_changed_cb = app_context.callbacks->language_changed;
 
 	if (lang_changed_cb != NULL)
 	{
-		lang_changed_cb(app_context->user_data);
+		lang_changed_cb(app_context.user_data);
 	}
 
 	return 0;
@@ -464,22 +373,13 @@ int app_cb_broker_appcore_lang_changed(void *data)
 
 int app_cb_broker_appcore_region_changed(void *data)
 {
-	app_context_h app_context;
 	app_region_format_changed_cb region_changed_cb;
 
-	app_context = (app_context_h)data;
-
-	if (app_context == NULL)
-	{
-		LOGE("[%s] invalid app-context", __FUNCTION__);
-		return -1;
-	}
-
-	region_changed_cb = app_context->callbacks->region_format_changed;
+	region_changed_cb = app_context.callbacks->region_format_changed;
 
 	if (region_changed_cb != NULL)
 	{
-		region_changed_cb(app_context->user_data);
+		region_changed_cb(app_context.user_data);
 	}
 
 	return 0;

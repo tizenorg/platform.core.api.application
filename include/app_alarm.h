@@ -45,7 +45,8 @@ typedef enum
 	ALARM_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,	/**< Invalid parameter */
 	ALARM_ERROR_INVALID_TIME = TIZEN_ERROR_APPLICATION_CLASS | 0x05,	/**< Invalid time */
 	ALARM_ERROR_INVALID_DATE = TIZEN_ERROR_APPLICATION_CLASS | 0x06,	/**< Invalid date */
-	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION_CLASS | 0x07	/**< The alarm service connection failed */
+	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION_CLASS | 0x07,	/**< The alarm service connection failed */
+	ALARM_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY	/**< Out of memory */
 } alarm_error_e;
 
 
@@ -254,6 +255,22 @@ int alarm_get_scheduled_period(int alarm_id, int *period);
  * @retval  #ALARM_ERROR_INVALID_PARAMETER  Invalid parameter
  */
 int alarm_get_current_time(struct tm *date);
+
+
+/**
+ * @brief Gets the service to be invoked when the the alarm is triggered
+ * @remarks The @a service must be released with service_destroy() by you.
+ * @param[in]	alarm_id	The alarm ID uniquely identifies an alarm
+ * @param[out] service The service handle to launch when the alarm is triggered
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #ALARM_ERROR_NONE Successful
+ * @retval #ALARM_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #ALARM_ERROR_OUT_OF_MEMORY Out of memory
+ * @see alarm_schedule_at_date()
+ * @see alarm_schedule_after_delay()
+ * @see alarm_schedule_with_recurrence_week_flag()
+ */
+int alarm_get_service(int alarm_id, service_h *service);
 
 /**
  * @}

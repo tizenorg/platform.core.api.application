@@ -1,3 +1,21 @@
+capi-appfw-application (0.1.0-17) unstable; urgency=low
+
+  * Added version numbering
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-17
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 15 Feb 2012 10:43:30 +0900
+
+capi-appfw-application (0.1.0-16) unstable; urgency=low
+
+  * Refactoring code
+  * Add alarm_get_service() API
+  * Add ALARM_ERROR_OUT_OF_MEMORY error code
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-16
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 13 Feb 2012 11:52:20 +0300
+
 capi-appfw-application (0.1.0-15) unstable; urgency=low
 
   * Fixed invalid parameter
