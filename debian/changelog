@@ -1,3 +1,11 @@
+capi-appfw-application (0.1.0-18) unstable; urgency=low
+
+  * Bug fixed : service_foreach_extra_data()
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-18
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Tue, 21 Feb 2012 14:34:01 +0900
+
 capi-appfw-application (0.1.0-17) unstable; urgency=low
 
   * Added version numbering

@@ -1021,22 +1021,22 @@ typedef struct {
 	service_h service;
 	service_extra_data_cb callback;
 	void* user_data;
-	bool* foreach_break;
+	bool foreach_break;
 } foreach_context_extra_data_t;
 
-static void service_cb_broker_bundle_iterate(const char *key, const char *val, void *data)
+static void service_cb_broker_bundle_iterator(const char *key, const int type, const bundle_keyval_t *kv, void *user_data)
 {
 	foreach_context_extra_data_t* foreach_context = NULL;
 	service_extra_data_cb extra_data_cb;
 
-	if (key == NULL || val == NULL || data == NULL)
+	if (key == NULL || !(type == BUNDLE_TYPE_STR || type == BUNDLE_TYPE_STR_ARRAY))
 	{
 		return;
 	}
 
-	foreach_context = (foreach_context_extra_data_t*)data;
+	foreach_context = (foreach_context_extra_data_t*)user_data;
 
-	if ( *(foreach_context->foreach_break) == true)
+	if (foreach_context->foreach_break == true)
 	{
 		return;
 	}
@@ -1045,7 +1045,7 @@ static void service_cb_broker_bundle_iterate(const char *key, const char *val, v
 	{
 		return;
 	}
-
+	
 	extra_data_cb = foreach_context->callback;
 
 	if (extra_data_cb != NULL)
@@ -1054,14 +1054,20 @@ static void service_cb_broker_bundle_iterate(const char *key, const char *val, v
 		
 		stop_foreach = !extra_data_cb(foreach_context->service, key, foreach_context->user_data);
 	
-		*(foreach_context->foreach_break) = stop_foreach;
+		foreach_context->foreach_break = stop_foreach;
 	}
 
 }
 
+
 int service_foreach_extra_data(service_h service, service_extra_data_cb callback, void *user_data)
 {
-	bool foreach_break = false;
+	foreach_context_extra_data_t foreach_context = {
+		.service = service,
+		.callback = callback,
+		.user_data = user_data,
+		.foreach_break = false
+	};
 	
 	if (service_valiate_service(service))
 	{
@@ -1075,14 +1081,7 @@ int service_foreach_extra_data(service_h service, service_extra_data_cb callback
 		return SERVICE_ERROR_INVALID_PARAMETER;
 	}
 
-	foreach_context_extra_data_t foreach_context = {
-		.service = service,
-		.callback = callback,
-		.user_data = user_data,
-		.foreach_break = &foreach_break
-	};
-
-	bundle_iterate(service->data, service_cb_broker_bundle_iterate, &foreach_context);
+	bundle_foreach(service->data, service_cb_broker_bundle_iterator, &foreach_context);
 
 	return SERVICE_ERROR_NONE;
 }
@@ -1091,7 +1090,7 @@ typedef struct {
 	service_h service;
 	service_app_matched_cb callback;
 	void* user_data;
-	bool* foreach_break;
+	bool foreach_break;
 } foreach_context_launchable_app_t;
 
 int service_cb_broker_foreach_app_matched(const char *package, void *data)
@@ -1107,7 +1106,7 @@ int service_cb_broker_foreach_app_matched(const char *package, void *data)
 
 	foreach_context = (foreach_context_launchable_app_t*)data;
 
-	if ( *(foreach_context->foreach_break) == true)
+	if (foreach_context->foreach_break == true)
 	{
 		return -1;
 	}
@@ -1120,7 +1119,7 @@ int service_cb_broker_foreach_app_matched(const char *package, void *data)
 		
 		stop_foreach = !app_matched_cb(foreach_context->service, package, foreach_context->user_data);
 	
-		*(foreach_context->foreach_break) = stop_foreach;
+		foreach_context->foreach_break = stop_foreach;
 	}
 
 	return 0;
@@ -1128,7 +1127,12 @@ int service_cb_broker_foreach_app_matched(const char *package, void *data)
 
 int service_foreach_app_matched(service_h service, service_app_matched_cb callback, void *user_data)
 {
-	bool foreach_break = false;
+	foreach_context_launchable_app_t foreach_context = {
+		.service = service,
+		.callback = callback,
+		.user_data = user_data,
+		.foreach_break = false
+	};
 
 	if (service_valiate_service(service))
 	{
@@ -1141,13 +1145,6 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
 		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid callback", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
 		return SERVICE_ERROR_INVALID_PARAMETER;
 	}
-
-	foreach_context_launchable_app_t foreach_context = {
-		.service = service,
-		.callback = callback,
-		.user_data = user_data,
-		.foreach_break = &foreach_break
-	};
 
 	appsvc_get_list(service->data, service_cb_broker_foreach_app_matched, &foreach_context);
 
