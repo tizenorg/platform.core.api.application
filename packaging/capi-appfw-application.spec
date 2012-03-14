@@ -1,12 +1,14 @@
 Name:       capi-appfw-application
 Summary:    An Application library in Tizen C API
-Version:    0.0.1
+Version:    0.1.0
 Release:    1
 Group:      TO_BE/FILLED_IN
-License:    TO BE FILLED IN
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
+BuildRequires:  pkgconfig(sqlite3)
+BuildRequires:  pkgconfig(notification)
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(appcore-common)
 BuildRequires:  pkgconfig(appcore-efl)
@@ -17,6 +19,8 @@ BuildRequires:  pkgconfig(heynoti)
 BuildRequires:  pkgconfig(elementary)
 BuildRequires:  pkgconfig(alarm-service)
 BuildRequires:  pkgconfig(capi-base-common)
+BuildRequires:  pkgconfig(dbus-glib-1)
+BuildRequires:  pkgconfig(gconf-2.0)
 Requires(post): /sbin/ldconfig  
 Requires(postun): /sbin/ldconfig
 
@@ -36,7 +40,9 @@ An Application library in Tizen C API (DEV)
 
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=/usr
+FULLVER=%{version}
+MAJORVER=`echo ${FULLVER} | cut -d '.' -f 1`
+cmake . -DCMAKE_INSTALL_PREFIX=/usr -DFULLVER=${FULLVER} -DMAJORVER=${MAJORVER}
 
 
 make %{?jobs:-j%jobs}
@@ -51,7 +57,7 @@ rm -rf %{buildroot}
 
 
 %files
-%{_libdir}/libcapi-appfw-application.so
+%{_libdir}/libcapi-appfw-application.so*
 
 %files devel
 %{_includedir}/appfw/*.h
