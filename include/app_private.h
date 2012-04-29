@@ -38,19 +38,19 @@ extern "C" {
 #define PATH_FMT_LOCALE_DIR PATH_FMT_RES_DIR "/locale"
 #define PATH_FMT_DATA_DIR PATH_FMT_APP_ROOT "/%s/data"
 
-typedef void (*app_terminate_task_cb) (void *data);
+typedef void (*app_finalizer_cb) (void *data);
 
-typedef struct app_terminate_task_s
-{
-	app_terminate_task_cb cb;
-	void *data;
-} app_terminate_task_t;
-
-int app_add_terminate_task(app_terminate_task_cb callback, void *data);
+int app_error(app_error_e error, const char* function, const char *description);
 
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
 
-int app_get_project_name(const char *package, char **name);
+int app_get_package_app_name(const char *package, char **name);
+
+int app_finalizer_add(app_finalizer_cb callback, void *data);
+
+int app_finalizer_remove(app_finalizer_cb callback);
+
+void app_finalizer_execute(void);
 
 #ifdef __cplusplus
 }

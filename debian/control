@@ -7,12 +7,12 @@ Build-Depends: debhelper (>= 5), dlog-dev, libbundle-dev, libappcore-common-dev,
 
 Package: capi-appfw-application
 Architecture: any
-Depends: ${shilbs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: An Application library in Tizen C API
 
 Package: capi-appfw-application-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, capi-appfw-application (= ${Source-Version}), dlog-dev, libbundle-dev, libappcore-common-dev, libappcore-efl-dev, libaul-1-dev, libail-0-dev, libappsvc-dev, libnotification-dev, libelm-dev, capi-base-common-dev, libalarm-dev, libsqlite3-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, capi-appfw-application (= ${Source-Version}), capi-base-common-dev
 Description: An Application library in Tizen C API (DEV)
 
 Package: capi-appfw-application-dbg

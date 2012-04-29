@@ -1,3 +1,27 @@
+capi-appfw-application (0.1.0-21) unstable; urgency=low
+
+  * Changed the definitions of service operation and extra-data
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-21
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 15 Mar 2012 16:09:18 +0900
+
+capi-appfw-application (0.1.0-20) unstable; urgency=low
+
+  * Updated for AIL API changes
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-20
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 05 Mar 2012 19:09:02 +0900
+
+capi-appfw-application (0.1.0-19) unstable; urgency=low
+
+  * Code refactoring
+  * Git: api/application
+  * Tag: capi-appfw-application_0.1.0-19
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 29 Feb 2012 15:29:59 +0900
+
 capi-appfw-application (0.1.0-18) unstable; urgency=low
 
   * Bug fixed : service_foreach_extra_data()

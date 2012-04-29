@@ -64,6 +64,50 @@ typedef struct service_request_context_s {
 
 static int service_create_reply(bundle *data, struct service_s **service);
 
+static const char* service_error_to_string(service_error_e error)
+{
+	switch (error)
+	{
+	case SERVICE_ERROR_NONE:
+		return "NONE";
+
+	case SERVICE_ERROR_INVALID_PARAMETER:
+		return "INVALID_PARAMETER";
+
+	case SERVICE_ERROR_OUT_OF_MEMORY:
+		return "OUT_OF_MEMORY";
+
+	case SERVICE_ERROR_APP_NOT_FOUND:
+		return "APP_NOT_FOUND";
+
+	case SERVICE_ERROR_KEY_NOT_FOUND:
+		return "KEY_NOT_FOUND";
+
+	case SERVICE_ERROR_KEY_REJECTED:
+		return "KEY_REJECTED";
+
+	case SERVICE_ERROR_INVALID_DATA_TYPE:
+		return "INVALID_DATA_TYPE";
+
+	default :
+		return "UNKNOWN";
+	}
+}
+
+int service_error(service_error_e error, const char* function, const char *description)
+{
+	if (description)
+	{
+		LOGE("[%s] %s(0x%08x) : %s", function, service_error_to_string(error), error, description);	
+	}
+	else
+	{
+		LOGE("[%s] %s(0x%08x)", function, service_error_to_string(error), error);	
+	}
+
+	return error;
+}
+
 static int service_validate_extra_data(const char *data)
 {
 	if (data == NULL || data[0] == '\0')
@@ -109,20 +153,20 @@ static void service_request_result_broker(bundle *appsvc_bundle, int appsvc_requ
 {
 	service_request_context_h request_context;
 	service_h request;
-	service_h reply;
+	service_h reply = NULL;
 	service_result_e result;
 	void *user_data;
 	service_reply_cb reply_cb;	
 
 	if (appsvc_data == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid service reply", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
+		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid service reply");
 		return;
 	}
 
 	if (service_create_reply(appsvc_bundle, &reply) != 0)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : failed to create service reply", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
+		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create service reply");
 		return;		
 	}
 
@@ -158,7 +202,7 @@ static void service_request_result_broker(bundle *appsvc_bundle, int appsvc_requ
 	}
 	else
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid callback", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
+		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid callback ");
 	}
 
 }
@@ -175,16 +219,14 @@ int service_create_request(bundle *data, service_h *service)
 
 	if (service == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	service_request = malloc(sizeof(struct service_s));
 
 	if (service_request == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x) : failed to create a service handle", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create a service handle");
 	}
 
 	service_request->type = SERVICE_TYPE_REQUEST;
@@ -201,8 +243,7 @@ int service_create_request(bundle *data, service_h *service)
 	if (service_request->data == NULL)
 	{
 		free(service_request);
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x) : failed to create a bundle handle", __FUNCTION__);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create a bundle");
 	}
 
 	service_request->id = service_new_id();
@@ -220,16 +261,14 @@ int service_create_event(bundle *data, struct service_s **service)
 
 	if (data == NULL || service == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	service_event = malloc(sizeof(struct service_s));
 
 	if (service_event == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x) : failed to create a service handle", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create a service handle");
 	}	
 
 	service_event->type = SERVICE_TYPE_EVENT;
@@ -259,16 +298,14 @@ static int service_create_reply(bundle *data, struct service_s **service)
 
 	if (data == NULL || service == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	service_reply = malloc(sizeof(struct service_s));
 
 	if (service_reply == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x) : failed to create a service handle", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create a service handle");
 	}	
 
 	service_reply->type = SERVICE_TYPE_REPLY;
@@ -284,8 +321,7 @@ int service_destroy(service_h service)
 {
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	bundle_free(service->data);
@@ -297,16 +333,9 @@ int service_destroy(service_h service)
 
 int service_to_bundle(service_h service, bundle **data)
 {
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || data == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (data == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid output param", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	*data = service->data;
@@ -318,16 +347,14 @@ int service_set_operation(service_h service, const char *operation)
 {
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (operation != NULL)
 	{
 		if (appsvc_set_operation(service->data, operation) != 0)
 		{
-			LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid operation", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-			return SERVICE_ERROR_INVALID_PARAMETER;
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid operation");
 		}
 	}
 	else
@@ -342,16 +369,9 @@ int service_get_operation(service_h service, char **operation)
 {
 	const char *operation_value;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || operation == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (operation == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid operation", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	operation_value = appsvc_get_operation(service->data);
@@ -373,16 +393,14 @@ int service_set_uri(service_h service, const char *uri)
 {
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (uri != NULL)
 	{
 		if (appsvc_set_uri(service->data, uri) != 0)
 		{
-			LOGE("[%s] INVALID_PARAMETER(0x%08x : invalid URI)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-			return SERVICE_ERROR_INVALID_PARAMETER;
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid URI");
 		}
 	}
 	else
@@ -398,16 +416,9 @@ int service_get_uri(service_h service, char **uri)
 {
 	const char *uri_value;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || uri == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (uri == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid URI", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	uri_value = appsvc_get_uri(service->data);
@@ -429,16 +440,14 @@ int service_set_mime(service_h service, const char *mime)
 {
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (mime != NULL)
 	{
 		if (appsvc_set_mime(service->data, mime) != 0)
 		{
-			LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid MIME type", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-			return SERVICE_ERROR_INVALID_PARAMETER;
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid MIME type");
 		}
 	}
 	else
@@ -454,16 +463,9 @@ int service_get_mime(service_h service, char **mime)
 {
 	const char *mime_value;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || mime == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (mime == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid MIME type", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	mime_value = appsvc_get_mime(service->data);
@@ -485,16 +487,14 @@ int service_set_package(service_h service, const char *package)
 {
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (package != NULL)
 	{
 		if (appsvc_set_pkgname(service->data, package) != 0)
 		{
-			LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid package", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-			return SERVICE_ERROR_INVALID_PARAMETER;
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid package");
 		}
 	}
 	else
@@ -509,16 +509,9 @@ int service_get_package(service_h service, char **package)
 {
 	const char *package_value;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || package == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (package == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid package", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	package_value = appsvc_get_pkgname(service->data);
@@ -539,24 +532,16 @@ int service_clone(service_h *clone, service_h service)
 {
 	service_h service_clone;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || clone == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (clone == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	service_clone = malloc(sizeof(struct service_s));
 
 	if (service_clone == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x) : failed to create a service handle", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create a service handle");
 	}
 
 	service_clone->id = service_new_id();
@@ -579,10 +564,11 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 	bool implicit_default_operation = false;
 	int launch_pid;
 
+	service_request_context_h request_context = NULL;
+
 	if (service_valiate_service(service))
 	{
-		LOGE("[%s] INVALID_PARAMETER : invalid handle", __FUNCTION__);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	operation = appsvc_get_operation(service->data);
@@ -600,26 +586,11 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 	// operation : default
 	if (!strcmp(operation, SERVICE_OPERATION_DEFAULT))
 	{
-		if (package == NULL || package[0] == '\0')
+		if (package == NULL)
 		{
-			LOGE("[%s] APP_NOT_FOUND(0x%08x) : package must be specified if the operation is default", __FUNCTION__, SERVICE_ERROR_APP_NOT_FOUND);
-			return SERVICE_ERROR_APP_NOT_FOUND;
+			return service_error(SERVICE_ERROR_APP_NOT_FOUND, __FUNCTION__, "package must be specified if the operation is default value");
 		}
 	}
-
-	if (package != NULL && package[0] != '\0')
-	{
-		if (aul_app_is_running(package))
-		{
-			if (aul_open_app(package) <= 0)
-			{
-				LOGE("[%s] APP_NOT_FOUND(0x%08x) : resume the application(%s)", __FUNCTION__, SERVICE_ERROR_APP_NOT_FOUND, package);
-				return SERVICE_ERROR_APP_NOT_FOUND;
-			}
-		}
-	}
-
-	service_request_context_h request_context = NULL;
 
 	if (callback != NULL)
 	{
@@ -628,8 +599,7 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 
 		if (request_context == NULL)
 		{
-			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-			return SERVICE_ERROR_OUT_OF_MEMORY;
+			return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 		}
 
 		request_context->reply_cb = callback;
@@ -651,9 +621,7 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 
 	if (launch_pid < 0)
 	{
-		LOGE("[%s] APP_NOT_FOUND(0x%08x) : operation(%s) package(%s) uri(%s) mime(%s)",
-			__FUNCTION__, SERVICE_ERROR_APP_NOT_FOUND, operation, package, uri, mime);
-		return SERVICE_ERROR_APP_NOT_FOUND;
+		return service_error(SERVICE_ERROR_APP_NOT_FOUND, __FUNCTION__, NULL);
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -661,32 +629,35 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 
 static bool service_copy_reply_data_cb(service_h service, const char *key, void *user_data)
 {
-	bundle *reply_data;
-	bool array = false;
-	char *value;
-	const char **value_array;
-	int value_array_length;
+	bundle *reply_data = user_data;
+	char *value = NULL;
+	char **value_array = NULL;
+	int value_array_length = 0;
+	int value_array_index = 0;
 
-	if (user_data == NULL)
+	if (reply_data == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
+		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 		return false;
 	}
 
-	reply_data = user_data;
-
-	if (!service_is_extra_data_array(service, key, &array))
+	if (appsvc_data_is_array(service->data, key))
 	{
-		if (array == true)
+		service_get_extra_data_array(service, key, &value_array, &value_array_length);
+		appsvc_add_data_array(reply_data, key, (const char**)value_array, value_array_length);
+
+		for (value_array_index=0; value_array_index < value_array_length; value_array_index++)
 		{
-			service_get_extra_data_array(service, key, (char***)&value_array, &value_array_length);
-			appsvc_add_data_array(reply_data, key, value_array, value_array_length);
+			free(value_array[value_array_index]);
 		}
-		else
-		{
-			service_get_extra_data(service, key, &value);
-			appsvc_add_data(reply_data, key, value);
-		}
+
+		free(value_array);
+	}
+	else
+	{
+		service_get_extra_data(service, key, &value);
+		appsvc_add_data(reply_data, key, value);
+		free(value);
 	}
 
 	return true;
@@ -697,43 +668,35 @@ int service_reply_to_launch_request(service_h reply, service_h request, service_
 	bundle *reply_data;
 	int appsvc_result;
 
-	if (service_valiate_service(reply))
+	if (service_valiate_service(reply) || service_valiate_service(request))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid reply handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_valiate_service(request))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid request handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (appsvc_create_result_bundle(request->data, &reply_data) != 0)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : failed to create result bundle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create a result bundle");
 	}
 
 	service_foreach_extra_data(reply, service_copy_reply_data_cb, reply_data);
 
 	switch (result)
 	{
-		case SERVICE_RESULT_SUCCEEDED:
-			appsvc_result = APPSVC_RES_OK;
-			break;
+	case SERVICE_RESULT_SUCCEEDED:
+		appsvc_result = APPSVC_RES_OK;
+		break;
 
-		case SERVICE_RESULT_FAILED:
-			appsvc_result = APPSVC_RES_NOT_OK;
-			break;
+	case SERVICE_RESULT_FAILED:
+		appsvc_result = APPSVC_RES_NOT_OK;
+		break;
 
-		case SERVICE_RESULT_CANCELED:
-			appsvc_result = APPSVC_RES_CANCEL;
-			break;
+	case SERVICE_RESULT_CANCELED:
+		appsvc_result = APPSVC_RES_CANCEL;
+		break;
 
-		default:
-			appsvc_result = APPSVC_RES_CANCEL;
-			break;
+	default:
+		appsvc_result = APPSVC_RES_CANCEL;
+		break;
 	}
 
 	appsvc_send_result(reply_data, appsvc_result);
@@ -744,28 +707,14 @@ int service_reply_to_launch_request(service_h reply, service_h request, service_
 
 int service_add_extra_data(service_h service, const char *key, const char *value)
 {
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key) || service_validate_extra_data(value))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_extra_data(key))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (service_validate_internal_key(key))
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) rejected", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;	
-	}
-
-	if (service_validate_extra_data(value))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid value", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
 	}
 
 	if (appsvc_get_data(service->data, key) != NULL)
@@ -776,9 +725,7 @@ int service_add_extra_data(service_h service, const char *key, const char *value
 
 	if (appsvc_add_data(service->data, key, value) != 0)
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s)/value(%s) is rejected from appsvc",
-			__FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key, value);
-		return SERVICE_ERROR_KEY_REJECTED;			
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "failed to add data to the appsvc handle");
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -787,29 +734,20 @@ int service_add_extra_data(service_h service, const char *key, const char *value
 
 int service_add_extra_data_array(service_h service, const char *key, const char* value[], int length)
 {
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_extra_data(key))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_internal_key(key))
-	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) rejected", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER, key);
-		return SERVICE_ERROR_KEY_REJECTED;	
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (value == NULL || length <= 0)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid array", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid array");
 	}	
+
+	if (service_validate_internal_key(key))
+	{
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
+	}
 
 	if (appsvc_get_data_array(service->data, key, NULL) != NULL)
 	{
@@ -819,8 +757,7 @@ int service_add_extra_data_array(service_h service, const char *key, const char*
 
 	if (appsvc_add_data_array(service->data, key, value, length) != 0)
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) is rejected from appsvc", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;			
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "failed to add array data to the appsvc handle");		
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -829,28 +766,19 @@ int service_add_extra_data_array(service_h service, const char *key, const char*
 
 int service_remove_extra_data(service_h service, const char *key)
 {
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_extra_data(key))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (service_validate_internal_key(key))
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) rejected", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
 	}
 
 	if (bundle_del(service->data, key))
 	{
-		LOGE("[%s] KEY_NOT_FOUND(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_KEY_NOT_FOUND, key);
-		return SERVICE_ERROR_KEY_NOT_FOUND;
+		return service_error(SERVICE_ERROR_KEY_NOT_FOUND, __FUNCTION__, NULL);
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -861,28 +789,15 @@ int service_get_extra_data(service_h service, const char *key, char **value)
 {
 	const char *data_value;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key) || value == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	if (service_validate_extra_data(key))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
 
 	if (service_validate_internal_key(key))
 	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) rejected", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;
-	}
-
-	if (value == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid value", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
 	}
 
 	data_value = appsvc_get_data(service->data, key);
@@ -891,13 +806,11 @@ int service_get_extra_data(service_h service, const char *key, char **value)
 	{
 		if (errno == ENOTSUP)
 		{
-			LOGE("[%s] INVALID_DATA_TYPE(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_INVALID_DATA_TYPE, key);
-			return SERVICE_ERROR_INVALID_DATA_TYPE;
+			return service_error(SERVICE_ERROR_INVALID_DATA_TYPE, __FUNCTION__, NULL);
 		}
 		else
 		{
-			LOGE("[%s] KEY_NOT_FOUND(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_INVALID_DATA_TYPE, key);
-			return SERVICE_ERROR_KEY_NOT_FOUND;
+			return service_error(SERVICE_ERROR_KEY_NOT_FOUND, __FUNCTION__, NULL);
 		}
 	}
 
@@ -914,28 +827,19 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
 	char **array_data_clone;
 	int i;
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_extra_data(key))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (service_validate_internal_key(key))
-	{
-		LOGE("[%s] KEY_REJECTED(0x%08x) : key(%s) rejected", __FUNCTION__, SERVICE_ERROR_KEY_REJECTED, key);
-		return SERVICE_ERROR_KEY_REJECTED;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (value == NULL || length == 0)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid value", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if (service_validate_internal_key(key))
+	{
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
 	}
 
 	array_data = appsvc_get_data_array(service->data, key, &array_data_length);
@@ -944,13 +848,11 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
 	{
 		if (errno == ENOTSUP)
 		{
-			LOGE("[%s] INVALID_DATA_TYPE(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_INVALID_DATA_TYPE, key);
-			return SERVICE_ERROR_INVALID_DATA_TYPE;
+			return service_error(SERVICE_ERROR_INVALID_DATA_TYPE, __FUNCTION__, NULL);
 		}
 		else
 		{
-			LOGE("[%s] KEY_NOT_FOUND(0x%08x) : key(%s)", __FUNCTION__, SERVICE_ERROR_KEY_NOT_FOUND, key);
-			return SERVICE_ERROR_KEY_NOT_FOUND;
+			return service_error(SERVICE_ERROR_KEY_NOT_FOUND, __FUNCTION__, NULL);
 		}
 	}
 
@@ -958,8 +860,7 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
 
 	if (array_data_clone == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, SERVICE_ERROR_OUT_OF_MEMORY);
-		return SERVICE_ERROR_OUT_OF_MEMORY;
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}
 
 	for (i=0; i<array_data_length; i++)
@@ -979,38 +880,23 @@ int service_get_extra_data_array(service_h service, const char *key, char ***val
 
 int service_is_extra_data_array(service_h service, const char *key, bool *array)
 {
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || service_validate_extra_data(key) || array == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	if (service_validate_extra_data(key))
+	if (service_validate_internal_key(key))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid key", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
+		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
+	}
 
-	if (array == NULL)
+	if (!appsvc_data_is_array(service->data, key))
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid output param", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (!service_validate_internal_key(key))
-	{
-		if (!appsvc_data_is_array(service->data, key))
-		{
-			*array = false;
-		}
-		else
-		{
-			*array = true;
-		}
+		*array = false;
 	}
 	else
 	{
-		*array = false;
+		*array = true;
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -1069,16 +955,9 @@ int service_foreach_extra_data(service_h service, service_extra_data_cb callback
 		.foreach_break = false
 	};
 	
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || callback == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (callback == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid callback", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	bundle_foreach(service->data, service_cb_broker_bundle_iterator, &foreach_context);
@@ -1100,7 +979,7 @@ int service_cb_broker_foreach_app_matched(const char *package, void *data)
 
 	if (package == NULL || data == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
+		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 		return -1;
 	}
 
@@ -1134,16 +1013,9 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
 		.foreach_break = false
 	};
 
-	if (service_valiate_service(service))
+	if (service_valiate_service(service) || callback == NULL)
 	{
-		LOGE( "[%s] INVALID_PARAMETER(0x%08x) : invalid handle", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (callback == NULL)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid callback", __FUNCTION__, SERVICE_ERROR_INVALID_PARAMETER);
-		return SERVICE_ERROR_INVALID_PARAMETER;
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	appsvc_get_list(service->data, service_cb_broker_foreach_app_matched, &foreach_context);

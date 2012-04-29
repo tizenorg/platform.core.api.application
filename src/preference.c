@@ -81,7 +81,7 @@ static int _initialize(void)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	app_add_terminate_task(_finish, NULL);
+	app_finalizer_add(_finish, NULL);
 	
 	return PREFERENCE_ERROR_NONE;
 }

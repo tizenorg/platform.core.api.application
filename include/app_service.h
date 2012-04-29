@@ -65,103 +65,103 @@ typedef enum
 /**
  * @brief	Service operation : default operation for explicit launch
  */
-#define SERVICE_OPERATION_DEFAULT		"slp.appsvc.operation.DEFAULT"
+#define SERVICE_OPERATION_DEFAULT "http://tizen.org/appsvc/operation/default"
 
 
 /**
  * @brief	Service operation : provide explicit editable access to the given data. 
  */
-#define SERVICE_OPERATION_EDIT			"slp.appsvc.operation.EDIT"
+#define SERVICE_OPERATION_EDIT "http://tizen.org/appsvc/operation/edit"
 
 
 /**
  * @brief	Service operation : display the data.
  */
-#define SERVICE_OPERATION_VIEW			"slp.appsvc.operation.VIEW"
+#define SERVICE_OPERATION_VIEW "http://tizen.org/appsvc/operation/view"
 
 
 /**
  * @brief	Service operation : pick an item from the data, returning what was selected.
  */
-#define SERVICE_OPERATION_PICK			"slp.appsvc.operation.PICK"
+#define SERVICE_OPERATION_PICK "http://tizen.org/appsvc/operation/pick"
 
 
 /**
  * @brief	Service operation : create a content, returning what was created.
  */
-#define SERVICE_OPERATION_CREATE_CONTENT		"slp.appsvc.operation.CREATE_CONTENT"
+#define SERVICE_OPERATION_CREATE_CONTENT "http://tizen.org/appsvc/operation/create_content"
 
 
 /**
  * @brief	Service operation : perform a call to someone specified by the data.
  */
-#define SERVICE_OPERATION_CALL			"slp.appsvc.operation.CALL"
+#define SERVICE_OPERATION_CALL "http://tizen.org/appsvc/operation/call"
 
 
 /**
  * @brief	Service operation : deliver some data to someone else.
  */
-#define SERVICE_OPERATION_SEND			"slp.appsvc.operation.SEND"
+#define SERVICE_OPERATION_SEND "http://tizen.org/appsvc/operation/send"
 
 
 /**
  * @brief	Service operation : deliver text data to someone else.
  */
-#define SERVICE_OPERATION_SEND_TEXT		"slp.appsvc.operation.SEND_TEXT"
+#define SERVICE_OPERATION_SEND_TEXT "http://tizen.org/appsvc/operation/send_text"
 
 
 /**
  * @brief	Service operation : dial a number as specified by the data.
  */
-#define SERVICE_OPERATION_DIAL			"slp.appsvc.operation.DIAL"
+#define SERVICE_OPERATION_DIAL "http://tizen.org/appsvc/operation/dial"
 
 
 /**
  * @brief	Service operation : perform a search. 
  */
-#define SERVICE_OPERATION_SEARCH			"slp.appsvc.operation.SEARCH"
+#define SERVICE_OPERATION_SEARCH "http://tizen.org/appsvc/operation/search"
 
 
 /**
  * @brief	Service optional data : the subject of a message.
  */
-#define SERVICE_DATA_SUBJECT		"slp.appsvc.data.SUBJECT"
+#define SERVICE_DATA_SUBJECT "http://tizen.org/appsvc/data/subject"
 
 
 /**
  * @brief	Service optional data : e-mail addresses.
  */
-#define SERVICE_DATA_TO			"slp.appsvc.data.TO"
+#define SERVICE_DATA_TO "http://tizen.org/appsvc/data/to"
 
 
 /**
  * @brief	Service optional data : e-mail addresses that should be carbon copied.
  */
-#define SERVICE_DATA_CC			"slp.appsvc.data.CC"
+#define SERVICE_DATA_CC "http://tizen.org/appsvc/data/cc"
 
 
 /**
  * @brief	Service optional data : e-mail addresses that should be blind carbon copied.
  */
-#define SERVICE_DATA_BCC			"slp.appsvc.data.BCC"
+#define SERVICE_DATA_BCC "http://tizen.org/appsvc/data/bcc"
 
 
 /**
  * @brief	Service optional data : the content of the data is associated with #SERVICE_OPERATION_SEND.
  */
-#define SERVICE_DATA_TEXT		"slp.appsvc.data.TEXT"
+#define SERVICE_DATA_TEXT "http://tizen.org/appsvc/data/text"
 
 
 /**
  * @brief	Service optional data : the title of the data
  */
-#define SERVICE_DATA_TITLE		"slp.appsvc.data.TITLE"
+#define SERVICE_DATA_TITLE "http://tizen.org/appsvc/data/title"
 
 
 /**
  * @brief	Service optional data : the path of selected item.
  */
-#define SERVICE_DATA_SELECTED		"slp.appsvc.data.SELECTED"
+#define SERVICE_DATA_SELECTED "http://tizen.org/appsvc/data/selected"
 
 
 /**
@@ -330,7 +330,7 @@ int service_set_mime(service_h service, const char *mime);
  * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
  * @see	service_set_mime()
  */
-int service_get_mime(service_h service, char **uri);
+int service_get_mime(service_h service, char **mime);
 
 
 /**

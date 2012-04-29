@@ -38,14 +38,13 @@
 
 #define LOG_TAG "TIZEN_N_APPLICATION"
 
-int app_get_project_name(const char *package, char **name)
+int app_get_package_app_name(const char *package, char **name)
 {
 	char *name_token = NULL;
 
 	if (package == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return APP_ERROR_INVALID_PARAMETER;
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	// com.vendor.name -> name
@@ -53,8 +52,7 @@ int app_get_project_name(const char *package, char **name)
 
 	if (name_token == NULL)
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 	}
 
 	name_token++;
@@ -63,8 +61,7 @@ int app_get_project_name(const char *package, char **name)
 
 	if (*name == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, APP_ERROR_OUT_OF_MEMORY);
-		return APP_ERROR_OUT_OF_MEMORY;
+		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}
 
 	return APP_ERROR_NONE;
@@ -76,8 +73,7 @@ int app_get_package(char **package)
 
 	if (package == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return APP_ERROR_INVALID_PARAMETER;
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (package_buf[0] == '\0')
@@ -87,22 +83,20 @@ int app_get_package(char **package)
 
 	if (package_buf[0] == '\0')
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x) : failed to get the package of the application", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 	}
 
 	*package = strdup(package_buf);
 
 	if (*package == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, APP_ERROR_OUT_OF_MEMORY);
-		return APP_ERROR_OUT_OF_MEMORY;
+		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}
 
 	return APP_ERROR_NONE;
 }
 
-static int app_get_appinfo(const char *package, ail_prop_str_e property, char **value)
+static int app_get_appinfo(const char *package, const char *property, char **value)
 {
 	ail_appinfo_h appinfo;
 	char *appinfo_value;
@@ -110,15 +104,13 @@ static int app_get_appinfo(const char *package, ail_prop_str_e property, char **
 
 	if (ail_package_get_appinfo(package, &appinfo) != 0)
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x) : failed to get app-info", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get app-info");
 	}
 	
 	if (ail_appinfo_get_str(appinfo, property, &appinfo_value) != 0)
 	{
 		ail_package_destroy_appinfo(appinfo);
-		LOGE("[%s] INVALID_CONTEXT(0x%08x) : failed to get app-property", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get app-property");
 	}
 
 	appinfo_value_dup = strdup(appinfo_value);
@@ -127,8 +119,7 @@ static int app_get_appinfo(const char *package, ail_prop_str_e property, char **
 
 	if (appinfo_value_dup == NULL)
 	{
-		LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, APP_ERROR_OUT_OF_MEMORY);
-		return APP_ERROR_OUT_OF_MEMORY;
+		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}
 
 	*value = appinfo_value_dup;
@@ -143,14 +134,12 @@ int app_get_name(char **name)
 
 	if(name == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return APP_ERROR_INVALID_PARAMETER;
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (app_get_package(&package) != 0)
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 	}
 
 	retval = app_get_appinfo(package, AIL_PROP_NAME_STR, name);
@@ -170,14 +159,12 @@ int app_get_version(char **version)
 
 	if(version == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return APP_ERROR_INVALID_PARAMETER;
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
 	if (app_get_package(&package) != 0)
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return APP_ERROR_INVALID_CONTEXT;
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 	}
 
 	retval = app_get_appinfo(package, AIL_PROP_VERSION_STR, version);

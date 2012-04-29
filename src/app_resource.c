@@ -37,132 +37,141 @@
 
 #define LOG_TAG "TIZEN_N_APPLICATION"
 
-static char* app_get_resource_directory()
+static const char *INSTALLED_PATH = "/opt/apps";
+static const char *RES_DIRECTORY_NAME = "res";
+static const char *DATA_DIRECTORY_NAME = "data";
+
+static char * app_get_root_directory(char *buffer, int size)
 {
-	static char *resource_directory = NULL;
+	char *package = NULL;
+	char root_directory[TIZEN_PATH_MAX] = {0, };
 
-	if (resource_directory == NULL)
+	if (app_get_package(&package) != APP_ERROR_NONE)
 	{
-		char *resource_directory_tmp;
-		char *package = NULL;
-	
-		if (app_get_package(&package) != APP_ERROR_NONE)
-		{
-			LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-			return NULL;
-		}
-
-		resource_directory_tmp = calloc(1, sizeof(char) * TIZEN_PATH_MAX);
-
-		if (resource_directory_tmp == NULL)
-		{
-			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, APP_ERROR_OUT_OF_MEMORY);
-			return NULL;
-		}
-
-		snprintf(resource_directory_tmp, TIZEN_PATH_MAX, PATH_FMT_RES_DIR, package);
-
-		if (package != NULL)
-		{
-			free(package);
-		}
-
-		resource_directory = resource_directory_tmp;
+		app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
+		return NULL;
 	}
 
-	return resource_directory;
+	snprintf(root_directory, sizeof(root_directory), "%s/%s", INSTALLED_PATH, package);
+
+	free(package);	
+
+	if (size < strlen(root_directory)+1)
+	{
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "the buffer is not big enough");
+		return NULL;
+	}
+
+	snprintf(buffer, size, "%s", root_directory);
+
+	return buffer;
 }
 
-char* app_get_resource(const char *resource, char *buffer, int size)
+static char* app_get_resource_directory(char *buffer, int size)
 {
-	char *resource_directory;
-	int abs_path_size;
+	char root_directory[TIZEN_PATH_MAX] = {0, };
+	char resource_directory[TIZEN_PATH_MAX] = {0, };
 
-	if (resource == NULL)
+	if (app_get_root_directory(root_directory, sizeof(root_directory)) == NULL)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid resource", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
+		app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the root directory of the application");
 		return NULL;
 	}
 
-	if (buffer == NULL || size <= 0)
+	snprintf(resource_directory, sizeof(resource_directory), "%s/%s", root_directory, RES_DIRECTORY_NAME);
+
+	if (size < strlen(resource_directory) +1)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid buffer", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "the buffer is not big enough");
 		return NULL;
 	}
 
-	resource_directory = app_get_resource_directory();
-
-	if (resource_directory == NULL)
-	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x) : failed to get the path to the resource directory", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
-		return NULL;
-	}
-
-	abs_path_size = strlen(resource_directory)+ strlen("/") + strlen(resource);
-
-	if (size <= abs_path_size)
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : the buffer is not big enough", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return NULL;
-	}
-
-	snprintf(buffer, size, "%s/%s", resource_directory, resource);
+	snprintf(buffer, size, "%s", resource_directory);
 
 	return buffer;
 }
 
 char* app_get_data_directory(char *buffer, int size)
 {
-	static char *abs_path = NULL;
+	static char data_directory[TIZEN_PATH_MAX] = {0, };
+	static int data_directory_length = 0;
+
+	if (data_directory[0] == '\0')
+	{
+		char *root_directory = NULL;
+
+		root_directory = calloc(1, TIZEN_PATH_MAX);
+
+		if (root_directory == NULL)
+		{
+			app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+			return NULL;
+		}
+
+		if (app_get_root_directory(root_directory, TIZEN_PATH_MAX) == NULL)
+		{
+			free(root_directory);
+			app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the path to the root directory");
+			return NULL;
+		}
+
+		snprintf(data_directory, sizeof(data_directory), "%s/%s", root_directory, DATA_DIRECTORY_NAME);
+
+		data_directory_length = strlen(data_directory);
+
+		free(root_directory);
+	}
+
+	if (size < data_directory_length+1)
+	{
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "the buffer is not big enough");
+		return NULL;
+	}
+
+	snprintf(buffer, size, "%s", data_directory);
+
+	return buffer;
+}
+
+char* app_get_resource(const char *resource, char *buffer, int size)
+{
+	static char resource_directory[TIZEN_PATH_MAX] = {0, };
+	static int resource_directory_length = 0;
+
+	int resource_path_length = 0;
+
+	if (resource == NULL)
+	{
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+		return NULL;
+	}
 
 	if (buffer == NULL || size <= 0)
 	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : invalid buffer", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 		return NULL;
 	}
 
-	if (abs_path == NULL)
+	if (resource_directory[0] == '\0')
 	{
-		char *package;
-		char *abs_path_tmp;
-
-		if (app_get_package(&package) != 0)
+		if (app_get_resource_directory(resource_directory, sizeof(resource_directory)) == NULL)
 		{
-			LOGE("[%s] INVALID_CONTEXT(0x%08x)", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
+			app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the path to the resource directory");
 			return NULL;
 		}
 
-		abs_path_tmp = calloc(1, sizeof(char) * TIZEN_PATH_MAX);
-
-		if (abs_path_tmp == NULL)
-		{
-			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, APP_ERROR_OUT_OF_MEMORY);
-			return NULL;
-		}
-
-		snprintf(abs_path_tmp, TIZEN_PATH_MAX, PATH_FMT_DATA_DIR, package);
-
-		if (package != NULL)
-		{
-			free(package);
-		}
-
-		abs_path = abs_path_tmp;
+		resource_directory_length = strlen(resource_directory);
 	}
 
-	if (abs_path == NULL)
+	resource_path_length = resource_directory_length + strlen("/") + strlen(resource);
+
+	if (size < resource_path_length+1)
 	{
-		LOGE("[%s] INVALID_CONTEXT(0x%08x) : failed to get the absolute path to the data directory", __FUNCTION__, APP_ERROR_INVALID_CONTEXT);
+		app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "the buffer is not big enough");
 		return NULL;
 	}
 
-	if (size <= strlen(abs_path))
-	{
-		LOGE("[%s] INVALID_PARAMETER(0x%08x) : the buffer is not big enough", __FUNCTION__, APP_ERROR_INVALID_PARAMETER);
-		return NULL;
-	}
-
-	snprintf(buffer, size, "%s", abs_path);
+	snprintf(buffer, size, "%s/%s", resource_directory, resource);
 
 	return buffer;
 }

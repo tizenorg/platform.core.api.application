@@ -7,20 +7,19 @@ License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
-BuildRequires:  pkgconfig(sqlite3)
-BuildRequires:  pkgconfig(notification)
 BuildRequires:  pkgconfig(bundle)
 BuildRequires:  pkgconfig(appcore-common)
 BuildRequires:  pkgconfig(appcore-efl)
 BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(ail)
 BuildRequires:  pkgconfig(appsvc)
-BuildRequires:  pkgconfig(heynoti)
+BuildRequires:  pkgconfig(notification)
 BuildRequires:  pkgconfig(elementary)
 BuildRequires:  pkgconfig(alarm-service)
 BuildRequires:  pkgconfig(capi-base-common)
-BuildRequires:  pkgconfig(dbus-glib-1)
-BuildRequires:  pkgconfig(gconf-2.0)
+BuildRequires:  pkgconfig(sqlite3)
+
+
 Requires(post): /sbin/ldconfig  
 Requires(postun): /sbin/ldconfig
 
@@ -40,9 +39,8 @@ An Application library in Tizen C API (DEV)
 
 
 %build
-FULLVER=%{version}
-MAJORVER=`echo ${FULLVER} | cut -d '.' -f 1`
-cmake . -DCMAKE_INSTALL_PREFIX=/usr -DFULLVER=${FULLVER} -DMAJORVER=${MAJORVER}
+MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
+cmake . -DCMAKE_INSTALL_PREFIX=/usr -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
 
 
 make %{?jobs:-j%jobs}
@@ -57,10 +55,11 @@ rm -rf %{buildroot}
 
 
 %files
-%{_libdir}/libcapi-appfw-application.so*
+%{_libdir}/libcapi-appfw-application.so.*
 
 %files devel
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
+%{_libdir}/libcapi-appfw-application.so
 
 
