@@ -5,6 +5,7 @@ Release:    1
 Group:      TO_BE/FILLED_IN
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/capi-appfw-application.manifest 
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
@@ -39,6 +40,7 @@ An Application library in Tizen C API (DEV)
 
 
 %build
+cp %{SOURCE1001} .
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
 cmake . -DCMAKE_INSTALL_PREFIX=/usr -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
 
@@ -55,9 +57,11 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest capi-appfw-application.manifest
 %{_libdir}/libcapi-appfw-application.so.*
 
 %files devel
+%manifest capi-appfw-application.manifest
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libcapi-appfw-application.so
