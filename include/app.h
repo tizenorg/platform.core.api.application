@@ -288,6 +288,23 @@ int app_get_package(char **package);
 
 
 /**
+ * @brief Gets the ID of the application.
+ *
+ * @remarks @a ID must be released with free() by you.
+ *
+ * @param [out] id The ID of the application
+ *
+ * @return 0 on success, otherwise a negative error value.
+ *
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT The application is illegally launched, not launched by the launch system.
+ * @retval #APP_ERROR_OUT_OF_MEMORY Out of memory
+ */
+int app_get_id(char **id);
+
+
+/**
  * @brief Gets the localized name of the application.
  *
  * @remarks @a name must be released with free() by you.
@@ -358,6 +375,18 @@ char* app_get_data_directory(char *buffer, int size);
  * @return The current device orientation
  */
 app_device_orientation_e app_get_device_orientation(void);
+
+
+/**
+ * @brief Sets whether reclaiming system cache is enabled in the pause state.
+ *
+ * @details If the reclaiming system cache is enabled, the system caches are released as possible when the application's state changes to the pause state.
+ *
+ * @remarks The reclaiming system cache is enabled by default
+ *
+ * @param [in] enable whether reclaiming system cache is enabled
+ */
+void app_set_reclaiming_system_cache_on_pause(bool enable);
 
 
 /**

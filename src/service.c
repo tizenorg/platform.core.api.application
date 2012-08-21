@@ -35,6 +35,10 @@
 
 #define LOG_TAG "TIZEN_N_SERVICE"
 
+#ifndef TIZEN_PATH_MAX
+#define TIZEN_PATH_MAX 1024
+#endif
+
 #define BUNDLE_KEY_PREFIX_AUL "__AUL_"
 #define BUNDLE_KEY_PREFIX_SERVICE "__APP_SVC_"
 
@@ -43,6 +47,8 @@
 #define BUNDLE_KEY_MIME		"__APP_SVC_MIME_TYPE__"
 #define BUNDLE_KEY_DATA		"__APP_SVC_DATA__"
 #define BUNDLE_KEY_PACKAGE	"__APP_SVC_PKG_NAME__"
+#define BUNDLE_KEY_WINDOW	"__APP_SVC_K_WIN_ID__"
+
 
 typedef enum {
 	SERVICE_TYPE_REQUEST,
@@ -61,6 +67,8 @@ typedef struct service_request_context_s {
 	service_reply_cb reply_cb;
 	void *user_data;
 } *service_request_context_h;
+
+extern int appsvc_allow_transient_app(bundle *b, unsigned int id);
 
 static int service_create_reply(bundle *data, struct service_s **service);
 
@@ -193,7 +201,6 @@ static void service_request_result_broker(bundle *appsvc_bundle, int appsvc_requ
 	}
 
 	user_data = request_context->user_data;
-
 	reply_cb = request_context->reply_cb;
 
 	if (reply_cb != NULL)
@@ -205,6 +212,14 @@ static void service_request_result_broker(bundle *appsvc_bundle, int appsvc_requ
 		service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid callback ");
 	}
 
+	service_destroy(reply);
+
+	if (request_context->service != NULL)
+	{
+		service_destroy(request_context->service);
+	}
+
+	free(request_context);
 }
 
 
@@ -285,11 +300,6 @@ int service_create_event(bundle *data, struct service_s **service)
 	*service = service_event;
 
 	return SERVICE_ERROR_NONE;
-}
-
-int service_impl_create_event(bundle *data, struct service_s **service)
-{
-	return service_create_event(data, service);
 }
 
 static int service_create_reply(bundle *data, struct service_s **service)
@@ -485,16 +495,29 @@ int service_get_mime(service_h service, char **mime)
 
 int service_set_package(service_h service, const char *package)
 {
+	// TODO: this function must be deprecated
+	return service_set_app_id(service, package);
+}
+
+int service_get_package(service_h service, char **package)
+{
+	// TODO: this function must be deprecated
+	return service_get_app_id(service, package);
+}
+
+
+int service_set_app_id(service_h service, const char *app_id)
+{
 	if (service_valiate_service(service))
 	{
 		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	if (package != NULL)
+	if (app_id != NULL)
 	{
-		if (appsvc_set_pkgname(service->data, package) != 0)
+		if (appsvc_set_pkgname(service->data, app_id) != 0)
 		{
-			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid package");
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid application ID");
 		}
 	}
 	else
@@ -505,24 +528,70 @@ int service_set_package(service_h service, const char *package)
 	return SERVICE_ERROR_NONE;
 }
 
-int service_get_package(service_h service, char **package)
-{
-	const char *package_value;
 
-	if (service_valiate_service(service) || package == NULL)
+int service_get_app_id(service_h service, char **app_id)
+{
+	const char *app_id_value;
+
+	if (service_valiate_service(service) || app_id == NULL)
 	{
 		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	package_value = appsvc_get_pkgname(service->data);
+	app_id_value = appsvc_get_pkgname(service->data);
 
-	if (package_value != NULL)
+	if (app_id_value != NULL)
 	{
-		*package = strdup(package_value);
+		*app_id = strdup(app_id_value);
 	}
 	else
 	{
-		*package = NULL;
+		*app_id = NULL;
+	}
+
+	return SERVICE_ERROR_NONE;
+}
+
+int service_set_window(service_h service, unsigned int id)
+{
+	if (service_valiate_service(service))
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if (id > 0)
+	{
+		if (appsvc_allow_transient_app(service->data, id) != 0)
+		{
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid id");
+		}
+	}
+	else
+	{
+		bundle_del(service->data, BUNDLE_KEY_WINDOW);
+	}
+
+	return SERVICE_ERROR_NONE;
+}
+
+int service_get_window(service_h service, unsigned int *id)
+{
+	const char *window_id;
+
+	if (service_valiate_service(service) || id == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	window_id = bundle_get_val(service->data, BUNDLE_KEY_WINDOW);
+
+	if (window_id != NULL)
+	{
+		*id = atoi(window_id);
+	}
+	else
+	{
+		*id = 0;
 	}
 
 	return SERVICE_ERROR_NONE;
@@ -594,8 +663,9 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 
 	if (callback != NULL)
 	{
+		service_h request_clone = NULL;
+
 		request_context = calloc(1, sizeof(struct service_request_context_s));
-		// request_context will be deallocated from service_request_result_broker()
 
 		if (request_context == NULL)
 		{
@@ -603,7 +673,14 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 		}
 
 		request_context->reply_cb = callback;
-		request_context->service = service;
+
+		if (service_clone(&request_clone, service) != SERVICE_ERROR_NONE)
+		{
+			free(request_context);
+			return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to clone the service request handle");
+		}
+
+		request_context->service = request_clone;
 		request_context->user_data = user_data;
 	}
 
@@ -1019,6 +1096,136 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
 	}
 
 	appsvc_get_list(service->data, service_cb_broker_foreach_app_matched, &foreach_context);
+
+	return SERVICE_ERROR_NONE;
+}
+
+
+int service_get_caller(service_h service, char **package)
+{
+	const char *bundle_value;
+	pid_t caller_pid;
+	char package_buf[TIZEN_PATH_MAX] = {0, };
+	char *package_dup;
+
+	if (service_valiate_service(service) || package == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if (service->type != SERVICE_TYPE_EVENT)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid service handle type");
+	}
+
+	bundle_value = bundle_get_val(service->data, AUL_K_ORG_CALLER_PID);
+
+	if (bundle_value == NULL)
+	{
+		bundle_value = bundle_get_val(service->data, AUL_K_CALLER_PID);
+	}
+
+	if (bundle_value == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to retrieve the pid of the caller");
+	}
+
+	caller_pid = atoi(bundle_value);
+
+	if (caller_pid <= 0)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid pid of the caller");
+	}
+
+	if (aul_app_get_pkgname_bypid(caller_pid, package_buf, sizeof(package_buf)) != AUL_R_OK)
+	{
+		return service_error(SERVICE_ERROR_APP_NOT_FOUND, __FUNCTION__, "failed to get the package name of the caller");
+	}
+
+	package_dup = strdup(package_buf);
+
+	if (package_dup == NULL)
+	{
+		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+	}
+
+	*package = package_dup;
+
+	return SERVICE_ERROR_NONE;
+}
+
+
+int service_is_reply_requested(service_h service, bool *requested)
+{
+	const char *bundle_value;
+	
+	if (service_valiate_service(service) || requested == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if (service->type != SERVICE_TYPE_EVENT)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid service handle type");
+	}
+
+	bundle_value = bundle_get_val(service->data, AUL_K_WAIT_RESULT);
+
+	if (bundle_value != NULL)
+	{
+		*requested = true;
+	}
+	else
+	{
+		*requested = false;
+	}
+
+	return SERVICE_ERROR_NONE;
+}
+
+int service_import_from_bundle(service_h service, bundle *data)
+{
+	bundle *data_dup = NULL;
+
+	if (service_valiate_service(service) || data == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	data_dup = bundle_dup(data);
+
+	if (data_dup == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to duplicate the bundle");
+	}
+
+	if (service->data != NULL)
+	{
+		bundle_free(service->data);
+	}
+
+	service->data = data_dup;
+
+	return SERVICE_ERROR_NONE;
+}
+
+int service_export_as_bundle(service_h service, bundle **data)
+{
+	bundle *data_dup = NULL;
+
+	if (service_valiate_service(service) || data == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	data_dup = bundle_dup(service->data);
+
+	if (data_dup == NULL)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to duplicate the bundle");
+	}
+
+	*data = data_dup;
 
 	return SERVICE_ERROR_NONE;
 }

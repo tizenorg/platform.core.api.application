@@ -22,12 +22,12 @@
 extern "C" {
 #endif
 
-#define PREF_DB_NAME 		".pref.db"
-#define PREF_TBL_NAME 		"pref"
+#define PREF_DB_NAME		".pref.db"
+#define PREF_TBL_NAME		"pref"
 #define PREF_F_KEY_NAME		"pref_key"
-#define PREF_F_TYPE_NAME 	"pref_type"
+#define PREF_F_TYPE_NAME	"pref_type"
 #define PREF_F_DATA_NAME	"pref_data"
-#define BUF_LEN 			(1024)
+#define BUF_LEN			(4096)
 
 typedef enum
 {

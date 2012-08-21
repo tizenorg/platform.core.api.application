@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -43,6 +43,8 @@ struct ui_notification_s {
 	char *title;
 	char *content;
 	service_h service;
+	char *sound;
+	bool vibration;
 };
 
 static int ui_notification_error_handler(int error, const char *func, const char *on_error)
@@ -69,7 +71,7 @@ static int ui_notification_error_handler(int error, const char *func, const char
 	case NOTIFICATION_ERROR_FROM_DB:
 		retcode = UI_NOTIFICATION_ERROR_DB_FAILED;
 		error_msg = "DB_FAILED";
-		break;		
+		break;
 
 	case NOTIFICATION_ERROR_ALREADY_EXIST_ID:
 	case NOTIFICATION_ERROR_NOT_EXIST_ID:
@@ -108,7 +110,7 @@ int ui_notification_create(bool ongoing, ui_notification_h *notification)
 		LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_OUT_OF_MEMORY);
 		return UI_NOTIFICATION_ERROR_OUT_OF_MEMORY;
 	}
-	
+
 	notification_out->raw_handle = NULL;
 	notification_out->ongoing = ongoing;
 	notification_out->posted = false;
@@ -118,7 +120,9 @@ int ui_notification_create(bool ongoing, ui_notification_h *notification)
 	notification_out->title = NULL;
 	notification_out->content = NULL;
 	notification_out->service = NULL;
-	
+	notification_out->sound = NULL;
+	notification_out->vibration = false;
+
 	*notification = notification_out;
 
 	return UI_NOTIFICATION_ERROR_NONE;
@@ -133,6 +137,9 @@ static int ui_notification_construct(bool ongoing, notification_h raw_handle, ui
 	char *title;
 	char *content;
 	bundle *service_data;
+	const char *sound;
+	notification_sound_type_e sound_type;
+	notification_vibration_type_e vib_type;
 
 	if (notification == NULL)
 	{
@@ -155,22 +162,22 @@ static int ui_notification_construct(bool ongoing, notification_h raw_handle, ui
 	{
 		return retcode;
 	}
- 	
+
 	notification_out->ongoing = ongoing;
 
 	notification_out->posted = true;
 
 	notification_out->removed = false;
 
-	if (!notification_get_image(raw_handle, NOTIFICATION_IMAGE_TYPE_ICON, &icon))
+	if (!notification_get_image(raw_handle, NOTIFICATION_IMAGE_TYPE_ICON, &icon) && icon)
 	{
-		notification_out->icon = icon;
+		notification_out->icon = strdup(icon);
 	}
 
 	if (!notification_get_time(raw_handle, &time))
 	{
 		notification_out->time = malloc(sizeof(struct tm));
-		
+
 		if (notification_out->time == NULL)
 		{
 			ui_notification_destroy(notification_out);
@@ -181,14 +188,27 @@ static int ui_notification_construct(bool ongoing, notification_h raw_handle, ui
 		localtime_r(&time, notification_out->time);
 	}
 
-	if (!notification_get_text(raw_handle, NOTIFICATION_TEXT_TYPE_TITLE, &title))
+	if (!notification_get_text(raw_handle, NOTIFICATION_TEXT_TYPE_TITLE, &title) && title)
 	{
-		notification_out->title = title;
+		notification_out->title = strdup(title);
 	}
 
-	if (!	notification_get_text(raw_handle, NOTIFICATION_TEXT_TYPE_CONTENT, &content))
+	if (!notification_get_text(raw_handle, NOTIFICATION_TEXT_TYPE_CONTENT, &content) && content)
 	{
-		notification_out->content = content;
+		notification_out->content = strdup(content);
+	}
+
+	if (!notification_get_sound(raw_handle, &sound_type, &sound) && sound)
+	{
+		notification_out->sound = strdup(sound);
+	}
+
+	if (!notification_get_vibration(raw_handle, &vib_type, NULL))
+	{
+		if (vib_type == NOTIFICATION_VIBRATION_TYPE_DEFAULT)
+		{
+			notification_out->vibration = true;
+		}
 	}
 
 	if (!notification_get_execute_option(raw_handle, NOTIFICATION_EXECUTE_TYPE_SINGLE_LAUNCH, NULL, &service_data))
@@ -228,6 +248,9 @@ int ui_notification_destroy(ui_notification_h notification)
 
 	if (notification->content)
 		free(notification->content);
+
+	if (notification->sound)
+		free(notification->sound);
 
 	if (notification->service)
 		service_destroy(notification->service);
@@ -289,6 +312,13 @@ int ui_notification_clone(ui_notification_h *clone, ui_notification_h notificati
 	{
 		notification_out->content = strdup(notification->content);
 	}
+
+	if (notification->sound)
+	{
+		notification_out->sound = strdup(notification->sound);
+	}
+
+	notification_out->vibration = notification->vibration;
 
 	if (notification->service)
 	{
@@ -422,7 +452,7 @@ int ui_notification_get_time(ui_notification_h notification, struct tm **time)
 			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_OUT_OF_MEMORY);
 			return UI_NOTIFICATION_ERROR_OUT_OF_MEMORY;
 		}
-	
+
 		memcpy(time_dup, notification->time, sizeof(struct tm));
 	}
 
@@ -622,6 +652,91 @@ int ui_notification_get_service(ui_notification_h notification, service_h *servi
 	return UI_NOTIFICATION_ERROR_NONE;
 }
 
+int ui_notification_set_sound(ui_notification_h notification, const char *path)
+{
+	char *path_dup = NULL;
+
+	if (notification == NULL)
+	{
+		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_INVALID_PARAMETER);
+		return UI_NOTIFICATION_ERROR_INVALID_PARAMETER;
+	}
+
+	if (path != NULL)
+	{
+		path_dup = strdup(path);
+
+		if (path_dup == NULL)
+		{
+			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_OUT_OF_MEMORY);
+			return UI_NOTIFICATION_ERROR_OUT_OF_MEMORY;
+		}
+	}
+
+	if (notification->sound != NULL)
+	{
+		free(notification->sound);
+	}
+
+	notification->sound = path_dup;
+
+	return UI_NOTIFICATION_ERROR_NONE;
+}
+
+int ui_notification_get_sound(ui_notification_h notification, char **path)
+{
+	char *path_dup = NULL;
+
+	if (notification == NULL || path == NULL)
+	{
+		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_INVALID_PARAMETER);
+		return UI_NOTIFICATION_ERROR_INVALID_PARAMETER;
+	}
+
+	if (notification->sound != NULL)
+	{
+		path_dup = strdup(notification->sound);
+
+		if (path_dup == NULL)
+		{
+			LOGE("[%s] OUT_OF_MEMORY(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_OUT_OF_MEMORY);
+			*path = NULL;
+
+			return UI_NOTIFICATION_ERROR_OUT_OF_MEMORY;
+		}
+	}
+
+	*path = path_dup;
+
+	return UI_NOTIFICATION_ERROR_NONE;
+}
+
+int ui_notification_set_vibration(ui_notification_h notification, bool value)
+{
+	if (notification == NULL)
+	{
+		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_INVALID_PARAMETER);
+		return UI_NOTIFICATION_ERROR_INVALID_PARAMETER;
+	}
+
+	notification->vibration = value;
+
+	return UI_NOTIFICATION_ERROR_NONE;
+}
+
+int ui_notification_get_vibration(ui_notification_h notification, bool *value)
+{
+	if (notification == NULL || value == NULL)
+	{
+		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_INVALID_PARAMETER);
+		return UI_NOTIFICATION_ERROR_INVALID_PARAMETER;
+	}
+
+	*value = notification->vibration;
+
+	return UI_NOTIFICATION_ERROR_NONE;
+}
+
 static int ui_notification_build_attributes(ui_notification_h notification)
 {
 	bundle *service_data;
@@ -635,7 +750,7 @@ static int ui_notification_build_attributes(ui_notification_h notification)
 	if (notification->icon != NULL)
 	{
 		struct stat st;
-	
+
 		if (stat(notification->icon, &st) < 0)
 		{
 			LOGE("[%s] NO_SUCH_FILE(0x%08x) : invalid icon", __FUNCTION__, UI_NOTIFICATION_ERROR_NO_SUCH_FILE);
@@ -668,6 +783,23 @@ static int ui_notification_build_attributes(ui_notification_h notification)
 	else
 	{
 		notification_set_property(notification->raw_handle, NOTIFICATION_PROP_DISABLE_APP_LAUNCH);
+	}
+
+	if (notification->sound != NULL)
+	{
+		struct stat st;
+
+		if (stat(notification->sound, &st) < 0)
+		{
+			LOGE("[%s] NO_SUCH_FILE(0x%08x) : invalid sound file", __FUNCTION__, UI_NOTIFICATION_ERROR_NO_SUCH_FILE);
+			return UI_NOTIFICATION_ERROR_NO_SUCH_FILE;
+		}
+		notification_set_sound(notification->raw_handle, NOTIFICATION_SOUND_TYPE_USER_DATA, notification->sound);
+	}
+
+	if (notification->vibration)
+	{
+		notification_set_vibration(notification->raw_handle, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
 	}
 
 	return UI_NOTIFICATION_ERROR_NONE;
@@ -801,7 +933,7 @@ int  ui_notification_update_progress(ui_notification_h notification, ui_notifica
 			notification_update_size(notification->raw_handle, NOTIFICATION_PRIV_ID_NONE, value),
 			__FUNCTION__, "failed to update the progress");
 		break;
-		
+
 	case UI_NOTIFICATION_PROGRESS_TYPE_PERCENTAGE:
 		retcode = ui_notification_error_handler(
 			notification_update_progress(notification->raw_handle, NOTIFICATION_PRIV_ID_NONE, value),
@@ -862,6 +994,50 @@ int ui_notification_cancel(ui_notification_h notification)
 void ui_notification_cancel_all(void)
 {
 	notification_delete_all_by_type(NULL, NOTIFICATION_TYPE_NONE);
+}
+
+void ui_notification_cancel_all_by_type(bool ongoing)
+{
+	notification_type_e type = NOTIFICATION_TYPE_NONE;
+
+	if (ongoing)
+		type = NOTIFICATION_TYPE_ONGOING;
+	else
+		type = NOTIFICATION_TYPE_NOTI;
+
+	notification_delete_all_by_type(NULL, type);
+}
+
+void ui_notification_cancel_all_by_package(const char *package, bool ongoing)
+{
+	notification_type_e type = NOTIFICATION_TYPE_NONE;
+
+	if (ongoing)
+		type = NOTIFICATION_TYPE_ONGOING;
+	else
+		type = NOTIFICATION_TYPE_NOTI;
+
+	notification_delete_all_by_type(package, type);
+}
+
+int ui_notification_cancel_all_by_app_id(const char *app_id, bool ongoing)
+{
+	notification_type_e type = NOTIFICATION_TYPE_NONE;
+
+	if (app_id == NULL)
+	{
+		LOGE("[%s] INVALID_PARAMETER(0x%08x)", __FUNCTION__, UI_NOTIFICATION_ERROR_INVALID_PARAMETER);
+		return UI_NOTIFICATION_ERROR_INVALID_PARAMETER;
+	}
+
+	if (ongoing)
+		type = NOTIFICATION_TYPE_ONGOING;
+	else
+		type = NOTIFICATION_TYPE_NOTI;
+
+	notification_delete_all_by_type(app_id, type);
+
+	return UI_NOTIFICATION_ERROR_NONE;
 }
 
 static bool ui_notification_package_equal(notification_h handle)

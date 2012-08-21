@@ -69,26 +69,31 @@ int app_get_package_app_name(const char *package, char **name)
 
 int app_get_package(char **package)
 {
-	static char package_buf[TIZEN_PATH_MAX] = {0, };
+	return app_get_id(package);
+}
 
-	if (package == NULL)
+int app_get_id(char **id)
+{
+	static char id_buf[TIZEN_PATH_MAX] = {0, };
+
+	if (id == NULL)
 	{
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	if (package_buf[0] == '\0')
+	if (id_buf[0] == '\0')
 	{
-		aul_app_get_pkgname_bypid(getpid(), package_buf, sizeof(package_buf));
+		aul_app_get_pkgname_bypid(getpid(), id_buf, sizeof(id_buf));
 	}
 
-	if (package_buf[0] == '\0')
+	if (id_buf[0] == '\0')
 	{
-		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the application ID");
 	}
 
-	*package = strdup(package_buf);
+	*id = strdup(id_buf);
 
-	if (*package == NULL)
+	if (*id == NULL)
 	{
 		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}

@@ -18,6 +18,7 @@
 #ifndef __TIZEN_APPFW_SERVICE_H__
 #define __TIZEN_APPFW_SERVICE_H__
 
+#include <sys/types.h>
 #include <tizen.h>
 
 #ifdef __cplusplus
@@ -166,6 +167,8 @@ typedef enum
 
 /**
  * @brief   Called when the reply of the launch request is delivered.
+ *
+ * @remarks The @a request and @a reply must not be deallocated by an application. 
  *
  * @param   [in] request The service handle of the launch request that has sent
  * @param   [in] reply The service handle in which the results of the callee are contained
@@ -336,6 +339,7 @@ int service_get_mime(service_h service, char **mime);
 /**
  * @brief Sets the package name of the application to explicitly launch
  *
+ * @remark This function is @b deprecated. Use service_set_app_id() instead.
  * @param [in] service The service handle
  * @param [in] package The package name of the application to explicitly launch \n
  *     If the @a package is NULL, it clears the previous value.
@@ -351,6 +355,7 @@ int service_set_package(service_h service, const char *package);
 /**
  * @brief Gets the package name of the application to explicitly launch
  *
+ * @remark This function is @b deprecated. Use service_get_app_id() instead.
  * @remarks The @a package must be released with free() by you.
  * @param [in] service The service handle
  * @param [out] package The package name of the application to explicitly launch
@@ -361,6 +366,64 @@ int service_set_package(service_h service, const char *package);
  * @see	service_set_package()
  */
 int service_get_package(service_h service, char **package);
+
+
+/**
+ * @brief Sets the ID of the application to explicitly launch
+ *
+ * @param [in] service The service handle
+ * @param [in] app_id The ID of the application to explicitly launch \n
+ *     If the @a app_id is NULL, it clears the previous value.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+ * @see	service_get_app_id()
+ */
+int service_set_app_id(service_h service, const char *app_id);
+
+
+/**
+ * @brief Gets the ID of the application to explicitly launch
+ *
+ * @remarks The @a app_id must be released with free() by you.
+ * @param [in] service The service handle
+ * @param [out] app_id The ID of the application to explicitly launch
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+ * @see	service_set_app_id()
+ */
+int service_get_app_id(service_h service, char **app_id);
+
+/**
+ * @brief Sets the window id of the application
+ *
+ * @param [in] service The service handle
+ * @param [in] id the window id of caller application \n
+ *     If the @a id is not positive, it clears the previous value.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+ * @see service_get_window()
+ */
+int service_set_window(service_h service, unsigned int id);
+
+
+/**
+* @brief Gets the window id of the application
+*
+* @param [in] service The service handle
+* @param [out] id The window id of caller application
+* @return 0 on success, otherwise a negative error value.
+* @retval #SERVICE_ERROR_NONE Successful
+* @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+* @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+* @see service_set_package()
+*/
+int service_get_window(service_h service, unsigned int *id);
 
 
 /**
@@ -520,7 +583,7 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
  *
  * @details The operation is mandatory information for the launch request. \n
  * If the operation is not specified, #SERVICE_OPERATION_DEFAULT is used by default.
- * If the operation is #SERVICE_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application
+ * If the operation is #SERVICE_OPERATION_DEFAULT, the application ID is mandatory to explicitly launch the application
  * @param [in] service The service handle
  * @param [in] callback The callback function to be called when the reply is delivered
  * @param [in] user_data The user data to be passed to the callback function
@@ -568,6 +631,35 @@ int service_reply_to_launch_request(service_h reply, service_h request, service_
 int service_clone(service_h *clone, service_h service);
 
 
+/**
+ * @brief Gets the application ID of the caller from the launch request
+ *
+ * @remarks The @a service must be the launch reqeust from app_service_cb().
+ * @remarks This function returns #SERVICE_ERROR_INVALID_PARAMETER if the given service is not the launch request.
+ * @remarks The @a id must be released with free() by you.
+ * @param [in] service The service handle from app_service_cb()
+ * @param [out] id The application ID of the caller
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+ */
+int service_get_caller(service_h service, char **id);
+
+
+/**
+ * @brief Check whether the caller is requesting a reply from the launch reqeust
+ *
+ * @remarks The @a service must be the launch reqeust from app_service_cb().
+ * @remarks This function returns #SERVICE_ERROR_INVALID_PARAMETER if the given service is not the launch request.
+ * @param [in] service The service handle from app_service_cb()
+ * @param [out] requested whether a reply is requested by the caller
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #SERVICE_ERROR_OUT_OF_MEMORY Out of memory
+ */
+int service_is_reply_requested(service_h service, bool *requested);
 
 /**
  * @}

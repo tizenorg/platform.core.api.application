@@ -25,6 +25,7 @@
 
 #include <bundle.h>
 #include <appcore-common.h>
+#include <appcore-efl.h>
 #include <aul.h>
 #include <dlog.h>
 
@@ -38,6 +39,7 @@
 #define LOG_TAG "TIZEN_N_APPLICATION"
 
 static const char *INSTALLED_PATH = "/opt/apps";
+static const char *RO_INSTALLED_PATH = "/usr/apps";
 static const char *RES_DIRECTORY_NAME = "res";
 static const char *DATA_DIRECTORY_NAME = "data";
 
@@ -45,6 +47,7 @@ static char * app_get_root_directory(char *buffer, int size)
 {
 	char *package = NULL;
 	char root_directory[TIZEN_PATH_MAX] = {0, };
+	char bin_directory[TIZEN_PATH_MAX] = {0, };
 
 	if (app_get_package(&package) != APP_ERROR_NONE)
 	{
@@ -53,6 +56,11 @@ static char * app_get_root_directory(char *buffer, int size)
 	}
 
 	snprintf(root_directory, sizeof(root_directory), "%s/%s", INSTALLED_PATH, package);
+	snprintf(bin_directory, sizeof(bin_directory), "%s/bin", root_directory);
+
+	if (access(bin_directory, R_OK) != 0) {
+		snprintf(root_directory, sizeof(root_directory), "%s/%s", RO_INSTALLED_PATH, package);
+	}
 
 	free(package);	
 
@@ -99,6 +107,7 @@ char* app_get_data_directory(char *buffer, int size)
 	if (data_directory[0] == '\0')
 	{
 		char *root_directory = NULL;
+		char *package = NULL;
 
 		root_directory = calloc(1, TIZEN_PATH_MAX);
 
@@ -108,12 +117,15 @@ char* app_get_data_directory(char *buffer, int size)
 			return NULL;
 		}
 
-		if (app_get_root_directory(root_directory, TIZEN_PATH_MAX) == NULL)
+		if (app_get_package(&package) != APP_ERROR_NONE)
 		{
-			free(root_directory);
-			app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the path to the root directory");
+			app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 			return NULL;
 		}
+
+		snprintf(root_directory, TIZEN_PATH_MAX, "%s/%s", INSTALLED_PATH, package);
+
+		free(package);
 
 		snprintf(data_directory, sizeof(data_directory), "%s/%s", root_directory, DATA_DIRECTORY_NAME);
 
@@ -174,5 +186,11 @@ char* app_get_resource(const char *resource, char *buffer, int size)
 	snprintf(buffer, size, "%s/%s", resource_directory, resource);
 
 	return buffer;
+}
+
+
+void app_set_reclaiming_system_cache_on_pause(bool enable)
+{
+	appcore_set_system_resource_reclaiming(enable);
 }
 

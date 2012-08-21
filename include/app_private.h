@@ -38,6 +38,10 @@ extern "C" {
 #define PATH_FMT_LOCALE_DIR PATH_FMT_RES_DIR "/locale"
 #define PATH_FMT_DATA_DIR PATH_FMT_APP_ROOT "/%s/data"
 
+#define PATH_FMT_RO_APP_ROOT "/usr/apps"
+#define PATH_FMT_RO_RES_DIR PATH_FMT_RO_APP_ROOT "/%s/res"
+#define PATH_FMT_RO_LOCALE_DIR PATH_FMT_RO_RES_DIR "/locale"
+
 typedef void (*app_finalizer_cb) (void *data);
 
 int app_error(app_error_e error, const char* function, const char *description);

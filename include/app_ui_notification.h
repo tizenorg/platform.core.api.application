@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -71,7 +71,7 @@ typedef bool (*ui_notification_cb)(ui_notification_h notification, void *user_da
 
 /**
  * @brief Creates a notification handle.
- * @remarks The @a notification must be released with ui_notification_destroy() by you. 
+ * @remarks The @a notification must be released with ui_notification_destroy() by you.
  * @param[in] ongoing A boolean value that sets whether this is an ongoing notification.
  * @param[out] notification A UI notification handle to be newly created on success
  * @return 0 on success, otherwise a negative error value.
@@ -168,7 +168,7 @@ int ui_notification_get_time(ui_notification_h notification, struct tm **time);
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @see ui_notification_get_title() 
+ * @see ui_notification_get_title()
  */
 int ui_notification_set_title(ui_notification_h notification, const char *title);
 
@@ -195,7 +195,7 @@ int ui_notification_get_title(ui_notification_h notification, char **title);
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @see ui_notification_get_content() 
+ * @see ui_notification_get_content()
  */
 int ui_notification_set_content(ui_notification_h notification, const char *content);
 
@@ -211,6 +211,60 @@ int ui_notification_set_content(ui_notification_h notification, const char *cont
  * @see ui_notification_set_content()
  */
 int ui_notification_get_content(ui_notification_h notification, char **content);
+
+/**
+ * @brief Sets the path of sound file to play when the notification is shown.
+ * @remarks The @a path should be the absolute path. \n
+ * The sound file is only supported wave file format. \n
+ * This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
+ * @param[in] notification The notification handle
+ * @param[in] path The path of sound file to play when the notification is shown \n
+ *     If the @a path is NULL, it clears the previous value.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
+ * @see ui_notification_get_sound()
+ */
+int ui_notification_set_sound(ui_notification_h notification, const char *path);
+
+/**
+ * @brief Gets the path of sound file to play when the notification is shown.
+ * @remarks The @a path must be released with free() by you.
+ * @param[in] notification The notification handle
+ * @param[out] path The path of sound file to play when the notification is shown \n
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
+ * @see ui_notification_set_sound()
+ */
+int ui_notification_get_sound(ui_notification_h notification, char **path);
+
+/**
+ * @brief Sets whether to use vibration when the notification is shown.
+ * @remarks This function should be called before posting or updating the notification (see ui_notification_post(), ui_notification_update()).
+ * @param[in] notification The notification handle
+ * @param[in] value A boolean value that sets whether to use vibration.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
+ * @see ui_notification_get_vibration()
+ */
+int ui_notification_set_vibration(ui_notification_h notification, bool value);
+
+/**
+ * @brief Gets whether to use vibration when the notification is shown.
+ * @param[in] notification The notification handle
+ * @param[out] value A boolean value that sets whether to use vibration.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
+ * @see ui_notification_set_vibration()
+ */
+int ui_notification_get_vibration(ui_notification_h notification, bool *value);
 
 /**
  * @brief Sets the service to launch when the notification is selected from the notification tray.
@@ -239,7 +293,7 @@ int ui_notification_set_service(ui_notification_h notification, service_h servic
  * @retval #UI_NOTIFICATION_ERROR_NONE Successful
  * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #UI_NOTIFICATION_ERROR_OUT_OF_MEMORY Out of memory
- * @see ui_notification_set_service() 
+ * @see ui_notification_set_service()
  */
 int ui_notification_get_service(ui_notification_h notification, service_h *service);
 
@@ -284,6 +338,43 @@ int ui_notification_cancel(ui_notification_h notification);
  * @see ui_notification_cancel()
  */
 void ui_notification_cancel_all(void);
+
+/**
+ * @brief Cancels selected type of previously posted notifications by the current application.
+ * @details Selected type of previously posted notifications are removed from the notification tray and the status bar.
+ * @remarks The notifications posted by other applications are not cancelled from the notification tray and the status bar.
+ * @param[in] ongoing A boolean value that indicates whether the notification type is ongoing to cancel.
+ * @see ui_notification_post()
+ * @see ui_notification_cancel()
+ * @see ui_notification_cancel_all()
+ */
+void ui_notification_cancel_all_by_type(bool ongoing);
+
+/**
+ * @brief Cancels selected type of previously posted notifications by the given application.
+ * @details Selected type of previously posted notifications are removed from the notification tray and the status bar.
+ * @remark This function is @b deprecated. Use app_manager_app_context_cb() instead.
+ * @param[in] package The package name of the application to calcel the posted notifications.
+ * @param[in] ongoing A boolean value that indicates whether the notification type is ongoing to cancel.
+ * @see ui_notification_post()
+ * @see ui_notification_cancel()
+ * @see ui_notification_cancel_all()
+ */
+void ui_notification_cancel_all_by_package(const char *package, bool ongoing);
+
+/**
+ * @brief Cancels selected type of previously posted notifications by the given application ID.
+ * @details Selected type of previously posted notifications are removed from the notification tray and the status bar.
+ * @param[in] id The ID of the application to calcel the posted notifications.
+ * @param[in] ongoing A boolean value that indicates whether the notification type is ongoing to cancel.
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #UI_NOTIFICATION_ERROR_NONE Successful
+ * @retval #UI_NOTIFICATION_ERROR_INVALID_PARAMETER Invalid parameter
+ * @see ui_notification_post()
+ * @see ui_notification_cancel()
+ * @see ui_notification_cancel_all()
+ */
+int ui_notification_cancel_all_by_app_id(const char *app_id, bool ongoing);
 
 /**
  * @brief Updates the notification posted.
