@@ -137,7 +137,7 @@ static int ui_notification_construct(bool ongoing, notification_h raw_handle, ui
 	char *title;
 	char *content;
 	bundle *service_data;
-	const char *sound;
+	const char *sound = NULL;
 	notification_sound_type_e sound_type;
 	notification_vibration_type_e vib_type;
 
