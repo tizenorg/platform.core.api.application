@@ -34,7 +34,7 @@ extern "C" {
 /**
  * @brief	Service extra data : the id of the alarm registered
  */
-#define SERVICE_DATA_ALARM_ID "http://tizen.org/appsvc/data/alarm_id"
+#define SERVICE_DATA_ALARM_ID "http://tizen.org/appcontrol/data/alarm_id"
 
 /**
  * @brief   Enumerations of error codes for the alarm

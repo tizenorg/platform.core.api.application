@@ -2,7 +2,7 @@
 Name:       capi-appfw-application
 Summary:    An Application library in SLP C API
 Version: 0.1.0
-Release:    26
+Release:    28
 Group:      TO_BE/FILLED_IN
 License:    TO BE FILLED IN
 Source0:    %{name}-%{version}.tar.gz
