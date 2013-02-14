@@ -1,0 +1,246 @@
+capi-appfw-application (0.1.0-23) unstable; urgency=low
+
+  * Updated UI Notification API
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-23
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 31 May 2012 13:34:33 +0900
+
+capi-appfw-application (0.1.0-22) unstable; urgency=low
+
+  * Bug fixed : service_reply_cb()
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-22
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Fri, 27 Apr 2012 14:56:37 +0900
+
+capi-appfw-application (0.1.0-21) unstable; urgency=low
+
+  * Changed the definitions of service operation and extra-data
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-21
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 15 Mar 2012 16:09:18 +0900
+
+capi-appfw-application (0.1.0-20) unstable; urgency=low
+
+  * Updated for AIL API changes
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-20
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 05 Mar 2012 19:09:02 +0900
+
+capi-appfw-application (0.1.0-19) unstable; urgency=low
+
+  * Code refactoring
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-19
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 29 Feb 2012 15:29:59 +0900
+
+capi-appfw-application (0.1.0-18) unstable; urgency=low
+
+  * Bug fixed : service_foreach_extra_data()
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-18
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Tue, 21 Feb 2012 14:34:01 +0900
+
+capi-appfw-application (0.1.0-17) unstable; urgency=low
+
+  * Added version numbering
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-17
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 15 Feb 2012 10:43:30 +0900
+
+capi-appfw-application (0.1.0-16) unstable; urgency=low
+
+  * Refactoring code
+  * Add alarm_get_service() API
+  * Add ALARM_ERROR_OUT_OF_MEMORY error code
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-16
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 13 Feb 2012 11:52:20 +0300
+
+capi-appfw-application (0.1.0-15) unstable; urgency=low
+
+  * Fixed invalid parameter
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-15
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 30 Jan 2012 13:52:37 +0900
+
+capi-appfw-application (0.1.0-14) unstable; urgency=low
+
+  * Update UI-Notification API
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-14
+ 
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 26 Jan 2012 16:07:50 +0900
+
+capi-appfw-application (0.1.0-13) unstable; urgency=low
+
+  * Update alarm API Doc
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-13
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Thu, 22 Dec 2011 11:01:24 +0300
+
+capi-appfw-application (0.1.0-12) unstable; urgency=low
+
+  * Fixed memory leak
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-12
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 21 Dec 2011 13:27:10 +0900
+
+capi-appfw-application (0.1.0-11) unstable; urgency=low
+
+  * Application API : changed function prototype
+  * Git: slp/api/application
+  * Tag: capi-appfw-application_0.1.0-11
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 14 Dec 2011 14:30:35 +0900
+
+capi-appfw-application (0.1.0-10) unstable; urgency=low
+
+  * Fixed bug : Service API
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-10 
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 07 Dec 2011 10:30:11 +0900
+
+capi-appfw-application (0.1.0-9) unstable; urgency=low
+
+  * Alarm API : Update boilerplate
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-9
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Tue, 06 Dec 2011 19:09:32 +0900
+
+capi-appfw-application (0.1.0-8) unstable; urgency=low
+
+  * Alarm API : update alarm-id
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-8
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Sat, 26 Nov 2011 15:24:08 +0900
+
+capi-appfw-application (0.1.0-7) unstable; urgency=low
+
+  * SLP API is renamed Tizen API
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-7
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 23 Nov 2011 13:48:00 +0900
+
+capi-appfw-application (0.1.0-6) unstable; urgency=low
+
+  * Add UI Notification API
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-6
+ 
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 21 Nov 2011 20:54:00 +0900
+
+capi-appfw-application (0.1.0-5) unstable; urgency=low
+
+  * DTS : improve functional coverage and conditional coverage
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-5
+ 
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Fri, 04 Nov 2011 14:39:01 +0900
+
+capi-appfw-application (0.1.0-4) unstable; urgency=low
+
+  * Application API : enum for device orientation is changed
+  * Service API : array data type is added to extra-data
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-4
+ 
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 24 Oct 2011 20:40:23 +0900
+
+capi-appfw-application (0.1.0-3) unstable; urgency=low
+
+  * Alarm API : added application launch by Service API 
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-3 
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 10 Oct 2011 15:47:18 +0900
+
+capi-appfw-application (0.1.0-2) unstable; urgency=low
+
+  * Fixed bug : service_clone() causes segfault
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-2
+ 
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Wed, 05 Oct 2011 16:12:14 +0900
+
+capi-appfw-application (0.1.0-1) unstable; urgency=low
+
+  * capi-appfw-application_0.1.0-1
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.1.0-1
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Tue, 27 Sep 2011 21:30:36 +0900
+
+capi-appfw-application (0.0.1-7) unstable; urgency=low
+
+  * Service API is added
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-7
+ 
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 26 Sep 2011 17:06:56 +0900
+
+capi-appfw-application (0.0.1-6) unstable; urgency=low
+  * bug fixed : preference API 
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-6
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 05 Sep 2011 21:48:32 +0900
+
+capi-appfw-application (0.0.1-5) unstable; urgency=low
+
+  * lib dependecny is updated : sqlite3 
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-5
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 05 Sep 2011 20:19:00 +0900
+
+capi-appfw-application (0.0.1-4) unstable; urgency=low
+
+  * Application API is updated to support Service API
+  * Storage API is updated to support various storage type
+  * The file name of each header file of Application FW is updated  
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 05 Sep 2011 19:29:52 +0900
+
+capi-appfw-application (0.0.1-3) unstable; urgency=low
+
+  * System event callbacks are updated to apply Service API changes
+  * Service API is added to provide application service framework
+  * Preference API is added to provide persistent application data
+  * Event Notification API is added to provide interaction between applications
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-3
+
+ -- Junghyuk Park <junghyuk.park@samsung.com>  Mon, 22 Aug 2011 20:21:28 +0900
+
+capi-appfw-application (0.0.1-2) unstable; urgency=low
+
+  * GNU gettext macro is added
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-2 
+
+ -- Woongsuk Cho <ws77.cho@samsung.com>  Tue, 09 Aug 2011 17:52:09 +0900
+
+capi-appfw-application (0.0.1-1) unstable; urgency=low
+
+  * Initial upload
+  * Git: slp-source.sec.samsung.net:slp/api/application
+  * Tag: capi-appfw-application_0.0.1-1
+
+ -- Woongsuk Cho <ws77.cho@samsung.com>  Thu, 04 Aug 2011 18:36:24 +0900
+
