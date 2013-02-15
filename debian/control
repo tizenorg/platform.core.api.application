@@ -1,0 +1,22 @@
+
+Source: capi-appfw-application
+Section: libs
+Priority: extra
+Maintainer: Woongsuk Cho <ws77.cho@samsung.com>, junghyuk park <junghyuk.park@samsung.com>
+Build-Depends: debhelper (>= 5), dlog-dev, libbundle-dev, libappcore-common-dev, libappcore-efl-dev, libaul-1-dev, libail-0-dev, libappsvc-dev, libnotification-dev, libelm-dev, capi-base-common-dev, libalarm-dev, libsqlite3-dev
+
+Package: capi-appfw-application
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: An Application library in Tizen C API
+
+Package: capi-appfw-application-dev
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, capi-appfw-application (= ${Source-Version}), capi-base-common-dev
+Description: An Application library in Tizen C API (DEV)
+
+Package: capi-appfw-application-dbg
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, capi-appfw-application (= ${Source-Version})
+Description: An Application library in Tizen C API (DBG)
+
