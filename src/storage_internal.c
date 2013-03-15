@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -33,7 +33,7 @@
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION_STORAGE"
 
-#define INTERNAL_MEMORY_PATH "/opt/media"
+#define INTERNAL_MEMORY_PATH "/opt/usr/media"
 
 static int storage_internal_get_state()
 {

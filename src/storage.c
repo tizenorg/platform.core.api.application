@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -130,7 +130,7 @@ int storage_foreach_device_supported(storage_device_supported_cb callback, void 
 		}
 
 		storage_id++;
-	
+
 		foreach_next = callback(storage_info->id, storage_info->device->type, storage_info->state, storage_info->device->path, user_data);
 
 		if (foreach_next == false)
@@ -161,7 +161,7 @@ int storage_get_root_directory(int storage, char **path)
 
 	*path = strdup(storage_info->device->path);
 
-	return STORAGE_ERROR_NONE;	
+	return STORAGE_ERROR_NONE;
 }
 
 
@@ -211,7 +211,7 @@ int storage_get_state(int storage, storage_state_e *state)
 		LOGE("NOT_SUPPORTED(0x%08x) : storage(%d)", STORAGE_ERROR_NOT_SUPPORTED, storage);
 		return STORAGE_ERROR_NOT_SUPPORTED;
 	}
-	
+
 	storage_info->state = get_state();
 
 	*state = storage_info->state;
@@ -262,7 +262,7 @@ int storage_set_state_changed_cb(int storage, storage_state_changed_cb callback,
 
 	storage_info->state_cb = callback;
 	storage_info->state_cb_data = user_data;
-	
+
 	set_state_cb = storage_info->device->set_state_cb;
 
 	if (set_state_cb == NULL)
@@ -328,7 +328,7 @@ int storage_get_total_space(int storage, unsigned long long *bytes)
 		LOGE("NOT_SUPPORTED(0x%08x) : storage(%d)", STORAGE_ERROR_NOT_SUPPORTED, storage);
 		return STORAGE_ERROR_NOT_SUPPORTED;
 	}
-	
+
 	if (get_space(bytes, NULL) != 0)
 	{
 		LOGE("NOT_SUPPORTED(0x%08x) : storage(%d)", STORAGE_ERROR_NOT_SUPPORTED, storage);
@@ -362,7 +362,7 @@ int storage_get_available_space(int storage, unsigned long long *bytes)
 		LOGE("NOT_SUPPORTED(0x%08x) : storage(%d)", STORAGE_ERROR_NOT_SUPPORTED, storage);
 		return STORAGE_ERROR_NOT_SUPPORTED;
 	}
-	
+
 	if (get_space(NULL, bytes) != 0)
 	{
 		LOGE("NOT_SUPPORTED(0x%08x) : storage(%d)", STORAGE_ERROR_NOT_SUPPORTED, storage);
@@ -384,12 +384,12 @@ int storage_statfs(const char *directory, unsigned long long *total, unsigned lo
 
 	if (total != NULL)
 	{
-		*total = fs.f_bsize * fs.f_blocks;
+		*total = (unsigned long long)fs.f_bsize * (unsigned long long)fs.f_blocks;
 	}
 
 	if (available != NULL)
 	{
-		*available = fs.f_bsize * fs.f_bavail;
+		*available = (unsigned long long)fs.f_bsize * (unsigned long long)fs.f_bavail;
 	}
 
 	return 0;
