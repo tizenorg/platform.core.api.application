@@ -1157,8 +1157,6 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
 int service_get_caller(service_h service, char **package)
 {
 	const char *bundle_value;
-	pid_t caller_pid;
-	char package_buf[TIZEN_PATH_MAX] = {0, };
 	char *package_dup;
 
 	if (service_valiate_service(service) || package == NULL)
@@ -1171,38 +1169,20 @@ int service_get_caller(service_h service, char **package)
 		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid service handle type");
 	}
 
-	bundle_value = bundle_get_val(service->data, AUL_K_ORG_CALLER_PID);
+        bundle_value = bundle_get_val(service->data, AUL_K_CALLER_APPID);
+        if (bundle_value == NULL)
+        {
+                return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to retrieve the appid of the caller");
+        }
 
-	if (bundle_value == NULL)
-	{
-		bundle_value = bundle_get_val(service->data, AUL_K_CALLER_PID);
-	}
+        package_dup = strdup(bundle_value);
 
-	if (bundle_value == NULL)
-	{
-		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to retrieve the pid of the caller");
-	}
+        if (package_dup == NULL)
+        {
+                return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+        }
 
-	caller_pid = atoi(bundle_value);
-
-	if (caller_pid <= 0)
-	{
-		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid pid of the caller");
-	}
-
-	if (aul_app_get_appid_bypid(caller_pid, package_buf, sizeof(package_buf)) != AUL_R_OK)
-	{
-		return service_error(SERVICE_ERROR_APP_NOT_FOUND, __FUNCTION__, "failed to get the package name of the caller");
-	}
-
-	package_dup = strdup(package_buf);
-
-	if (package_dup == NULL)
-	{
-		return service_error(SERVICE_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
-	}
-
-	*package = package_dup;
+        *package = package_dup;
 
 	return SERVICE_ERROR_NONE;
 }
