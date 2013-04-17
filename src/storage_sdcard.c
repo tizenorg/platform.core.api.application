@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -35,7 +35,7 @@
 
 #define SDCARD_PATH "/opt/storage/sdcard"
 
-static int storage_sdcard_get_state()
+int storage_sdcard_get_state()
 {
 	int sdcard_state = 0;
 

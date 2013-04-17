@@ -35,7 +35,7 @@
 
 #define INTERNAL_MEMORY_PATH "/opt/usr/media"
 
-static int storage_internal_get_state()
+int storage_internal_get_state()
 {
 	return STORAGE_STATE_MOUNTED;
 }

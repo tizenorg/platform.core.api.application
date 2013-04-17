@@ -41,6 +41,9 @@ extern storage_device_h storage_internal_device();
 extern storage_device_h storage_sdcard_device();
 extern storage_device_h storage_usbhost_device();
 
+extern int storage_internal_get_state();
+extern int storage_sdcard_get_state();
+extern int storage_usbhost_get_state();
 
 #define STORAGE_MAX 3
 static struct storage_info_s storage_info_table[STORAGE_MAX];
@@ -79,8 +82,8 @@ static int storage_initialize()
 	dev_internal = storage_internal_device();
 	storage_register_device(dev_internal);
 
-	dev_sdcard =  storage_sdcard_device();
-	storage_register_device(	dev_sdcard);
+	dev_sdcard = storage_sdcard_device();
+	storage_register_device(dev_sdcard);
 
 	dev_usbhost = storage_usbhost_device();
 	storage_register_device(dev_usbhost);
@@ -88,9 +91,10 @@ static int storage_initialize()
 	return 0;
 }
 
-
 static int storage_get_storage(int id, storage_info_h* storage_info)
 {
+	int device_state = -1;
+
 	if (storage_num < 1)
 	{
 		if (storage_initialize() != 0)
@@ -99,16 +103,31 @@ static int storage_get_storage(int id, storage_info_h* storage_info)
 		}
 	}
 
-	if (id <0 || id >= storage_num)
+	if (id < 0 || id >= storage_num)
 	{
 		return STORAGE_ERROR_NOT_SUPPORTED;
 	}
 
+	switch (id)
+	{
+	case 0:
+		device_state = storage_internal_get_state();
+		break;
+	case 1:
+		device_state = storage_sdcard_get_state();
+		break;
+	case 2:
+		device_state = storage_usbhost_get_state();
+		break;
+	default:
+		LOGE("Device statei is invalid");
+		break;
+	}
+	storage_info_table[id].state = device_state;
 	*storage_info = &(storage_info_table[id]);
 
 	return STORAGE_ERROR_NONE;
 }
-
 
 int storage_foreach_device_supported(storage_device_supported_cb callback, void *user_data)
 {
