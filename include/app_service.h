@@ -113,6 +113,24 @@ typedef enum
 
 
 /**
+ * @brief	Service operation : share a item to someone else.
+ */
+#define SERVICE_OPERATION_SHARE "http://tizen.org/appcontrol/operation/share"
+
+
+/**
+ * @brief	Service operation : share multiple items to someone else.
+ */
+#define SERVICE_OPERATION_MULTI_SHARE "http://tizen.org/appcontrol/operation/multi_share"
+
+
+/**
+ * @brief	Service operation : share text data to someone else.
+ */
+#define SERVICE_OPERATION_SHARE_TEXT "http://tizen.org/appcontrol/operation/share_text"
+
+
+/**
  * @brief	Service operation : dial a number as specified by the data.
  */
 #define SERVICE_OPERATION_DIAL "http://tizen.org/appcontrol/operation/dial"
@@ -122,6 +140,18 @@ typedef enum
  * @brief	Service operation : perform a search. 
  */
 #define SERVICE_OPERATION_SEARCH "http://tizen.org/appcontrol/operation/search"
+
+
+/**
+ * @brief	Service operation : download a item.
+ */
+#define SERVICE_OPERATION_DOWNLOAD "http://tizen.org/appcontrol/operation/download"
+
+
+/**
+ * @brief	Service operation : print content.
+ */
+#define SERVICE_OPERATION_PRINT "http://tizen.org/appcontrol/operation/print"
 
 
 /**
@@ -164,6 +194,12 @@ typedef enum
  * @brief	Service optional data : the path of selected item.
  */
 #define SERVICE_DATA_SELECTED "http://tizen.org/appcontrol/data/selected"
+
+
+/**
+ * @brief	Service optional data : multiple item path to deliver.
+ */
+#define SERVICE_DATA_PATH "http://tizen.org/appcontrol/data/path"
 
 
 /**
