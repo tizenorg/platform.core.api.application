@@ -153,6 +153,10 @@ typedef enum
  */
 #define SERVICE_OPERATION_PRINT "http://tizen.org/appcontrol/operation/print"
 
+/**
+ * @brief	Service operation : compose.
+ */
+#define SERVICE_OPERATION_COMPOSE "http://tizen.org/appcontrol/operation/compose"
 
 /**
  * @brief	Service optional data : the subject of a message.
