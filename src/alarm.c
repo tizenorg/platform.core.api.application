@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -40,50 +40,6 @@ typedef struct {
 	void* user_data;
 	bool* foreach_break;
 } alarm_foreach_item_cb_context;
-
-static void alarm_get_interval(alarm_entry_t *alarm_info, int day_week, int *repeat_interval)
-{
-    time_t due_time = 0;
-    time_t current_time = 0;
-    struct tm duetime_tm;
-    int wday;
-    int interval = 0;
-
-    time(&current_time);
-    localtime_r(&current_time, &duetime_tm);
-    wday = duetime_tm.tm_wday;
-
-    due_time = mktime(&duetime_tm);
-    wday = duetime_tm.tm_wday;
-
-    if (due_time > current_time && day_week == 0)
-            return;
-
-    if (!(day_week & 1 << wday)) {
-            int day = wday + 1;
-            int next_week = 0;
-            interval = 1;
-            /*this week */
-
-            if (day == 7) {
-                    day = 0;
-                    next_week = 1;
-            }
-
-            while (!(day_week & 1 << day)
-                   && interval < 8) {
-                    day += 1;
-                    interval += 1;
-
-                    if (day == 7) {
-                            day = 0;
-                            next_week = 1;
-                    }
-
-            }
-            *repeat_interval = interval;
-    }
-}
 
 static int alarm_registered_alarm_cb_broker(int alarm_id, void *user_data)
 {
@@ -131,7 +87,7 @@ static int convert_error_code_to_alarm(const char* function, alarm_error_t alarm
 		LOGE("[%s] INVALID_DATE(0x%08x)", function, ALARM_ERROR_INVALID_DATE);
 		return ALARM_ERROR_INVALID_DATE;
 		break;
-	
+
 	case ERR_ALARM_NO_SERVICE_NAME:
 		LOGE("[%s] INVALID_PARAMETER(0x%08x)", function, ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
@@ -145,11 +101,11 @@ static int convert_error_code_to_alarm(const char* function, alarm_error_t alarm
 	case ALARMMGR_RESULT_SUCCESS:
 		return ALARM_ERROR_NONE;
 		break;
-		
+
 	default:
-		return ALARM_ERROR_INVALID_PARAMETER;			
+		return ALARM_ERROR_INVALID_PARAMETER;
 	}
-	
+
 }
 
 static int _remove_alarm_cb(alarm_id_t alarm_id, void* user_param)
@@ -160,11 +116,7 @@ static int _remove_alarm_cb(alarm_id_t alarm_id, void* user_param)
 int alarm_get_scheduled_date(int alarm_id, struct tm* date)
 {
 	alarm_error_t result;
-	alarm_entry_t *entry = NULL;
-	alarm_date_t adate;
-	alarm_repeat_mode_t	repeat=0;
-	int week_day=0;
-	int repeat_interval=0;
+	time_t due_time = 0;
 
 	if (date == NULL)
 	{
@@ -172,59 +124,13 @@ int alarm_get_scheduled_date(int alarm_id, struct tm* date)
 		return ALARM_ERROR_INVALID_PARAMETER;
  	}
 
-	entry = alarmmgr_create_alarm();
-
-	result = alarmmgr_get_info(alarm_id, entry);
-	if (result != ALARMMGR_RESULT_SUCCESS)
-	{
-		if (entry != NULL) {
-			alarmmgr_free_alarm(entry);
-		}
-		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}
-	
-	result = alarmmgr_get_time(entry, &adate);
-	if (result != ALARMMGR_RESULT_SUCCESS)
-	{
-		if (entry != NULL)
-		{
-			alarmmgr_free_alarm(entry);
-		}		
-		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}
-
-	result = alarmmgr_get_repeat_mode(entry, &repeat, &week_day);
-
-	if (result != ALARMMGR_RESULT_SUCCESS)
-	{
-		if (entry != NULL)
-		{
-			alarmmgr_free_alarm(entry);
-		}
-		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}
-
-	if ( repeat == ALARM_REPEAT_MODE_WEEKLY)
-		alarm_get_interval(entry, week_day, &repeat_interval);
-	else
-		repeat_interval=0;
-
-	alarm_get_current_time(date);
-	
-	date->tm_year = adate.year - 1900;
-	date->tm_mon = adate.month - 1;
-	date->tm_mday = adate.day + repeat_interval;
-	date->tm_hour = adate.hour;
-	date->tm_min = adate.min;
-	date->tm_sec = adate.sec;
-	
-	mktime(date);
-	
-	result = alarmmgr_free_alarm(entry);
+	result = alarmmgr_get_next_duetime(alarm_id, &due_time);
 	if (result != ALARMMGR_RESULT_SUCCESS)
 	{
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
+
+	localtime_r(&due_time, date);
 
 	return ALARM_ERROR_NONE;
 
@@ -242,7 +148,7 @@ int alarm_get_scheduled_period(int alarm_id, int* period)
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
-	
+
 	entry = alarmmgr_create_alarm();
 
 	result = alarmmgr_get_info(alarm_id, entry);
@@ -251,17 +157,17 @@ int alarm_get_scheduled_period(int alarm_id, int* period)
 		if (entry != NULL)
 		{
 			alarmmgr_free_alarm(entry);
-		}		
+		}
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	result = alarmmgr_get_repeat_mode(entry, &mode, &value);
 	if (result != ALARMMGR_RESULT_SUCCESS)
 	{
 		if (entry != NULL)
 		{
 			alarmmgr_free_alarm(entry);
-		}		
+		}
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
 
@@ -271,10 +177,10 @@ int alarm_get_scheduled_period(int alarm_id, int* period)
 		if (entry != NULL)
 		{
 			alarmmgr_free_alarm(entry);
-		}		
+		}
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	(*period) = value;
 
 	return ALARM_ERROR_NONE;
@@ -299,7 +205,7 @@ int alarm_schedule_after_delay(service_h service, int delay, int period, int *al
 	}
 
 	result = alarmmgr_add_alarm_appsvc(ALARM_TYPE_DEFAULT, delay, period, bundle_data, alarm_id);
-	
+
 	return  convert_error_code_to_alarm(__FUNCTION__, result);
 }
 
@@ -321,7 +227,7 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_sec
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
-	
+
 	alarm_info = alarmmgr_create_alarm();
 
 	internal_time.year = date->tm_year + 1900;
@@ -339,7 +245,7 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_sec
 		alarmmgr_free_alarm(alarm_info);
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 
 	if (period_in_second > 0)
 	{
@@ -355,9 +261,9 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_sec
 		alarmmgr_free_alarm(alarm_info);
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	result = alarmmgr_set_type(alarm_info, ALARM_TYPE_DEFAULT);
-	
+
 	if (result < 0)
 	{
 		alarmmgr_free_alarm(alarm_info);
@@ -370,7 +276,7 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_sec
 	{
 		alarmmgr_free_alarm(alarm_info);
 		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}	
+	}
 
 	alarmmgr_free_alarm(alarm_info);
 	return ALARM_ERROR_NONE;
@@ -413,7 +319,7 @@ int alarm_foreach_registered_alarm(alarm_registered_alarm_cb callback, void* use
 	};
 
 	result = alarmmgr_enum_alarm_ids(alarm_registered_alarm_cb_broker, &foreach_cb_context);
-	
+
 	return convert_error_code_to_alarm(__FUNCTION__, result);
 }
 
@@ -474,15 +380,15 @@ int alarm_schedule_with_recurrence_week_flag(service_h service, struct tm *date,
 	{
 		result = alarmmgr_set_repeat_mode(alarm_info, ALARM_REPEAT_MODE_WEEKLY, week_flag);
 	}
-	
+
 	if (result < 0)
 	{
 		alarmmgr_free_alarm(alarm_info);
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	result = alarmmgr_set_type(alarm_info, ALARM_TYPE_DEFAULT);
-	
+
 	if (result < 0)
 	{
 		alarmmgr_free_alarm(alarm_info);
@@ -501,7 +407,7 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 	alarm_entry_t *entry = NULL;
 	alarm_repeat_mode_t mode;
 	int value;
-	
+
 	if(week_flag == NULL)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
@@ -516,10 +422,10 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 		if (entry != NULL)
 		{
 			alarmmgr_free_alarm(entry);
-		}		
+		}
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	result = alarmmgr_get_repeat_mode(entry, &mode, &value);
 
 	if(mode != ALARM_REPEAT_MODE_WEEKLY)
@@ -530,7 +436,7 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 		}
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
-	
+
 	if(result != ALARMMGR_RESULT_SUCCESS)
 	{
 		if (entry != NULL)
@@ -546,12 +452,12 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 		if (entry != NULL)
 		{
 			alarmmgr_free_alarm(entry);
-		}		
+		}
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
-	
+
 	(*week_flag) = value;
-	
+
 	return ALARM_ERROR_NONE;
 }
 
@@ -571,7 +477,7 @@ int alarm_get_service(int alarm_id, service_h *service)
     {
         return ALARM_ERROR_INVALID_PARAMETER;
     }
-    
+
     error_code = service_create_request(b, service);
 
     if(error_code != SERVICE_ERROR_NONE)
