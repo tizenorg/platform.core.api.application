@@ -28,8 +28,6 @@ int service_create_request(bundle *data, service_h *service);
 
 int service_create_event(bundle *data, service_h *service);
 
-int service_to_bundle(service_h service, bundle **data);
-
 #ifdef __cplusplus
 }
 #endif
