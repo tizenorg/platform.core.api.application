@@ -5,6 +5,7 @@ Release:    52
 Group:      API
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: 	capi-appfw-application.manifest
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(bundle)
@@ -34,6 +35,7 @@ An Application library in SLP C API (DEV)
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
@@ -52,10 +54,12 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest %{name}.manifest
 %{_libdir}/libcapi-appfw-application.so.*
 %manifest capi-appfw-application.manifest
 
 %files devel
+%manifest %{name}.manifest
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libcapi-appfw-application.so
