@@ -46,6 +46,9 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE %{buildroot}/usr/share/license/%{name}
+
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
@@ -54,6 +57,7 @@ rm -rf %{buildroot}
 %files
 %{_libdir}/libcapi-appfw-application.so.*
 %manifest capi-appfw-application.manifest
+/usr/share/license/%{name}
 
 %files devel
 %{_includedir}/appfw/*.h
