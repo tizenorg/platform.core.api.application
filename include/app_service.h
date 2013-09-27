@@ -31,6 +31,9 @@ extern "C" {
  */
 
 
+typedef struct _bundle_t bundle;
+
+
 /**
  * @brief Service handle.
  */
@@ -153,6 +156,10 @@ typedef enum
  */
 #define SERVICE_OPERATION_PRINT "http://tizen.org/appcontrol/operation/print"
 
+/**
+ * @brief	Service operation : compose.
+ */
+#define SERVICE_OPERATION_COMPOSE "http://tizen.org/appcontrol/operation/compose"
 
 /**
  * @brief	Service optional data : the subject of a message.
@@ -272,6 +279,17 @@ int service_create(service_h *service);
  */
 int service_destroy(service_h service);
 
+
+/**
+ * @brief Converts the service handle to bundle data.
+ *
+ * @param [in] service The service handle
+ * @param [out] data a bundle data on success
+ * @return 0 on success, otherwise a negative error value.
+ * @retval #SERVICE_ERROR_NONE Successful
+ * @retval #SERVICE_ERROR_INVALID_PARAMETER Invalid parameter
+ */
+int service_to_bundle(service_h service, bundle **data);
 
 /**
  * @brief Sets the operation to be performed.

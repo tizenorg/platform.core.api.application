@@ -1,7 +1,7 @@
 Name:       capi-appfw-application
 Summary:    An Application library in SLP C API
-Version:    0.1.0
-Release:    52
+Version:    0.1.1
+Release:    55
 Group:      API
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -48,6 +48,9 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE %{buildroot}/usr/share/license/%{name}
+
 %post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
@@ -57,6 +60,7 @@ rm -rf %{buildroot}
 %manifest %{name}.manifest
 %{_libdir}/libcapi-appfw-application.so.*
 %manifest capi-appfw-application.manifest
+/usr/share/license/%{name}
 
 %files devel
 %manifest %{name}.manifest

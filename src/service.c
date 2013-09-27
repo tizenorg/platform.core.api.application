@@ -60,6 +60,7 @@ struct service_s {
 	int id;
 	service_type_e type;
 	bundle *data;
+	int launch_pid;
 };
 
 typedef struct service_request_context_s {
@@ -265,6 +266,7 @@ int service_create_request(bundle *data, service_h *service)
 	}
 
 	service_request->id = service_new_id();
+	service_request->launch_pid = -1;
 
 	*service = service_request;
 
@@ -753,6 +755,26 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 			return service_error(SERVICE_ERROR_LAUNCH_REJECTED, __FUNCTION__, NULL);
 		}
 	}
+
+	service->launch_pid = launch_pid;
+
+	return SERVICE_ERROR_NONE;
+}
+
+
+int service_send_terminate_request(service_h service)
+{
+	if (service_valiate_service(service))
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if(service->type != SERVICE_TYPE_REQUEST || service->launch_pid < 0)
+	{
+		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	appsvc_subapp_terminate_request_pid(service->launch_pid);
 
 	return SERVICE_ERROR_NONE;
 }
