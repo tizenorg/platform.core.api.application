@@ -208,6 +208,11 @@ typedef enum
  */
 #define SERVICE_DATA_PATH "http://tizen.org/appcontrol/data/path"
 
+/**
+ * @brief	Service optional data : send automatically.
+ */
+#define SERVICE_DATA_AUTOMATICALLY "http://tizen.org/appcontrol/data/automatically"
+
 
 /**
  * @brief   Called when the reply of the launch request is delivered.
