@@ -146,9 +146,11 @@ int app_appcore_create(void *data)
 
 	app_set_appcore_event_cb(app_context);
 
-	snprintf(locale_dir, TIZEN_PATH_MAX, PATH_FMT_LOCALE_DIR, app_context->package);
+	snprintf(locale_dir, TIZEN_PATH_MAX, "%s/%s" PATH_FMT_RES_DIR
+			PATH_FMT_LOCALE_DIR, PATH_FMT_APP_ROOT, app_context->package);
 	if (access(locale_dir, R_OK) != 0) {
-		snprintf(locale_dir, TIZEN_PATH_MAX, PATH_FMT_RO_LOCALE_DIR, app_context->package);
+		snprintf(locale_dir, TIZEN_PATH_MAX, "%s/%s" PATH_FMT_RO_RES_DIR
+				PATH_FMT_RO_LOCALE_DIR, PATH_FMT_RO_APP_ROOT, app_context->package);
 	}
 	appcore_set_i18n(app_context->app_name, locale_dir);
 
