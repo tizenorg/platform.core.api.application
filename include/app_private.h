@@ -19,6 +19,7 @@
 #define __TIZEN_APPFW_APP_PRIVATE_H__
 
 #include <appcore-common.h>
+#include <tzplatform_config.h>
 
 // GNU gettext macro is already defined at appcore-common.h
 #ifdef _ 
@@ -33,14 +34,14 @@ extern "C" {
 
 #define TIZEN_PATH_MAX 1024
 
-#define PATH_FMT_APP_ROOT "/opt/usr/apps"
-#define PATH_FMT_RES_DIR PATH_FMT_APP_ROOT "/%s/res"
-#define PATH_FMT_LOCALE_DIR PATH_FMT_RES_DIR "/locale"
-#define PATH_FMT_DATA_DIR PATH_FMT_APP_ROOT "/%s/data"
+#define PATH_FMT_APP_ROOT tzplatform_getenv(TZ_USER_APP)
+#define PATH_FMT_RES_DIR "/res"
+#define PATH_FMT_LOCALE_DIR "/locale"
+#define PATH_FMT_DATA_DIR "/data"
 
-#define PATH_FMT_RO_APP_ROOT "/usr/apps"
-#define PATH_FMT_RO_RES_DIR PATH_FMT_RO_APP_ROOT "/%s/res"
-#define PATH_FMT_RO_LOCALE_DIR PATH_FMT_RO_RES_DIR "/locale"
+#define PATH_FMT_RO_APP_ROOT tzplatform_getenv(TZ_SYS_RO_APP)
+#define PATH_FMT_RO_RES_DIR "/res"
+#define PATH_FMT_RO_LOCALE_DIR "/local"
 
 typedef void (*app_finalizer_cb) (void *data);
 

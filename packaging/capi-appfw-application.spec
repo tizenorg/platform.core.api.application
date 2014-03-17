@@ -19,6 +19,7 @@ BuildRequires:  pkgconfig(elementary)
 BuildRequires:  pkgconfig(alarm-service)
 BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(sqlite3)
+BuildRequires:  pkgconfig(libtzplatform-config)
 
 
 

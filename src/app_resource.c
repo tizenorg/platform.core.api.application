@@ -33,14 +33,17 @@
 #include <app_private.h>
 #include <app_service_private.h>
 
+#include <tzplatform_config.h>
+
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION"
 
-static const char *INSTALLED_PATH = "/opt/usr/apps";
-static const char *RO_INSTALLED_PATH = "/usr/apps";
+#define INSTALLED_PATH tzplatform_getenv(TZ_USER_APP)
+#define RO_INSTALLED_PATH tzplatform_getenv(TZ_SYS_RO_APP)
+
 static const char *RES_DIRECTORY_NAME = "res";
 static const char *DATA_DIRECTORY_NAME = "data";
 

@@ -27,13 +27,15 @@
 #include <app_storage.h>
 #include <app_storage_private.h>
 
+#include <tzplatform_config.h>
+
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION_STORAGE"
 
-#define INTERNAL_MEMORY_PATH "/opt/usr/media"
+#define INTERNAL_MEMORY_PATH tzplatform_getenv(TZ_USER_CONTENT)
 
 int storage_internal_get_state()
 {
