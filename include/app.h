@@ -370,6 +370,121 @@ char* app_get_data_directory(char *buffer, int size);
 
 
 /**
+ * @brief	Gets the absolute path to the application's data directory which is used to store private
+ *			data of the application.
+ * @details	An application can read and write its own files in the application's data directory.
+ * @remarks	The returned path should be released.
+ *
+ * @return	The absolute path to the application's data directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_data_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's cache directory which is used to store
+ *			temporary data of the application.
+ * @details	An application can read and write its own files in the application's cache directory.
+ * @remarks	The returned path should be released. @n
+ *			The files stored in the application's cache directory can be removed by Setting
+ *			application or platform while the application is running.
+ *
+ * @return	The absolute path to the application's cache directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_cache_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application resource directory. The resource files
+ *			are delivered with the application package.
+ * @details	An application can only read its own files in the application's resource directory.
+ * @remarks	The returned path should be released.
+ *
+ * @return	The absolute path to the application's resource directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_resource_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's shared data directory which is used to share
+ *			data with other applications.
+ * @details	An application can read and write its own files in the application's shared data
+ *			directory and others can only read the files.
+ * @remarks	The returned path should be released.
+ *
+ * @return	The absolute path to the application's shared data directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_shared_data_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's shared resource directory which is used to
+ *			share resources with other applications.
+ * @details	An application can read its own files in the application's shared resource directory
+ *			and others can only read the files.
+ * @remarks	The returned path should be released.
+ *
+ * @return	The absolute path to the application's shared resource directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_shared_resource_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's shared trusted directory which is used to share data
+ *			with family of trusted applications
+ * @details	An application can read and write its own files in the application's shared trusted directory
+ *			and the family applications signed with the same certificate can read and write the files in the
+ *			shared trusted directory.
+ * @remarks	The returned path should be released.
+ *
+ * @return	The absolute path to the application's shared trusted directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_shared_trusted_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's external data directory which is used to
+ *			store data of the application.
+ * @details	An application can read and write its own files in the application's external data
+ *			directory.
+ * @remarks	The returned path should be released. @n
+ *			The important files stored in the application's external data directory should be
+ *			encrypted because they can be exported via the external sdcard.
+ *
+ * @return	The absolute path to the application's external data directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_external_data_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's external cache directory which is used to
+ *			store temporary data of the application.
+ * @details	An application can read and write its own files in the application's external cache
+ *			directory.
+ * @remarks The returned path should be released. @n
+ *			The files stored in the application's external cache directory can be removed by
+ *			Setting application while the application is running. @n
+ *			The important files stored in the application's external cache directory should be
+ *			encrypted because they can be exported via the external sdcard.
+ *
+ * @return	The absolute path to the application's external cache directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_external_cache_path(void);
+
+/**
+ * @brief	Gets the absolute path to the application's external shared data directory which is
+ *			used to share data with other applications.
+ * @details	An application can read and write its own files in the application's external shared
+ *			data directory and others can only read the files.
+ * @remarks	The specified @a path should be released.
+ *
+ * @return	The absolute path to the application's external shared data directory, @n
+ *			else @a null pointer if the memory is insufficient
+ */
+char *app_get_external_shared_data_path(void);
+
+
+/**
  * @brief Gets the current device orientation.
  *
  * @return The current device orientation
