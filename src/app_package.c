@@ -111,12 +111,12 @@ static int app_get_appinfo(const char *package, const char *property, char **val
 	char *appinfo_value;
 	char *appinfo_value_dup;
 
-	if (ail_get_appinfo(package, &appinfo) != 0)
+	if (ail_get_usr_appinfo(package,getuid(), &appinfo) != 0)
 	{
-		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get app-info");
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get app-info for user");
 	}
 	
-	if (ail_appinfo_get_str(appinfo, property, &appinfo_value) != 0)
+	if (ail_appinfo_get_usr_str(appinfo, property, getuid(), &appinfo_value) != 0)
 	{
 		ail_destroy_appinfo(appinfo);
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get app-property");
