@@ -20,6 +20,7 @@
 
 #include <tizen.h>
 #include <app_service.h>
+#include <app_control.h>
 #include <app_alarm.h>
 #include <app_preference.h>
 #include <app_storage.h>
