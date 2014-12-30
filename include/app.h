@@ -224,6 +224,26 @@ typedef struct
 	app_region_format_changed_cb region_format_changed; /**< The registered callback function is called when region format setting is changes. */
 } app_event_callback_s;
 
+/**
+ * @brief The structure type containing the set of callback functions for handling application lifecycle events.
+ * @details It is one of the input parameters of the ui_app_main() function.
+ *
+ * @see ui_app_main()
+ * @see app_create_cb()
+ * @see app_pause_cb()
+ * @see app_resume_cb()
+ * @see app_terminate_cb()
+ * @see service_cb()
+ */
+typedef struct
+{
+	app_create_cb create; /**< This callback function is called at the start of the application. */
+	app_terminate_cb terminate; /**< This callback function is called once after the main loop of the application exits. */
+	app_pause_cb pause; /**< This callback function is called each time the application is completely obscured by another application and becomes invisible to the user. */
+	app_resume_cb resume; /**< This callback function is called each time the application becomes visible to the user. */
+	app_service_cb service; /**< This callback function is called when another application sends the launch request to the application. */
+} ui_app_lifecycle_callback_s;
+
 
 /**
  * @brief Runs the main loop of application until app_efl_exit() is called
@@ -268,6 +288,160 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
  * @see app_terminate_cb() 
  */
 void app_efl_exit(void);
+
+
+/**
+ * @brief Enumeration for system events
+ */
+typedef enum
+{
+	APP_EVENT_LOW_MEMORY, /**< The low memory event */
+	APP_EVENT_LOW_BATTERY, /**< The low battery event */
+	APP_EVENT_LANGUAGE_CHANGED, /**< The system language changed event */
+	APP_EVENT_DEVICE_ORIENTATION_CHANGED, /**< The device orientation changed event */
+	APP_EVENT_REGION_FORMAT_CHANGED, /**< The region format changed event */
+} app_event_type_e;
+
+
+/**
+ * @brief Enumeration for low memory status.
+ */
+typedef enum
+{
+	APP_EVENT_LOW_MEMORY_NORMAL = 0x01, /**< Normal status */
+	APP_EVENT_LOW_MEMORY_SOFT_WARNING = 0x02, /**< Soft warning status */
+	APP_EVENT_LOW_MEMORY_HARD_WARNING = 0x04, /**< Hard warning status */
+} app_event_low_memory_status_e;
+
+
+/**
+ * @brief Enumeration for battery status.
+ */
+typedef enum
+{
+	APP_EVENT_LOW_BATTERY_POWER_OFF = 1, /**< The battery status is under 1% */
+	APP_EVENT_LOW_BATTERY_CRITICAL_LOW, /**< The battery status is under 5% */
+} app_event_low_battery_status_e;
+
+
+/**
+ * @brief The event handler that returned from add event handler function
+ *
+ * @see app_event_type_e
+ * @see app_add_event_handler
+ * @see app_remove_event_handler
+ * @see app_event_info_h
+ */
+typedef struct app_event_handler* app_event_handler_h;
+
+
+/**
+ * @brief The system event information
+ *
+ * @see app_event_get_low_memory_status
+ * @see app_event_get_low_battery_status
+ * @see app_event_get_language
+ * @see app_event_get_region_format
+ * @see app_event_get_device_orientation
+ */
+typedef struct app_event_info* app_event_info_h;
+
+
+/**
+ * @brief The system event callback function
+ *
+ * @param[in] event_info The system event information
+ * @param[in] user_data The user data passed from the add event handler function
+ *
+ * @see app_add_event_handler
+ * @see app_event_info_h
+ */
+typedef void (*app_event_cb)(app_event_info_h event_info, void *user_data);
+
+
+/**
+ * @brief Gets the low memory status from given event info
+ *
+ * @param[in] event_info The system event info
+ * @param[out] status The low memory status
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @see app_event_info_h
+ * @see app_event_low_memory_status_e
+ */
+int app_event_get_low_memory_status(app_event_info_h event_info, app_event_low_memory_status_e *status);
+
+
+/**
+ * @brief Gets the low battery status from given event info
+ *
+ * @param[in] event_info The system event info
+ * @param[out] status The low battery status
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @see app_event_info_h
+ * @see app_event_low_battery_status_e
+ */
+int app_event_get_low_battery_status(app_event_info_h event_info, app_event_low_battery_status_e *status);
+
+
+/**
+ * @brief Gets the language from given event info
+ *
+ * @remarks @a lang must be released using free()
+ * @param[in] event_info The system event info
+ * @param[out] lang The language changed
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @see app_event_info_h
+ */
+int app_event_get_language(app_event_info_h event_info, char **lang);
+
+
+/**
+ * @brief Gets the region format from given event info
+ *
+ * @remarks @a region must be released using free()
+ * @param[in] event_info The system event info
+ * @param[out] region The region format changed
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @see app_event_info_h
+ */
+int app_event_get_region_format(app_event_info_h event_info, char **region);
+
+
+/**
+ * @brief Gets the device orientation from given event info
+ *
+ * @param[in] event_info The system event info
+ * @param[out] orientation The device orientation changed
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @see app_event_info_h
+ * @see app_device_orientation_e
+ */
+int app_event_get_device_orientation(app_event_info_h event_info, app_device_orientation_e *orientation);
 
 
 /**
@@ -388,6 +562,81 @@ app_device_orientation_e app_get_device_orientation(void);
  */
 void app_set_reclaiming_system_cache_on_pause(bool enable);
 
+/**
+ * @brief Runs the application's main loop until ui_app_exit() is called.
+ *
+ * @details This function is the main entry point of the Tizen application.
+ *          The app_create_cb() callback function is called to initialize the application before the main loop of application starts up.
+ *          After the app_create_cb() callback function returns true, the main loop starts up and the service_cb() callback function is subsequently called.
+ *          If the app_create_cb() callback function returns false, the main loop doesn't start up and app_terminate_cb() callback function is called.
+ *          This main loop supports event handling for the Ecore Main Loop.
+ *
+ * @param[in] argc The argument count
+ * @param[in] argv The argument vector
+ * @param[in] callback The set of callback functions to handle application lifecycle events
+ * @param[in] user_data The user data to be passed to the callback functions
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT The application is illegally launched, not launched by the launch system
+ * @retval #APP_ERROR_ALREADY_RUNNING The main loop already starts
+ *
+ * @see app_create_cb()
+ * @see app_terminate_cb()
+ * @see app_pause_cb()
+ * @see app_resume_cb()
+ * @see app_service_cb()
+ * @see ui_app_exit()
+ * @see #ui_app_lifecycle_callback_s
+ */
+int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data);
+
+
+/**
+ * @brief Exits the main loop of application.
+ *
+ * @details The main loop of application stops and app_terminate_cb() is invoked.
+ *
+ * @see ui_app_main()
+ * @see app_terminate_cb()
+ */
+void ui_app_exit(void);
+
+
+/**
+ * @brief Adds the system event handler
+ *
+ * @param[out] event_handler The event handler
+ * @param[in] event_type The system event type
+ * @param[in] callback The callback function
+ * @param[in] user_data The user data to be passed to the callback functions
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_OUT_OF_MEMORY Out of memory
+ *
+ * @see app_event_type_e
+ * @see app_event_cb
+ * @see ui_app_remove_event_handler
+ */
+int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_e event_type, app_event_cb callback, void *user_data);
+
+
+/**
+ * @brief Removes registered event handler
+ *
+ * @param[in] event_handler The event handler
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ *
+ * @see ui_app_add_event_handler
+ */
+int ui_app_remove_event_handler(app_event_handler_h event_handler);
+
 
 /**
  * @}
@@ -396,5 +645,4 @@ void app_set_reclaiming_system_cache_on_pause(bool enable);
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* __TIZEN_APPFW_APP_H__ */
