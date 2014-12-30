@@ -43,6 +43,19 @@ extern "C" {
 #define PATH_FMT_RO_RES_DIR "/res"
 #define PATH_FMT_RO_LOCALE_DIR "/local"
 
+struct app_event_handler {
+	app_event_type_e type;
+	app_event_cb cb;
+	void *data;
+};
+
+struct app_event_info {
+	app_event_type_e type;
+	void *value;
+};
+
+app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
+
 typedef void (*app_finalizer_cb) (void *data);
 
 int app_error(app_error_e error, const char* function, const char *description);

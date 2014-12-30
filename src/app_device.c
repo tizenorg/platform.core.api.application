@@ -38,36 +38,6 @@
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION"
 
-app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm)
-{
-	app_device_orientation_e dev_orientation;
-
-	switch (rm)
-	{
-	case APPCORE_RM_PORTRAIT_NORMAL:
-		dev_orientation = APP_DEVICE_ORIENTATION_0;
-		break;
-		
-	case APPCORE_RM_PORTRAIT_REVERSE:
-		dev_orientation = APP_DEVICE_ORIENTATION_180;
-		break;
-		
-	case APPCORE_RM_LANDSCAPE_NORMAL:
-		dev_orientation = APP_DEVICE_ORIENTATION_270;
-		break;
-		
-	case APPCORE_RM_LANDSCAPE_REVERSE:
-		dev_orientation = APP_DEVICE_ORIENTATION_90;
-		break;
-
-	default:
-		dev_orientation = APP_DEVICE_ORIENTATION_0;
-		break;
-	}
-
-	return dev_orientation;
-}
-
 app_device_orientation_e app_get_device_orientation(void)
 {
 	enum appcore_rm rm;

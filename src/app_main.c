@@ -62,11 +62,11 @@ static int app_appcore_resume(void *data);
 static int app_appcore_terminate(void *data);
 static int app_appcore_reset(bundle *appcore_bundle, void *data);
 
-static int app_appcore_low_memory(void *data);
-static int app_appcore_low_battery(void *data);
-static int app_appcore_rotation_event(enum appcore_rm rm, void *data);
-static int app_appcore_lang_changed(void *data);
-static int app_appcore_region_changed(void *data);
+static int app_appcore_low_memory(void *event, void *data);
+static int app_appcore_low_battery(void *evnet, void *data);
+static int app_appcore_rotation_event(void *event, enum appcore_rm rm, void *data);
+static int app_appcore_lang_changed(void *evnet, void *data);
+static int app_appcore_region_changed(void *event, void *data);
 
 static void app_set_appcore_event_cb(app_context_h app_context);
 static void app_unset_appcore_event_cb(void);
@@ -260,7 +260,7 @@ int app_appcore_reset(bundle *appcore_bundle, void *data)
 }
 
 
-int app_appcore_low_memory(void *data)
+int app_appcore_low_memory(void *event_info, void *data)
 {
 	app_context_h app_context = data;
 	app_low_memory_cb low_memory_cb;
@@ -280,7 +280,7 @@ int app_appcore_low_memory(void *data)
 	return APP_ERROR_NONE;
 }
 
-int app_appcore_low_battery(void *data)
+int app_appcore_low_battery(void *event_info, void *data)
 {
 	app_context_h app_context = data;
 	app_low_battery_cb low_battery_cb;
@@ -300,7 +300,7 @@ int app_appcore_low_battery(void *data)
 	return APP_ERROR_NONE;
 }
 
-int app_appcore_rotation_event(enum appcore_rm rm, void *data)
+int app_appcore_rotation_event(void *event_info, enum appcore_rm rm, void *data)
 {
 	app_context_h app_context = data;
 	app_device_orientation_cb device_orientation_cb;
@@ -324,7 +324,7 @@ int app_appcore_rotation_event(enum appcore_rm rm, void *data)
 	return APP_ERROR_NONE;
 }
 
-int app_appcore_lang_changed(void *data)
+int app_appcore_lang_changed(void *event_info, void *data)
 {
 	app_context_h app_context = data;
 	app_language_changed_cb lang_changed_cb;
@@ -344,7 +344,7 @@ int app_appcore_lang_changed(void *data)
 	return APP_ERROR_NONE;
 }
 
-int app_appcore_region_changed(void *data)
+int app_appcore_region_changed(void *event_info, void *data)
 {
 	app_context_h app_context = data;
 	app_region_format_changed_cb region_changed_cb;
@@ -400,4 +400,365 @@ void app_unset_appcore_event_cb(void)
 	appcore_unset_rotation_cb();
 	appcore_set_event_callback(APPCORE_EVENT_LANG_CHANGE, NULL, NULL);
 	appcore_set_event_callback(APPCORE_EVENT_REGION_CHANGE, NULL, NULL);
+}
+
+#define UI_APP_EVENT_MAX 5
+static Eina_List *handler_list[UI_APP_EVENT_MAX] = {NULL, };
+static int _initialized = 0;
+
+struct ui_app_context {
+	char *package;
+	char *app_name;
+	app_state_e state;
+	ui_app_lifecycle_callback_s *callback;
+	void *data;
+};
+
+static void _free_handler_list(void)
+{
+	int i;
+	app_event_handler_h handler;
+
+	for (i = 0; i < UI_APP_EVENT_MAX; i++) {
+		EINA_LIST_FREE(handler_list[i], handler)
+			free(handler);
+	}
+
+	eina_shutdown();
+}
+
+static int _ui_app_appcore_low_memory(void *event_info, void *data)
+{
+	Eina_List *l;
+	app_event_handler_h handler;
+	struct app_event_info event;
+
+	LOGI("_app_appcore_low_memory");
+
+	event.type = APP_EVENT_LOW_MEMORY;
+	event.value = event_info;
+
+	EINA_LIST_FOREACH(handler_list[APP_EVENT_LOW_MEMORY], l, handler) {
+		handler->cb(&event, handler->data);
+	}
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_low_battery(void *event_info, void *data)
+{
+	Eina_List *l;
+	app_event_handler_h handler;
+	struct app_event_info event;
+
+	LOGI("_ui_app_appcore_low_battery");
+
+	event.type = APP_EVENT_LOW_BATTERY;
+	event.value = event_info;
+
+	EINA_LIST_FOREACH(handler_list[APP_EVENT_LOW_BATTERY], l, handler) {
+		handler->cb(&event, handler->data);
+	}
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_rotation_event(void *event_info, enum appcore_rm rm, void *data)
+{
+	Eina_List *l;
+	app_event_handler_h handler;
+	struct app_event_info event;
+
+	LOGI("_ui_app_appcore_rotation_event");
+
+	event.type = APP_EVENT_DEVICE_ORIENTATION_CHANGED;
+	event.value = event_info;
+
+	EINA_LIST_FOREACH(handler_list[APP_EVENT_DEVICE_ORIENTATION_CHANGED], l, handler) {
+		handler->cb(&event, handler->data);
+	}
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_lang_changed(void *event_info, void *data)
+{
+	Eina_List *l;
+	app_event_handler_h handler;
+	struct app_event_info event;
+
+	LOGI("_ui_app_appcore_lang_changed");
+
+	event.type = APP_EVENT_LANGUAGE_CHANGED;
+	event.value = event_info;
+
+	EINA_LIST_FOREACH(handler_list[APP_EVENT_LANGUAGE_CHANGED], l, handler) {
+		handler->cb(&event, handler->data);
+	}
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_region_changed(void *event_info, void *data)
+{
+	Eina_List *l;
+	app_event_handler_h handler;
+	struct app_event_info event;
+
+	if (event_info == NULL) {
+		LOGI("receive empty event, ignore it");
+		return APP_ERROR_NONE;
+	}
+
+	LOGI("_ui_app_appcore_region_changed");
+
+	event.type = APP_EVENT_REGION_FORMAT_CHANGED;
+	event.value = event_info;
+
+	EINA_LIST_FOREACH(handler_list[APP_EVENT_REGION_FORMAT_CHANGED], l, handler) {
+		handler->cb(&event, handler->data);
+	}
+
+	return APP_ERROR_NONE;
+}
+
+
+static void _ui_app_set_appcore_event_cb(void)
+{
+	appcore_set_event_callback(APPCORE_EVENT_LOW_MEMORY, _ui_app_appcore_low_memory, NULL);
+	appcore_set_event_callback(APPCORE_EVENT_LOW_BATTERY, _ui_app_appcore_low_battery, NULL);
+	appcore_set_rotation_cb(_ui_app_appcore_rotation_event, NULL);
+	appcore_set_event_callback(APPCORE_EVENT_LANG_CHANGE, _ui_app_appcore_lang_changed, NULL);
+	appcore_set_event_callback(APPCORE_EVENT_REGION_CHANGE, _ui_app_appcore_region_changed, NULL);
+}
+
+static void _ui_app_unset_appcore_event_cb(void)
+{
+	appcore_set_event_callback(APPCORE_EVENT_LOW_MEMORY, NULL, NULL);
+	appcore_set_event_callback(APPCORE_EVENT_LOW_BATTERY, NULL, NULL);
+	appcore_unset_rotation_cb();
+	appcore_set_event_callback(APPCORE_EVENT_LANG_CHANGE, NULL, NULL);
+	appcore_set_event_callback(APPCORE_EVENT_REGION_CHANGE, NULL, NULL);
+}
+
+static int _ui_app_appcore_create(void *data)
+{
+	LOGI("app_appcore_create");
+	struct ui_app_context *app_context = data;
+	app_create_cb create_cb;
+
+	if (app_context == NULL)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
+
+	_ui_app_set_appcore_event_cb();
+
+	create_cb = app_context->callback->create;
+
+	if (create_cb == NULL || create_cb(app_context->data) == false)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "app_create_cb() returns false");
+
+	app_context->state = APP_STATE_RUNNING;
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_terminate(void *data)
+{
+	LOGI("app_appcore_terminate");
+	struct ui_app_context *app_context = data;
+	app_terminate_cb terminate_cb;
+
+	if (app_context == NULL)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
+
+	terminate_cb = app_context->callback->terminate;
+
+	if (terminate_cb != NULL)
+		terminate_cb(app_context->data);
+
+	_ui_app_unset_appcore_event_cb();
+
+	app_finalizer_execute();
+
+	if (_initialized) {
+		_free_handler_list();
+		_initialized = 0;
+	}
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_pause(void *data)
+{
+	LOGI("app_appcore_pause");
+	struct ui_app_context *app_context = data;
+	app_pause_cb pause_cb;
+
+	if (app_context == NULL)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
+
+	pause_cb = app_context->callback->pause;
+
+	if (pause_cb != NULL)
+		pause_cb(app_context->data);
+
+	return APP_ERROR_NONE;
+}
+
+static int _ui_app_appcore_resume(void *data)
+{
+	LOGI("app_appcore_resume");
+	struct ui_app_context *app_context = data;
+	app_resume_cb resume_cb;
+
+	if (app_context == NULL)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
+
+	resume_cb = app_context->callback->resume;
+
+	if (resume_cb != NULL)
+		resume_cb(app_context->data);
+
+	return APP_ERROR_NONE;
+}
+
+
+static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
+{
+	LOGI("app_appcore_reset");
+	struct ui_app_context *app_context = data;
+	app_service_cb callback;
+	service_h service;
+
+	if (app_context == NULL)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
+
+	if (service_create_event(appcore_bundle, &service) != APP_ERROR_NONE)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create a service handle from the bundle");
+
+	callback = app_context->callback->service;
+
+	if (callback != NULL)
+		callback(service, app_context->data);
+
+	service_destroy(service);
+
+	return APP_ERROR_NONE;
+}
+
+int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
+{
+	struct ui_app_context app_context = {
+		.package = NULL,
+		.app_name = NULL,
+		.state = APP_STATE_NOT_RUNNING,
+		.callback = callback,
+		.data = user_data
+	};
+
+	struct appcore_ops appcore_context = {
+		.data = &app_context,
+		.create = _ui_app_appcore_create,
+		.terminate = _ui_app_appcore_terminate,
+		.pause = _ui_app_appcore_pause,
+		.resume = _ui_app_appcore_resume,
+		.reset = _ui_app_appcore_reset,
+	};
+
+	if (argc < 1 || argv == NULL || callback == NULL)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	if (callback->create == NULL)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
+
+	if (app_context.state != APP_STATE_NOT_RUNNING)
+		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
+
+	if (app_get_id(&(app_context.package)) != APP_ERROR_NONE)
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
+
+	if (app_get_package_app_name(app_context.package, &(app_context.app_name)) != APP_ERROR_NONE) {
+		free(app_context.package);
+		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
+	}
+
+	app_context.state = APP_STATE_CREATING;
+
+	LOGI("app_efl_main");
+	appcore_efl_main(app_context.app_name, &argc, &argv, &appcore_context);
+
+	free(app_context.package);
+	free(app_context.app_name);
+
+	return APP_ERROR_NONE;
+}
+
+void ui_app_exit(void)
+{
+	app_efl_exit();
+}
+
+int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_e event_type, app_event_cb callback, void *user_data)
+{
+	app_event_handler_h handler;
+	Eina_List *l_itr;
+
+	if (!_initialized) {
+		eina_init();
+		_initialized = 1;
+	}
+
+	if (event_handler == NULL || callback == NULL)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "null parameter");
+
+	if (event_type < APP_EVENT_LOW_MEMORY || event_type > APP_EVENT_REGION_FORMAT_CHANGED)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid event type");
+
+	EINA_LIST_FOREACH(handler_list[event_type], l_itr, handler) {
+		if (handler->cb == callback)
+			return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "already registered");
+	}
+
+	handler = calloc(1, sizeof(struct app_event_handler));
+	if (!handler)
+		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, "failed to create handler");
+
+	handler->type = event_type;
+	handler->cb = callback;
+	handler->data = user_data;
+	handler_list[event_type] = eina_list_append(handler_list[event_type], handler);
+
+	*event_handler = handler;
+
+	return APP_ERROR_NONE;
+}
+
+int ui_app_remove_event_handler(app_event_handler_h event_handler)
+{
+	app_event_handler_h handler;
+	app_event_type_e type;
+	Eina_List *l_itr;
+	Eina_List *l_next;
+
+	if (event_handler == NULL)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "handler is null");
+
+	if (!_initialized) {
+		LOGI("handler list is not initialized");
+		return APP_ERROR_NONE;
+	}
+
+	type = event_handler->type;
+	if (type < APP_EVENT_LOW_MEMORY || type > APP_EVENT_REGION_FORMAT_CHANGED)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid handler");
+
+	EINA_LIST_FOREACH_SAFE(handler_list[type], l_itr, l_next, handler) {
+		if (handler == event_handler) {
+			free(handler);
+			handler_list[type] = eina_list_remove_list(handler_list[type], l_itr);
+			return APP_ERROR_NONE;
+		}
+	}
+
+	return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "cannot find such handler");
 }
