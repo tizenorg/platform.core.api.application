@@ -20,6 +20,7 @@ BuildRequires:  pkgconfig(alarm-service)
 BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(libtzplatform-config)
+BuildRequires:  pkgconfig(vconf-internal-keys)
 
 %description
 An Application library in SLP C API package.
