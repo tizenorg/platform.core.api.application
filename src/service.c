@@ -737,7 +737,7 @@ int service_send_launch_request(service_h service, service_reply_cb callback, vo
 		appsvc_set_operation(service->data, SERVICE_OPERATION_DEFAULT);
 	}
 
-	launch_pid = appsvc_run_service(service->data, service->id, callback ? service_request_result_broker : NULL, request_context);
+	launch_pid = appsvc_usr_run_service(service->data, service->id, callback ? service_request_result_broker : NULL, request_context, getuid());
 
 	if (implicit_default_operation == true)
 	{
@@ -1040,7 +1040,7 @@ int service_is_extra_data_array(service_h service, const char *key, bool *array)
 	if (service_validate_internal_key(key))
 	{
 		return service_error(SERVICE_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
-	}
+	}
 
 	if (!appsvc_data_is_array(service->data, key))
 	{
@@ -1170,7 +1170,7 @@ int service_foreach_app_matched(service_h service, service_app_matched_cb callba
 		return service_error(SERVICE_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	appsvc_get_list(service->data, service_cb_broker_foreach_app_matched, &foreach_context);
+	appsvc_usr_get_list(service->data, service_cb_broker_foreach_app_matched, &foreach_context, getuid());
 
 	return SERVICE_ERROR_NONE;
 }
