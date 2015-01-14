@@ -140,6 +140,30 @@ typedef void (*app_service_cb) (service_h service, void *user_data);
 
 
 /**
+ * @brief Called when other application send the launch request to the application.
+ *
+ * @details When the application is launched, this callback function is called after the main loop of application starts up.
+ * The passed app_control handle describes the launch request and contains the information about why the application is launched.
+ * If the launch request is sent to the application on running or pause state,
+ * this callback function can be called again to notify that the application is asked to be launched.
+ *
+ * The application could be explicitly launched by the user from the application launcher or be launched to perform the specific operation by other application.
+ * The application is responsible for handling the each launch request and responding appropriately.
+ * Using the app_control API, the application can get the information what has to perform.
+ * If the application is launched from the application launcher or explicitly launched by other application,
+ * the passed app_control handle may include only the default operation (#APP_CONTROL_OPERATION_DEFAULT) without any data
+ * For more information, see The @ref CAPI_APP_CONTROL_MODULE API description.
+ *
+ * @param[in]	app_control_h	The handle to the app_control
+ * @param[in]	user_data	The user data passed from the callback registration function
+ * @see app_efl_main()
+ * @see #app_event_callback_s
+ * @see @ref CAPI_APP_CONTROL_MODULE API
+ */
+typedef void (*app_control_cb) (app_control_h app_control, void *user_data);
+
+
+/**
  * @brief   Called when the system memory is running low.
  *
  * @details 
@@ -234,7 +258,7 @@ typedef struct
  * @see app_pause_cb()
  * @see app_resume_cb()
  * @see app_terminate_cb()
- * @see service_cb()
+ * @see app_control_cb()
  */
 typedef struct
 {
@@ -242,7 +266,7 @@ typedef struct
 	app_terminate_cb terminate; /**< This callback function is called once after the main loop of the application exits. */
 	app_pause_cb pause; /**< This callback function is called each time the application is completely obscured by another application and becomes invisible to the user. */
 	app_resume_cb resume; /**< This callback function is called each time the application becomes visible to the user. */
-	app_service_cb service; /**< This callback function is called when another application sends the launch request to the application. */
+	app_control_cb app_control; /**< This callback function is called when another application sends the launch request to the application. */
 } ui_app_lifecycle_callback_s;
 
 
@@ -683,7 +707,7 @@ void app_set_reclaiming_system_cache_on_pause(bool enable);
  *
  * @details This function is the main entry point of the Tizen application.
  *          The app_create_cb() callback function is called to initialize the application before the main loop of application starts up.
- *          After the app_create_cb() callback function returns true, the main loop starts up and the service_cb() callback function is subsequently called.
+ *          After the app_create_cb() callback function returns true, the main loop starts up and the app_control_cb() callback function is subsequently called.
  *          If the app_create_cb() callback function returns false, the main loop doesn't start up and app_terminate_cb() callback function is called.
  *          This main loop supports event handling for the Ecore Main Loop.
  *
@@ -702,7 +726,7 @@ void app_set_reclaiming_system_cache_on_pause(bool enable);
  * @see app_terminate_cb()
  * @see app_pause_cb()
  * @see app_resume_cb()
- * @see app_service_cb()
+ * @see app_control_cb()
  * @see ui_app_exit()
  * @see #ui_app_lifecycle_callback_s
  */

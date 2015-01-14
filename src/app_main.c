@@ -33,6 +33,7 @@
 
 #include <app_private.h>
 #include <app_service_private.h>
+#include <app_control_internal.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -627,21 +628,21 @@ static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
 {
 	LOGI("app_appcore_reset");
 	struct ui_app_context *app_context = data;
-	app_service_cb callback;
-	service_h service;
+	app_control_cb callback;
+	app_control_h app_control;
 
 	if (app_context == NULL)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 
-	if (service_create_event(appcore_bundle, &service) != APP_ERROR_NONE)
-		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create a service handle from the bundle");
+	if (app_control_create_event(appcore_bundle, &app_control) != APP_ERROR_NONE)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create a app_control handle from the bundle");
 
-	callback = app_context->callback->service;
+	callback = app_context->callback->app_control;
 
 	if (callback != NULL)
-		callback(service, app_context->data);
+		callback(app_control, app_context->data);
 
-	service_destroy(service);
+	app_control_destroy(app_control);
 
 	return APP_ERROR_NONE;
 }
