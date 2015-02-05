@@ -27,7 +27,7 @@
 
 #include <app_private.h>
 #include <app_alarm.h>
-#include <app_service_private.h>
+#include <app_control_internal.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -187,18 +187,18 @@ int alarm_get_scheduled_period(int alarm_id, int* period)
 
 }
 
-int alarm_schedule_after_delay(service_h service, int delay, int period, int *alarm_id)
+int alarm_schedule_after_delay(app_control_h app_control, int delay, int period, int *alarm_id)
 {
 	bundle *bundle_data;
 	int result = 0;
 
-	if (service == NULL)
+	if (app_control == NULL)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 
-	if (service_to_bundle(service, &bundle_data) != SERVICE_ERROR_NONE)
+	if (app_control_to_bundle(app_control, &bundle_data) != APP_CONTROL_ERROR_NONE)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
@@ -209,20 +209,20 @@ int alarm_schedule_after_delay(service_h service, int delay, int period, int *al
 	return  convert_error_code_to_alarm(__FUNCTION__, result);
 }
 
-int alarm_schedule_at_date(service_h service, struct tm *date, int period_in_second, int *alarm_id)
+int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int period_in_second, int *alarm_id)
 {
 	alarm_date_t internal_time;
 	alarm_entry_t* alarm_info;
 	bundle *bundle_data;
 	int result;
 
-	if (service == NULL || date == NULL)
+	if (app_control == NULL || date == NULL)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 
-	if (service_to_bundle(service, &bundle_data) != SERVICE_ERROR_NONE)
+	if (app_control_to_bundle(app_control, &bundle_data) != APP_CONTROL_ERROR_NONE)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
@@ -339,20 +339,20 @@ int alarm_get_current_time(struct tm* date)
 }
 
 
-int alarm_schedule_with_recurrence_week_flag(service_h service, struct tm *date, int week_flag,int *alarm_id)
+int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag,int *alarm_id)
 {
 	alarm_date_t internal_time;
 	alarm_entry_t* alarm_info;
 	bundle *bundle_data;
 	int result;
 
-	if (service == NULL || date == NULL)
+	if (app_control == NULL || date == NULL)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
 	}
 
-	if (service_to_bundle(service, &bundle_data) != SERVICE_ERROR_NONE)
+	if (app_control_to_bundle(app_control, &bundle_data) != APP_CONTROL_ERROR_NONE)
 	{
 		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
 		return ALARM_ERROR_INVALID_PARAMETER;
@@ -461,7 +461,7 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 	return ALARM_ERROR_NONE;
 }
 
-int alarm_get_service(int alarm_id, service_h *service)
+int alarm_get_app_control(int alarm_id, app_control_h *app_control)
 {
     bundle *b = NULL;
     int error_code = 0;
@@ -478,9 +478,9 @@ int alarm_get_service(int alarm_id, service_h *service)
         return ALARM_ERROR_INVALID_PARAMETER;
     }
 
-    error_code = service_create_request(b, service);
+    error_code = app_control_create_request(b, app_control);
 
-    if(error_code != SERVICE_ERROR_NONE)
+    if(error_code != APP_CONTROL_ERROR_NONE)
     {
         return ALARM_ERROR_OUT_OF_MEMORY;
     }

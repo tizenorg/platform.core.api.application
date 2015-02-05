@@ -20,7 +20,7 @@
 
 #include <tizen.h>
 #include <time.h>
-#include <app_service.h>
+#include <app_control.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +34,7 @@ extern "C" {
 /**
  * @brief	Service extra data : the id of the alarm registered
  */
-#define SERVICE_DATA_ALARM_ID "http://tizen.org/appcontrol/data/alarm_id"
+#define APP_CONTROL_DATA_ALARM_ID "http://tizen.org/appcontrol/data/alarm_id"
 
 /**
  * @brief   Enumerations of error codes for the alarm
@@ -45,7 +45,7 @@ typedef enum
 	ALARM_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,	/**< Invalid parameter */
 	ALARM_ERROR_INVALID_TIME = TIZEN_ERROR_APPLICATION_CLASS | 0x05,	/**< Invalid time */
 	ALARM_ERROR_INVALID_DATE = TIZEN_ERROR_APPLICATION_CLASS | 0x06,	/**< Invalid date */
-	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION_CLASS | 0x07,	/**< The alarm service connection failed */
+	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION_CLASS | 0x07,	/**< The alarm app_control connection failed */
 	ALARM_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY	/**< Out of memory */
 } alarm_error_e;
 
@@ -84,7 +84,7 @@ typedef bool (*alarm_registered_alarm_cb)(int alarm_id, void *user_data);
  *
  * @remarks  If application is uninstalled after setting an alarm, the alarm is canceled automatically.
  *
- * @param[in]	service The destination service to perform specific work when the alarm is triggered.
+ * @param[in]	app_control The destination app_control to perform specific work when the alarm is triggered.
  * @param[in]	delay	The amount of time before first execution(in second) 
  * @param[in]	period	The amount of time between subsequent alarms(in second)
  * @param[out]	alarm_id	The alarm ID uniquely identifies an alarm
@@ -98,7 +98,7 @@ typedef bool (*alarm_registered_alarm_cb)(int alarm_id, void *user_data);
  * @see alarm_get_scheduled_date()
  * @see alarm_get_scheduled_period()
  */
-int alarm_schedule_after_delay(service_h service, int delay, int period, int *alarm_id);
+int alarm_schedule_after_delay(app_control_h app_control, int delay, int period, int *alarm_id);
 
 
 /**
@@ -111,7 +111,7 @@ int alarm_schedule_after_delay(service_h service, int delay, int period, int *al
  *
  * @remarks  If application is uninstalled after setting an alarm, the alarm is canceled automatically.
  *
- * @param[in]	service The destination service to perform specific work when the alarm is triggered
+ * @param[in]	app_control The destination app_control to perform specific work when the alarm is triggered
  * @param[in]	date	The first active alarm time
  * @param[in]	period	The amount of time between subsequent alarms(in second)
  * @param[out]	alarm_id	The alarm ID uniquely identifies an alarm
@@ -125,7 +125,7 @@ int alarm_schedule_after_delay(service_h service, int delay, int period, int *al
  * @see alarm_get_scheduled_date()
  * @see alarm_get_scheduled_period()
  */
-int alarm_schedule_at_date(service_h service, struct tm *date, int period, int *alarm_id);
+int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int period, int *alarm_id);
 
 
 /**
@@ -136,7 +136,7 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period, int *
  * To cancel the alarm, call alarm_cancel() with the @alarm_id 
  * @remarks  If application is uninstalled after setting an alarm, the alarm is canceled automatically.
  *
- * @param[in]	service The destination service to perform specific work when the alarm is triggered.
+ * @param[in]	app_control The destination app_control to perform specific work when the alarm is triggered.
  * @param[in]	date	The first active alarm time
  * @param[in]	week_flag	The day of the week, @a week_flag may be a combination of days, like #ALARM_WEEK_FLAG_TUESDAY | #ALARM_WEEK_FLAG_FRIDAY.
  * @param[out]	alarm_id	The alarm ID uniquely identifies an alarm
@@ -152,7 +152,7 @@ int alarm_schedule_at_date(service_h service, struct tm *date, int period, int *
  * @see alarm_get_scheduled_date()
  * @see	#alarm_week_flag_e
  */
-int alarm_schedule_with_recurrence_week_flag(service_h service, struct tm *date, int week_flag,int *alarm_id);
+int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag,int *alarm_id);
 
 
 /**
@@ -258,10 +258,10 @@ int alarm_get_current_time(struct tm *date);
 
 
 /**
- * @brief Gets the service to be invoked when the the alarm is triggered
- * @remarks The @a service must be released with service_destroy() by you.
+ * @brief Gets the app_control to be invoked when the the alarm is triggered
+ * @remarks The @a app_control must be released with app_control_destroy() by you.
  * @param[in]	alarm_id	The alarm ID uniquely identifies an alarm
- * @param[out] service The service handle to launch when the alarm is triggered
+ * @param[out] app_control The app_control handle to launch when the alarm is triggered
  * @return 0 on success, otherwise a negative error value.
  * @retval #ALARM_ERROR_NONE Successful
  * @retval #ALARM_ERROR_INVALID_PARAMETER Invalid parameter
@@ -270,7 +270,7 @@ int alarm_get_current_time(struct tm *date);
  * @see alarm_schedule_after_delay()
  * @see alarm_schedule_with_recurrence_week_flag()
  */
-int alarm_get_service(int alarm_id, service_h *service);
+int alarm_get_app_control(int alarm_id, app_control_h *app_control);
 
 /**
  * @}
