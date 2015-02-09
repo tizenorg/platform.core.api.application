@@ -48,26 +48,45 @@ static void _finish(void *data)
 	}
 }
 
+static int _busy_handler(void *pData, int count)
+{
+	if(5 - count > 0) {
+		LOGD("Busy Handler Called! : PID(%d) / CNT(%d)\n", getpid(), count+1);
+		usleep((count+1)*100000);
+		return 1;
+	} else {
+		LOGD("Busy Handler will be returned SQLITE_BUSY error : PID(%d) \n", getpid());
+		return 0;
+	}
+}
+
 static int _initialize(void)
 {
-	char data_path[TIZEN_PATH_MAX] = {0, };
+	char *data_path = NULL;
 	char db_path[TIZEN_PATH_MAX] = {0, };
 	int ret;
 	char *errmsg;
 
-	if (app_get_data_directory(data_path, sizeof(data_path)) == NULL)
+	if ((data_path = app_get_data_path()) == NULL)
 	{
 		LOGE("IO_ERROR(0x%08x) : fail to get data directory", PREFERENCE_ERROR_IO_ERROR);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	snprintf(db_path, sizeof(db_path), "%s/%s", data_path, PREF_DB_NAME);
+	free(data_path);
 
 	ret = sqlite3_open(db_path, &pref_db);
+	//ret = sqlite3_open_v2(db_path, &pref_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 	if (ret != SQLITE_OK)
 	{
 		LOGE("IO_ERROR(0x%08x) : fail to open db(%s)", PREFERENCE_ERROR_IO_ERROR, sqlite3_errmsg(pref_db));
 		pref_db = NULL;
 		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	ret = sqlite3_busy_handler(pref_db, _busy_handler, NULL);
+	if (ret != SQLITE_OK) {
+		LOGW("IO_ERROR(0x%08x) : fail to register busy handler(%s)\n", PREFERENCE_ERROR_IO_ERROR, sqlite3_errmsg(pref_db));
 	}
 
 	ret = sqlite3_exec(pref_db, "CREATE TABLE IF NOT EXISTS pref ( pref_key TEXT PRIMARY KEY, pref_type TEXT, pref_data TEXT)",
@@ -86,13 +105,12 @@ static int _initialize(void)
 	return PREFERENCE_ERROR_NONE;
 }
 
-//static int _write_data(const char *key, preference_type_e type, const char *data)
 static int _write_data(const char *key, const char *type, const char *data)
 {
 	int ret;
-	char *buf;
-	char *errmsg;
+	char *buf = NULL;
 	bool exist = false;
+	sqlite3_stmt *stmt;
 
 	if (key == NULL || key[0] == '\0'  || data == NULL)
 	{
@@ -110,13 +128,13 @@ static int _write_data(const char *key, const char *type, const char *data)
 	// to use sqlite3_update_hook, we have to use INSERT/UPDATE operation instead of REPLACE operation
 	if (exist)
 	{
-		buf = sqlite3_mprintf("UPDATE %s SET %s='%s', %s='%s' WHERE %s='%s';",
-								PREF_TBL_NAME, PREF_F_TYPE_NAME, type, PREF_F_DATA_NAME, data, PREF_F_KEY_NAME, key);
+		buf = sqlite3_mprintf("UPDATE %s SET %s=?, %s=? WHERE %s=?;",
+								PREF_TBL_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME, PREF_F_KEY_NAME);
 	}
 	else
 	{
-		buf = sqlite3_mprintf("INSERT INTO %s (%s, %s, %s) values ('%q', '%q', '%q');",
-								PREF_TBL_NAME, PREF_F_KEY_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME, key, type, data);
+		buf = sqlite3_mprintf("INSERT INTO %s (%s, %s, %s) values (?, ?, ?);",
+								PREF_TBL_NAME, PREF_F_KEY_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME);
 	}
 
 	if (buf == NULL)
@@ -125,13 +143,90 @@ static int _write_data(const char *key, const char *type, const char *data)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	ret = sqlite3_exec(pref_db, buf, NULL, NULL, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK)
-	{
-		LOGE("IO_ERROR(0x%08x): fail to write data(%s)", PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
+	ret = sqlite3_prepare(pref_db, buf, strlen(buf), &stmt, NULL);
+	if (ret != SQLITE_OK) {
+		LOGE("IO_ERROR(0x%08x) : fail to prepare query (%d/%s)",
+			PREFERENCE_ERROR_IO_ERROR,
+			sqlite3_extended_errcode(pref_db),
+			sqlite3_errmsg(pref_db));
 		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	if(exist)
+	{
+		ret = sqlite3_bind_text(stmt, 1, type, strlen(type), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(1) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+		ret = sqlite3_bind_text(stmt, 2, data, strlen(data), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(2) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+		ret = sqlite3_bind_text(stmt, 3, key, strlen(key), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(3) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+	else
+	{
+		ret = sqlite3_bind_text(stmt, 1, key, strlen(key), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(1) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+		ret = sqlite3_bind_text(stmt, 2, type, strlen(type), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(2) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+		ret = sqlite3_bind_text(stmt, 3, data, strlen(data), SQLITE_STATIC);
+		if(ret != SQLITE_OK) {
+			LOGE("IO_ERROR(0x%08x) : fail to bind(3) query (%d/%s)",
+				PREFERENCE_ERROR_IO_ERROR,
+				sqlite3_extended_errcode(pref_db),
+				sqlite3_errmsg(pref_db));
+			sqlite3_finalize(stmt);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+
+	ret = sqlite3_step(stmt);
+	if (ret != SQLITE_DONE) {
+		LOGE("IO_ERROR(0x%08x): fail to write data(%d/%s)",
+			PREFERENCE_ERROR_IO_ERROR,
+			sqlite3_extended_errcode(pref_db),
+			sqlite3_errmsg(pref_db));
+		sqlite3_finalize(stmt);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	sqlite3_finalize(stmt);
+	if(buf) {
+		sqlite3_free(buf);
+		buf = NULL;
 	}
 
 	return PREFERENCE_ERROR_NONE;
@@ -162,7 +257,7 @@ static int _read_data(const char *key, char *type, char *data)
 		}
 	}
 
-	buf = sqlite3_mprintf("SELECT %s, %s, %s FROM %s WHERE %s='%q';",
+	buf = sqlite3_mprintf("SELECT %s, %s, %s FROM %s WHERE %s=%Q;",
 							PREF_F_KEY_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME, PREF_TBL_NAME, PREF_F_KEY_NAME, key);
 
 	if (buf == NULL)
@@ -211,6 +306,11 @@ int preference_get_int(const char *key, int *value)
 	char data[BUF_LEN];
 	int ret;
 
+	if (value == NULL) {
+		LOGE("INVALID_PARAMETER(0x%08x)", PREFERENCE_ERROR_INVALID_PARAMETER);
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
+
 	ret = _read_data(key, type, data);
 	if (ret == PREFERENCE_ERROR_NONE)
 	{
@@ -243,6 +343,11 @@ int preference_get_double(const char *key, double *value)
 	char data[BUF_LEN];
 
 	int ret;
+
+	if (value == NULL) {
+		LOGE("INVALID_PARAMETER(0x%08x)", PREFERENCE_ERROR_INVALID_PARAMETER);
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
 
 	ret = _read_data(key, type, data);
 	if (ret == PREFERENCE_ERROR_NONE)
@@ -325,6 +430,11 @@ int preference_get_boolean(const char *key, bool *value)
 
 	int ret;
 
+	if (value == NULL) {
+		LOGE("INVALID_PARAMETER(0x%08x)", PREFERENCE_ERROR_INVALID_PARAMETER);
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
+
 	ret = _read_data(key, type, data);
 	if (ret == PREFERENCE_ERROR_NONE)
 	{
@@ -369,7 +479,7 @@ int preference_is_existing(const char *key, bool *exist)
 	}
 
 	/* check data is exist */
-	buf = sqlite3_mprintf("SELECT %s FROM %s WHERE %s='%q';", PREF_F_KEY_NAME, PREF_TBL_NAME, PREF_F_KEY_NAME, key);
+	buf = sqlite3_mprintf("SELECT %s FROM %s WHERE %s=%Q;", PREF_F_KEY_NAME, PREF_TBL_NAME, PREF_F_KEY_NAME, key);
 
 	if (buf == NULL)
 	{
@@ -456,6 +566,9 @@ static int _add_node(const char *key, preference_changed_cb cb, void *user_data)
 			LOGE("OUT_OF_MEMORY(0x%08x)", PREFERENCE_ERROR_OUT_OF_MEMORY);
 			return PREFERENCE_ERROR_OUT_OF_MEMORY;
 		}
+
+		if (head != NULL)
+			head->prev = tmp_node;
 		tmp_node->cb = cb;
 		tmp_node->user_data = user_data;
 		tmp_node->prev = NULL;
@@ -545,7 +658,7 @@ static void _update_cb(void *data, int action, char const *db_name, char const *
 
 	if (strcmp(table_name, PREF_TBL_NAME) != 0)
 	{
-		LOGI("given table name (%s) is not same", table_name);
+		SECURE_LOGE("given table name (%s) is not same", table_name);
 		return;
 	}
 
@@ -584,8 +697,8 @@ int preference_remove(const char *key)
 {
 	int ret;
 	char *buf;
-	char *errmsg;
 	bool exist;
+	sqlite3_stmt *stmt;
 
 	ret = preference_is_existing(key, &exist);
 	if (ret != PREFERENCE_ERROR_NONE)
@@ -595,26 +708,51 @@ int preference_remove(const char *key)
 
 	if (!exist)
 	{
-		return PREFERENCE_ERROR_NONE;
+		return PREFERENCE_ERROR_NO_KEY;
 	}
 
 	/* insert data or update data if data already exist */
-	buf = sqlite3_mprintf("DELETE FROM %s WHERE %s = '%s';",
+	buf = sqlite3_mprintf("DELETE FROM %s WHERE %s = ?",
 							PREF_TBL_NAME, PREF_F_KEY_NAME, key);
-
 	if (buf == NULL)
 	{
 		LOGE("IO_ERROR(0x%08x) : fail to create query string", PREFERENCE_ERROR_IO_ERROR);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	ret = sqlite3_exec(pref_db, buf, NULL, NULL, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK)
-	{
-		LOGE("IO_ERROR(0x%08x) : fail to delete data (%s)", PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
+	ret = sqlite3_prepare(pref_db, buf, strlen(buf), &stmt, NULL);
+	if (ret != SQLITE_OK) {
+		LOGE("IO_ERROR(0x%08x) : fail to prepare query (%d/%s)",
+			PREFERENCE_ERROR_IO_ERROR,
+			sqlite3_extended_errcode(pref_db),
+			sqlite3_errmsg(pref_db));
 		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	ret = sqlite3_bind_text(stmt, 1, key, strlen(key), SQLITE_STATIC);
+	if(ret != SQLITE_OK) {
+		LOGE("IO_ERROR(0x%08x) : fail to bind(1) query (%d/%s)",
+			PREFERENCE_ERROR_IO_ERROR,
+			sqlite3_extended_errcode(pref_db),
+			sqlite3_errmsg(pref_db));
+		sqlite3_finalize(stmt);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	ret = sqlite3_step(stmt);
+	if (ret != SQLITE_DONE) {
+		LOGE("IO_ERROR(0x%08x): fail to delete data(%d/%s)",
+			PREFERENCE_ERROR_IO_ERROR,
+			sqlite3_extended_errcode(pref_db),
+			sqlite3_errmsg(pref_db));
+		sqlite3_finalize(stmt);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	sqlite3_finalize(stmt);
+	if(buf) {
+		sqlite3_free(buf);
+		buf = NULL;
 	}
 
 	// if exist, remove changed cb
@@ -691,12 +829,19 @@ int preference_set_changed_cb(const char *key, preference_changed_cb callback, v
 
 int preference_unset_changed_cb(const char *key)
 {
-	if (pref_db == NULL)
+	int ret;
+	bool exist;
+
+	ret = preference_is_existing(key, &exist);
+	if (ret != PREFERENCE_ERROR_NONE)
 	{
-		if (_initialize() != PREFERENCE_ERROR_NONE)
-		{
-			return PREFERENCE_ERROR_IO_ERROR;
-		}
+		return ret;
+	}
+
+	if (!exist)
+	{
+		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
+		return PREFERENCE_ERROR_NO_KEY;
 	}
 
 	return _remove_node(key);
@@ -712,6 +857,12 @@ int preference_foreach_item(preference_item_cb callback, void *user_data)
 	char *errmsg;
 	int i;
 
+	if (callback == NULL)
+	{
+		LOGE("INVALID_PARAMETER(0x%08x)", PREFERENCE_ERROR_INVALID_PARAMETER);
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
+
 	if (pref_db == NULL)
 	{
 		if (_initialize() != PREFERENCE_ERROR_NONE)
@@ -719,12 +870,6 @@ int preference_foreach_item(preference_item_cb callback, void *user_data)
 			LOGE("IO_ERROR(0x%08x) : fail to initialize db", PREFERENCE_ERROR_IO_ERROR);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
-	}
-
-	if (callback == NULL)
-	{
-		LOGE("INVALID_PARAMETER(0x%08x)", PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
 	}
 
 	buf = sqlite3_mprintf("SELECT %s FROM %s;", PREF_F_KEY_NAME, PREF_TBL_NAME);
@@ -755,4 +900,3 @@ int preference_foreach_item(preference_item_cb callback, void *user_data)
 
 	return PREFERENCE_ERROR_NONE;
 }
-
