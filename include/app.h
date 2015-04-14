@@ -25,7 +25,6 @@
 #include <app_preference.h>
 #include <app_storage.h>
 #include <app_i18n.h>
-#include <app_ui_notification.h>
 
 #ifdef __cplusplus
 extern "C" {
