@@ -23,7 +23,6 @@
 #include <app_control.h>
 #include <app_alarm.h>
 #include <app_preference.h>
-#include <app_storage.h>
 #include <app_i18n.h>
 #include <app_ui_notification.h>
 
