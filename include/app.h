@@ -24,7 +24,6 @@
 #include <app_alarm.h>
 #include <app_preference.h>
 #include <app_i18n.h>
-#include <app_ui_notification.h>
 
 #ifdef __cplusplus
 extern "C" {
