@@ -10,7 +10,7 @@ SET(INC_DIR include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
 SET(requires "dlog bundle appcore-common appcore-efl aul ail appsvc elementary capi-base-common alarm-service sqlite3 libtzplatform-config")
-SET(pc_requires "capi-base-common vconf-internal-keys")
+SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${fw_name} REQUIRED ${requires})
@@ -33,7 +33,12 @@ SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${LIB_INSTALL_DIR}")
 aux_source_directory(src SOURCES)
 ADD_LIBRARY(${fw_name} SHARED ${SOURCES})
 
-TARGET_LINK_LIBRARIES(${fw_name} ${${fw_name}_LDFLAGS})
+ADD_SUBDIRECTORY(app_control)
+ADD_SUBDIRECTORY(app_common)
+ADD_SUBDIRECTORY(alarm)
+ADD_SUBDIRECTORY(preference)
+
+TARGET_LINK_LIBRARIES(${fw_name} capi-appfw-app-control capi-appfw-app-common capi-appfw-alarm capi-appfw-preference ${${fw_name}_LDFLAGS})
 
 SET_TARGET_PROPERTIES(${fw_name}
      PROPERTIES
@@ -55,7 +60,7 @@ SET(PC_REQUIRED ${pc_requires})
 SET(PC_LDFLAGS -l${fw_name})
 
 CONFIGURE_FILE(
-    capi-appfw-application.pc.in
+    capi-appfw-module.pc.in
     ${CMAKE_CURRENT_SOURCE_DIR}/${fw_name}.pc
     @ONLY
 )

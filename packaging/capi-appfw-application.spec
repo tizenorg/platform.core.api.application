@@ -54,6 +54,11 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %files
 %manifest %{name}.manifest
 %{_libdir}/libcapi-appfw-application.so.*
+%{_libdir}/libcapi-appfw-app-control.so.*
+%{_libdir}/libcapi-appfw-app-common.so.*
+%{_libdir}/libcapi-appfw-alarm.so.*
+%{_libdir}/libcapi-appfw-preference.so.*
+
 %{_datadir}/license/%{name}
 
 %files devel
@@ -61,3 +66,8 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %{_includedir}/appfw/*.h
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libcapi-appfw-application.so
+%{_libdir}/libcapi-appfw-app-control.so
+%{_libdir}/libcapi-appfw-app-common.so
+%{_libdir}/libcapi-appfw-alarm.so
+%{_libdir}/libcapi-appfw-preference.so
+

@@ -17,7 +17,7 @@
 #include <string.h>
 
 #include <vconf-internal-keys.h>
-#include <app.h>
+#include <app_common.h>
 #include <app_private.h>
 
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm)
