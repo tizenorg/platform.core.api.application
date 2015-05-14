@@ -745,7 +745,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		appsvc_set_operation(app_control->data, APP_CONTROL_OPERATION_DEFAULT);
 	}
 
-	launch_pid = appsvc_run_service(app_control->data, app_control->id, callback ? app_control_request_result_broker : NULL, request_context);
+	launch_pid = appsvc_usr_run_service(app_control->data, app_control->id, callback ? app_control_request_result_broker : NULL, request_context, getuid());
 
 	if (implicit_default_operation == true)
 	{
