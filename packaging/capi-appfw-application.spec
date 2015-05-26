@@ -20,6 +20,7 @@ BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(libtzplatform-config)
 BuildRequires:  pkgconfig(vconf-internal-keys)
+BuildRequires:  pkgconfig(eventsystem)
 
 %description
 An Application library in SLP C API package.
@@ -58,6 +59,7 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %{_libdir}/libcapi-appfw-app-common.so.*
 %{_libdir}/libcapi-appfw-alarm.so.*
 %{_libdir}/libcapi-appfw-preference.so.*
+%{_libdir}/libcapi-appfw-event.so.*
 
 %{_datadir}/license/%{name}
 
@@ -70,4 +72,5 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %{_libdir}/libcapi-appfw-app-common.so
 %{_libdir}/libcapi-appfw-alarm.so
 %{_libdir}/libcapi-appfw-preference.so
+%{_libdir}/libcapi-appfw-event.so
 

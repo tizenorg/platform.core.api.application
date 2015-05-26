@@ -10,7 +10,7 @@ SET(INC_DIR include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
 SET(requires "dlog bundle appcore-common appcore-efl aul ail appsvc elementary capi-base-common alarm-service sqlite3 libtzplatform-config")
-SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference")
+SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference capi-appfw-event")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${fw_name} REQUIRED ${requires})
@@ -37,8 +37,9 @@ ADD_SUBDIRECTORY(app_control)
 ADD_SUBDIRECTORY(app_common)
 ADD_SUBDIRECTORY(alarm)
 ADD_SUBDIRECTORY(preference)
+ADD_SUBDIRECTORY(event)
 
-TARGET_LINK_LIBRARIES(${fw_name} capi-appfw-app-control capi-appfw-app-common capi-appfw-alarm capi-appfw-preference ${${fw_name}_LDFLAGS})
+TARGET_LINK_LIBRARIES(${fw_name} capi-appfw-app-control capi-appfw-app-common capi-appfw-alarm capi-appfw-preference capi-appfw-event ${${fw_name}_LDFLAGS})
 
 SET_TARGET_PROPERTIES(${fw_name}
      PROPERTIES

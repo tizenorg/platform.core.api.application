@@ -705,6 +705,12 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		operation = APP_CONTROL_OPERATION_DEFAULT;
 	}
 
+	if (!strcmp(operation, APP_CONTROL_OPERATION_LAUNCH_ON_EVENT))
+	{
+		return app_control_error(APP_CONTROL_ERROR_LAUNCH_REJECTED, __FUNCTION__,
+				"Not supported operation value");
+	}
+
 	// TODO: Check the privilege for call operation
 
 	// operation : default
