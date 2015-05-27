@@ -129,6 +129,62 @@ int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int perio
 
 
 /**
+ * @brief Sets an alarm to be triggered after a specific time.
+ * @details The alarm will go off @a delay seconds later.
+ *          To cancel the alarm, call alarm_cancel() with @a alarm_id.
+ * @since_tizen 2.4
+ * @privlevel	public
+ * @privilege	%http://tizen.org/privilege/alarm.set
+ * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
+ *
+ * @param[in] app_control The destination app_control to perform a specific task when the alarm is triggered
+ * @param[in] delay	The amount of time before the execution (in seconds)
+ * @param[out] alarm_id	The alarm ID that uniquely identifies an alarm
+ * @return	@c 0 on success,
+ *          otherwise a negative error value
+ * @retval  #ALARM_ERROR_NONE Successful
+ * @retval  #ALARM_ERROR_INVALID_PARAMETER  Invalid parameter
+ * @retval  #ALARM_ERROR_INVALID_TIME Triggered time is invalid
+ * @retval  #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
+ * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @see alarm_cancel()
+ * @see alarm_cancel_all()
+ * @see alarm_get_scheduled_date()
+ * @see alarm_get_scheduled_period()
+ */
+int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *alarm_id);
+
+
+/**
+ * @brief Sets an alarm to be triggered at a specific time.
+ * @details The @a date describes the time of the first occurrence.
+ *          To cancel the alarm, call alarm_cancel() with @a alarm_id.
+ * @since_tizen 2.4
+ * @privlevel	public
+ * @privilege	%http://tizen.org/privilege/alarm.set
+ * @remarks If application is uninstalled after setting an alarm, the alarm is cancelled automatically.
+ *          If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
+ *          If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
+ *
+ * @param[in]	app_control The destination app_control to perform specific work when the alarm is triggered
+ * @param[in]	date	The first active alarm time
+ * @param[out]	alarm_id	The alarm ID that uniquely identifies an alarm
+ * @return	@c 0 on success,
+ *          otherwise a negative error value
+ * @retval  #ALARM_ERROR_NONE   Successful
+ * @retval  #ALARM_ERROR_INVALID_PARAMETER  Invalid parameter
+ * @retval  #ALARM_ERROR_INVALID_DATE Triggered date is invalid
+ * @retval  #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
+ * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @see alarm_cancel()
+ * @see alarm_cancel_all()
+ * @see alarm_get_scheduled_date()
+ * @see alarm_get_scheduled_period()
+ */
+int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int *alarm_id);
+
+
+/**
  * @brief   Sets an alarm to be triggered at a specific time with recurrence repeat.
  * @details 
  * The @a date describes the time of first occurrence.

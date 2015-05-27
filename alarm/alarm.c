@@ -281,6 +281,89 @@ int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int perio
 	alarmmgr_free_alarm(alarm_info);
 	return ALARM_ERROR_NONE;
 }
+int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *alarm_id)
+{
+	bundle *bundle_data;
+	int result = 0;
+
+	if (app_control == NULL) {
+		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
+		return ALARM_ERROR_INVALID_PARAMETER;
+	}
+
+	if (app_control_to_bundle(app_control, &bundle_data) != APP_CONTROL_ERROR_NONE) {
+		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
+		return ALARM_ERROR_INVALID_PARAMETER;
+	}
+
+	result = alarmmgr_add_alarm_appsvc(ALARM_TYPE_DEFAULT, delay, 0, bundle_data, alarm_id);
+
+	return  convert_error_code_to_alarm(__FUNCTION__, result);
+}
+
+int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int *alarm_id)
+{
+	alarm_date_t internal_time;
+	alarm_entry_t* alarm_info;
+	bundle *bundle_data;
+	int result;
+
+	if (app_control == NULL || date == NULL) {
+		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
+		return ALARM_ERROR_INVALID_PARAMETER;
+	}
+
+	if (app_control_to_bundle(app_control, &bundle_data) != APP_CONTROL_ERROR_NONE) {
+		LOGE("INVALID_PARAMETER(0x%08x)", ALARM_ERROR_INVALID_PARAMETER);
+		return ALARM_ERROR_INVALID_PARAMETER;
+	}
+
+	alarm_info = alarmmgr_create_alarm();
+	if (alarm_info == NULL) {
+		LOGE("OUT_OF_MEMORY(0x%08x)", ALARM_ERROR_OUT_OF_MEMORY);
+		return ALARM_ERROR_OUT_OF_MEMORY;
+	}
+
+
+	internal_time.year = date->tm_year + 1900;
+	internal_time.month = date->tm_mon + 1;
+	internal_time.day = date->tm_mday;
+
+	internal_time.hour = date->tm_hour;
+	internal_time.min = date->tm_min;
+	internal_time.sec = date->tm_sec;
+
+	result = alarmmgr_set_time(alarm_info, internal_time);
+
+	if (result < 0) {
+		alarmmgr_free_alarm(alarm_info);
+		return convert_error_code_to_alarm(__FUNCTION__, result);
+	}
+
+	result = alarmmgr_set_repeat_mode(alarm_info, ALARM_REPEAT_MODE_ONCE, 0);
+
+	if (result < 0) {
+		alarmmgr_free_alarm(alarm_info);
+		return convert_error_code_to_alarm(__FUNCTION__, result);
+	}
+
+	result = alarmmgr_set_type(alarm_info, ALARM_TYPE_DEFAULT);
+
+	if (result < 0) {
+		alarmmgr_free_alarm(alarm_info);
+		return convert_error_code_to_alarm(__FUNCTION__, result);
+	}
+
+	result = alarmmgr_add_alarm_appsvc_with_localtime(alarm_info, bundle_data, alarm_id);
+
+	if (result < 0) {
+		alarmmgr_free_alarm(alarm_info);
+		return convert_error_code_to_alarm(__FUNCTION__, result);
+	}
+
+	alarmmgr_free_alarm(alarm_info);
+	return ALARM_ERROR_NONE;
+}
 
 int alarm_cancel(int alarm_id)
 {
