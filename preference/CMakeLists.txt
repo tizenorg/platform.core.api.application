@@ -32,6 +32,7 @@ SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${LIB_INSTALL_DIR}")
 
 add_library(${fw_name} SHARED
 		preference.c
+		preference_inoti.c
 		)
 
 TARGET_LINK_LIBRARIES(${fw_name} capi-appfw-app-common ${${fw_name}_LDFLAGS})
