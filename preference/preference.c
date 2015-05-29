@@ -77,7 +77,7 @@ static int _initialize(void)
 	snprintf(db_path, sizeof(db_path), "%s/%s", data_path, PREF_DB_NAME);
 	free(data_path);
 
-	ret = sqlite3_open(db_path, &pref_db);
+	ret = sqlite3_open_v2(db_path, &pref_db, SQLITE_OPEN_CREATE, NULL);
 	if (ret != SQLITE_OK) {
 		LOGE("IO_ERROR(0x%08x) : fail to open db(%s)",
 				PREFERENCE_ERROR_IO_ERROR, sqlite3_errmsg(pref_db));

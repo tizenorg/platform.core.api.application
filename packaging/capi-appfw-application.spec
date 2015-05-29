@@ -21,6 +21,10 @@ BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(libtzplatform-config)
 BuildRequires:  pkgconfig(vconf-internal-keys)
 BuildRequires:  pkgconfig(eventsystem)
+BuildRequires:  pkgconfig(pkgmgr-info)
+BuildRequires:  pkgconfig(glib-2.0)
+BuildRequires:  pkgconfig(capi-system-info)
+BuildRequires:  pkgconfig(capi-system-system-settings)
 
 %description
 An Application library in SLP C API package.
