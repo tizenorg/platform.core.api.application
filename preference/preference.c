@@ -8,796 +8,1400 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an AS IS BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <limits.h>
 #include <string.h>
-#include <sqlite3.h>
-
-#include <app_private.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/xattr.h>
+#include <ctype.h>
+#include <string.h>
+#include <execinfo.h>
 
 #include <app_preference.h>
-#include <app_preference_private.h>
+#include <app_preference_internal.h>
+#include <app_common.h>
 
-#include <dlog.h>
-
-#ifdef LOG_TAG
-#undef LOG_TAG
+#ifndef API
+#define API __attribute__ ((visibility("default")))
 #endif
 
-#define LOG_TAG "CAPI_APPFW_APPLICATION_PREFERENCE"
-#define DBG_MODE (1)
+#define PREFERENCE_ERROR_RETRY_CNT 7
+#define PREFERENCE_ERROR_RETRY_SLEEP_UTIME 10000
 
-static sqlite3 *pref_db;
-static bool is_update_hook_registered;
-static pref_changed_cb_node_t *head;
+#define DELIMITER 29
 
-static void _finish(void *data)
+static int g_posix_errno;
+static int g_preference_errno;
+static char *g_pref_dir_path = NULL;
+
+
+enum preference_op_t {
+    PREFERENCE_OP_GET = 0,
+    PREFERENCE_OP_SET = 1
+};
+
+#ifdef PREFERENCE_TIMECHECK
+double correction, startT;
+
+double set_start_time(void)
 {
-	if (pref_db != NULL) {
-		sqlite3_close(pref_db);
-		pref_db = NULL;
+	struct timeval tv;
+	double curtime;
+
+	gettimeofday(&tv, NULL);
+	curtime = tv.tv_sec * 1000 + (double)tv.tv_usec / 1000;
+	return curtime;
+}
+
+double exec_time(double start)
+{
+	double end = set_start_time();
+	return (end - start - correction);
+}
+
+int init_time(void)
+{
+	double temp_t;
+	temp_t = set_start_time();
+	correction = exec_time(temp_t);
+
+	return 0;
+}
+#endif
+
+char* _preference_get_pref_dir_path()
+{
+	char *app_data_path = NULL;
+
+	if (!g_pref_dir_path)
+	{
+		g_pref_dir_path = (char *)malloc(PREFERENCE_KEY_PATH_LEN + 1);
+		if ((app_data_path = app_get_data_path()) == NULL)
+		{
+			ERR("IO_ERROR(0x%08x) : fail to get data directory", PREFERENCE_ERROR_IO_ERROR);
+			free(g_pref_dir_path);
+			g_pref_dir_path = NULL;
+			return NULL;
+		}
+		snprintf(g_pref_dir_path, PREFERENCE_KEY_PATH_LEN, "%s%s", app_data_path, PREF_DIR);
+		INFO("pref_dir_path: %s", g_pref_dir_path);
+		free(app_data_path);
+	}
+	return g_pref_dir_path;
+}
+
+int _preference_keynode_set_keyname(keynode_t *keynode, const char *keyname)
+{
+	if (keynode->keyname) free(keynode->keyname);
+	keynode->keyname = strndup(keyname, PREFERENCE_KEY_PATH_LEN);
+	retvm_if(keynode->keyname == NULL, PREFERENCE_ERROR_IO_ERROR, "strndup Fails");
+	return PREFERENCE_ERROR_NONE;
+}
+
+static inline void _preference_keynode_set_value_int(keynode_t *keynode, const int value)
+{
+	keynode->type = PREFERENCE_TYPE_INT;
+	keynode->value.i = value;
+}
+
+static inline void _preference_keynode_set_value_boolean(keynode_t *keynode, const int value)
+{
+	keynode->type = PREFERENCE_TYPE_BOOLEAN;
+	keynode->value.b = !!value;
+}
+
+static inline void _preference_keynode_set_value_double(keynode_t *keynode, const double value)
+{
+	keynode->type = PREFERENCE_TYPE_DOUBLE;
+	keynode->value.d = value;
+}
+
+static inline void _preference_keynode_set_value_string(keynode_t *keynode, const char *value)
+{
+	keynode->type = PREFERENCE_TYPE_STRING;
+	keynode->value.s = strdup(value);
+}
+
+inline keynode_t *_preference_keynode_new(void)
+{
+	keynode_t *keynode;
+	keynode = calloc(1, sizeof(keynode_t));
+
+	return keynode;
+}
+
+inline void _preference_keynode_free(keynode_t *keynode)
+{
+	if(keynode) {
+		if (keynode->keyname)
+			free(keynode->keyname);
+		if (keynode->type == PREFERENCE_TYPE_STRING && keynode->value.s)
+			free(keynode->value.s);
+		free(keynode);
 	}
 }
 
-static int _busy_handler(void *pData, int count)
+int _preference_get_key_name(const char *keyfile, char *keyname)
 {
-	if (count < 5) {
-		LOGD("Busy Handler Called! : PID(%d) / CNT(%d)\n",
-				getpid(), count+1);
-		usleep((count+1)*100000);
+	char convert_key[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char *chrptr = NULL;
+
+	strncpy(convert_key, keyfile, strlen(keyfile));
+
+	chrptr = strchr((const char*)convert_key, DELIMITER);
+	if(chrptr) {
+		chrptr = strchr((const char*)convert_key, DELIMITER);
+		while(chrptr) {
+			convert_key[chrptr-convert_key] = '/';
+			chrptr = strchr((const char*)chrptr+1, DELIMITER);
+		}
+	}
+	snprintf(keyname, PREFERENCE_KEY_PATH_LEN, "%s", (const char*)convert_key);
+
+	return PREFERENCE_ERROR_NONE;
+}
+
+
+int _preference_get_key_path(const char *keyname, char *path)
+{
+	const char *key = NULL;
+
+	if(!keyname) {
+		ERR("keyname is null");
+		return PREFERENCE_ERROR_WRONG_PREFIX;
+	}
+
+	char convert_key[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char *chrptr = NULL;
+	char *pref_dir_path = NULL;
+
+	strncpy(convert_key, keyname, strlen(keyname));
+
+	pref_dir_path = _preference_get_pref_dir_path();
+	if (!pref_dir_path)
+	{
+		LOGE("_preference_get_pref_dir_path() failed.");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	chrptr = strchr((const char*)convert_key, (int)'/');
+	if(!chrptr)	{
+		key = (const char*)convert_key;
+	}
+	else {
+		chrptr = strchr((const char*)convert_key, (int)'/');
+		while(chrptr) {
+			convert_key[chrptr-convert_key] = DELIMITER;
+			chrptr = strchr((const char*)chrptr+1, (int)'/');
+		}
+		key = (const char*)convert_key;
+	}
+
+	snprintf(path, PREFERENCE_KEY_PATH_LEN, "%s%s", pref_dir_path, key);
+
+	return PREFERENCE_ERROR_NONE;
+}
+
+static int _preference_set_key_check_pref_dir()
+{
+	char *pref_dir_path = NULL;
+	mode_t dir_mode = 0664 | 0111;
+
+	pref_dir_path = _preference_get_pref_dir_path();
+	if (!pref_dir_path)
+	{
+		LOGE("_preference_get_pref_dir_path() failed.");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	if (access(pref_dir_path, F_OK) < 0)
+	{
+		if (mkdir(pref_dir_path, dir_mode) < 0)
+		{
+			ERR("mkdir() failed(%d/%s)", errno, strerror(errno));
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+
+	return PREFERENCE_ERROR_NONE;
+}
+
+static int _preference_set_key_creation(const char* path)
+{
+	int fd;
+	mode_t temp;
+	temp = umask(0000);
+	fd = open(path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+	umask(temp);
+	if(fd == -1) {
+		ERR("open(rdwr,create) error: %d(%s)", errno, strerror(errno));
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+	close(fd);
+
+	return PREFERENCE_ERROR_NONE;
+}
+
+static int _preference_set_file_lock(int fd, short type)
+{
+	struct flock l;
+
+	l.l_type = type;
+	l.l_start= 0;		/*Start at begin*/
+	l.l_whence = SEEK_SET;
+	l.l_len = 0;		/*Do it with whole file*/
+
+	return fcntl(fd, F_SETLK, &l);
+}
+
+static int _preference_get_pid_of_file_lock_owner(int fd, short type)
+{
+	struct flock l;
+
+	l.l_type = type;
+	l.l_start= 0;		/*Start at begin*/
+	l.l_whence = SEEK_SET;
+	l.l_len = 0;		/*Do it with whole file*/
+
+	if(fcntl(fd, F_GETLK, &l) < 0) {
+		WARN("error in getting lock info");
+		return -1;
+	}
+
+	if(l.l_type == F_UNLCK)
+		return 0;
+	else
+		return l.l_pid;
+}
+
+
+static int _preference_set_read_lock(int fd)
+{
+	return _preference_set_file_lock(fd, F_RDLCK);
+}
+
+static int _preference_set_write_lock(int fd)
+{
+	return _preference_set_file_lock(fd, F_WRLCK);
+}
+
+static int _preference_set_unlock(int fd)
+{
+	return _preference_set_file_lock(fd, F_UNLCK);
+}
+
+static int _preference_check_retry_err(keynode_t *keynode, int preference_errno, int io_errno, int op_type)
+{
+	int is_busy_err = 0;
+
+	if (preference_errno == PREFERENCE_ERROR_FILE_OPEN)
+	{
+		switch (io_errno)
+		{
+			case ENOENT :
+			{
+				if(op_type == PREFERENCE_OP_SET)
+				{
+					int rc = 0;
+					char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+					rc = _preference_get_key_path(keynode->keyname, path);
+					if (rc != PREFERENCE_ERROR_NONE) {
+						ERR("_preference_get_key_path error");
+						break;
+					}
+
+					rc = _preference_set_key_check_pref_dir();
+					if (rc != PREFERENCE_ERROR_NONE) {
+						ERR("_preference_set_key_check_pref_dir() failed.");
+						break;
+					}
+
+					preference_errno = _preference_set_key_creation(path);
+					if (rc != PREFERENCE_ERROR_NONE) {
+						ERR("_preference_set_key_creation error : %s", path);
+						break;
+					}
+					INFO("%s key is created", keynode->keyname);
+
+					is_busy_err = 1;
+				}
+				break;
+			}
+			case EAGAIN :
+			case EMFILE :
+			case ENFILE :
+			case ETXTBSY :
+			{
+				is_busy_err = 1;
+			}
+		}
+	}
+	else if (preference_errno == PREFERENCE_ERROR_FILE_CHMOD)
+	{
+		switch (io_errno)
+		{
+			case EINTR :
+			case EBADF :
+			{
+				is_busy_err = 1;
+			}
+		}
+	}
+	else if (preference_errno == PREFERENCE_ERROR_FILE_LOCK)
+	{
+		switch (io_errno)
+		{
+			case EBADF :
+			case EAGAIN :
+			case ENOLCK :
+			{
+				is_busy_err = 1;
+			}
+		}
+	}
+	else if (preference_errno == PREFERENCE_ERROR_FILE_WRITE)
+	{
+		switch (io_errno)
+		{
+			case 0 :
+			case EAGAIN :
+			case EINTR :
+			case EIO :
+			case ENOMEM :
+			{
+				is_busy_err = 1;
+			}
+		}
+	}
+	else if (preference_errno == PREFERENCE_ERROR_FILE_FREAD)
+	{
+		switch (io_errno)
+		{
+			case EAGAIN :
+			case EINTR :
+			case EIO :
+			{
+				is_busy_err = 1;
+			}
+		}
+	}
+	else
+	{
+		is_busy_err = 0;
+	}
+
+	if (is_busy_err == 1) {
 		return 1;
-	} else {
-		LOGD("Busy Handler will be returned SQLITE_BUSY error : PID(%d)\n",
-				getpid());
+	}
+	else
+	{
+		ERR("key(%s), check retry err: %d/(%d/%s).",keynode->keyname, preference_errno, io_errno, strerror(io_errno));
 		return 0;
 	}
 }
 
-static int _initialize(void)
+static int _preference_set_key_filesys(keynode_t *keynode, int *io_errno)
 {
-	char *data_path;
-	char db_path[TIZEN_PATH_MAX];
-	int ret;
-	char *errmsg;
+	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	FILE *fp = NULL;
+	int ret = -1;
+	int func_ret = PREFERENCE_ERROR_NONE;
+	int err_no = 0;
+	char err_buf[100] = { 0, };
+	int is_write_error = 0;
+	int retry_cnt = 0;
 
-	data_path = app_get_data_path();
-	if (data_path == NULL) {
-		LOGE("IO_ERROR(0x%08x) : fail to get data directory",
-				PREFERENCE_ERROR_IO_ERROR);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-	snprintf(db_path, sizeof(db_path), "%s/%s", data_path, PREF_DB_NAME);
-	free(data_path);
+retry_open :
+	errno = 0;
+	err_no = 0;
+	func_ret = PREFERENCE_ERROR_NONE;
 
-	ret = sqlite3_open(db_path, &pref_db);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to open db(%s)",
-				PREFERENCE_ERROR_IO_ERROR, sqlite3_errmsg(pref_db));
-		_finish(NULL);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
+	ret = _preference_get_key_path(keynode->keyname, path);
+	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
 
-	ret = sqlite3_busy_handler(pref_db, _busy_handler, NULL);
-	if (ret != SQLITE_OK) {
-		LOGW("IO_ERROR(0x%08x) : fail to register busy handler(%s)\n",
-				PREFERENCE_ERROR_IO_ERROR, sqlite3_errmsg(pref_db));
+	if( (fp = fopen(path, "r+")) == NULL ) {
+		func_ret = PREFERENCE_ERROR_FILE_OPEN;
+		err_no = errno;
+		goto out_return;
 	}
 
-	ret = sqlite3_exec(pref_db,
-			"CREATE TABLE IF NOT EXISTS pref ( pref_key TEXT PRIMARY KEY, pref_type TEXT, pref_data TEXT)",
-			NULL, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to create db table(%s)",
-				PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
-		_finish(NULL);
-		return PREFERENCE_ERROR_IO_ERROR;
+retry :
+	errno = 0;
+	err_no = 0;
+	func_ret = PREFERENCE_ERROR_NONE;
+
+	ret = _preference_set_write_lock(fileno(fp));
+	if(ret == -1) {
+		func_ret = PREFERENCE_ERROR_FILE_LOCK;
+		err_no = errno;
+		ERR("file(%s) lock owner(%d)",
+			keynode->keyname,
+			_preference_get_pid_of_file_lock_owner(fileno(fp), F_WRLCK));
+		goto out_return;
 	}
 
-	app_finalizer_add(_finish, NULL);
+	/* write key type */
+	ret = fwrite((void *)&(keynode->type), sizeof(int), 1, fp);
+	if(ret <= 0)
+	{
+		if(!errno) {
+			LOGW("number of written items is 0. try again");
+			errno = EAGAIN;
+		}
+		err_no = errno;
+		func_ret = PREFERENCE_ERROR_FILE_WRITE;
+		goto out_unlock;
+	}
 
-	return PREFERENCE_ERROR_NONE;
+	/* write key value */
+	switch(keynode->type)
+	{
+		case PREFERENCE_TYPE_INT:
+			ret = fwrite((void *)&(keynode->value.i), sizeof(int), 1, fp);
+			if(ret <= 0) is_write_error = 1;
+			break;
+		case PREFERENCE_TYPE_DOUBLE:
+			ret = fwrite((void *)&(keynode->value.d), sizeof(double), 1, fp);
+			if(ret <= 0) is_write_error = 1;
+			break;
+		case PREFERENCE_TYPE_BOOLEAN:
+			ret = fwrite((void *)&(keynode->value.b), sizeof(int), 1, fp);
+			if(ret <= 0) is_write_error = 1;
+			break;
+		case PREFERENCE_TYPE_STRING:
+			ret = fprintf(fp,"%s",keynode->value.s);
+			if(ret < strlen(keynode->value.s)) is_write_error = 1;
+			if (ftruncate(fileno(fp), ret) == -1) {
+				is_write_error = 1;
+			}
+			break;
+		default :
+			func_ret = PREFERENCE_ERROR_WRONG_TYPE;
+			goto out_unlock;
+	}
+	if(is_write_error)
+	{
+		if(!errno) {
+			LOGW("number of written items is 0. try again");
+			errno = EAGAIN;
+		}
+		err_no = errno;
+		func_ret = PREFERENCE_ERROR_FILE_WRITE;
+		goto out_unlock;
+	}
+
+	fflush(fp);
+
+out_unlock :
+	ret = _preference_set_unlock(fileno(fp));
+	if(ret == -1) {
+		func_ret = PREFERENCE_ERROR_FILE_LOCK;
+		err_no = errno;
+		goto out_return;
+	}
+
+out_return :
+	if (func_ret != PREFERENCE_ERROR_NONE)
+	{
+		strerror_r(err_no, err_buf, 100);
+		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_SET))
+		{
+			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT)
+			{
+				WARN("_preference_set_key_filesys(%d-%s) step(%d) failed(%d / %s) retry(%d)", keynode->type, keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
+				retry_cnt++;
+				usleep((retry_cnt)*PREFERENCE_ERROR_RETRY_SLEEP_UTIME);
+
+				if (fp)
+					goto retry;
+				else
+					goto retry_open;
+			}
+			else
+			{
+				ERR("_preference_set_key_filesys(%d-%s) step(%d) faild(%d / %s) over the retry count.",
+					keynode->type, keynode->keyname, func_ret, err_no, err_buf);
+			}
+		}
+		else
+		{
+			ERR("_preference_set_key_filesys(%d-%s) step(%d) failed(%d / %s)\n", keynode->type, keynode->keyname, func_ret, err_no, err_buf);
+		}
+	} else {
+		if(retry_cnt > 0) {
+			DBG("_preference_set_key_filesys ok with retry cnt(%d)", retry_cnt);
+		}
+	}
+
+	if (fp)
+	{
+		if(func_ret == PREFERENCE_ERROR_NONE)
+		{
+			ret = fdatasync(fileno(fp));
+			if(ret == -1) {
+				err_no = errno;
+				func_ret = PREFERENCE_ERROR_FILE_SYNC;
+			}
+		}
+		fclose(fp);
+	}
+	*io_errno = err_no;
+
+	return func_ret;
 }
 
-static int _prepare_and_bind_stmt(char *buf, const char *type,
-		const char *data, const char *key, sqlite3_stmt **stmt)
+static int _preference_set_key(keynode_t *keynode)
 {
-	int ret;
+	int ret = 0;
+	int io_errno = 0;
+	char err_buf[100] = { 0, };
 
-	ret = sqlite3_prepare(pref_db, buf, -1, stmt, NULL);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to prepare query (%d/%s)",
-				PREFERENCE_ERROR_IO_ERROR,
-				sqlite3_extended_errcode(pref_db),
-				sqlite3_errmsg(pref_db));
-		return PREFERENCE_ERROR_IO_ERROR;
+	ret = _preference_set_key_filesys(keynode, &io_errno);
+	if (ret == PREFERENCE_ERROR_NONE)
+	{
+		g_posix_errno = PREFERENCE_ERROR_NONE;
+		g_preference_errno = PREFERENCE_ERROR_NONE;
 	}
-
-	ret = sqlite3_bind_text(*stmt, 1, type, -1, SQLITE_STATIC);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to bind(1) query (%d/%s)",
-				PREFERENCE_ERROR_IO_ERROR,
-				sqlite3_extended_errcode(pref_db),
-				sqlite3_errmsg(pref_db));
-		sqlite3_finalize(*stmt);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-	ret = sqlite3_bind_text(*stmt, 2, data, -1, SQLITE_STATIC);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to bind(2) query (%d/%s)",
-				PREFERENCE_ERROR_IO_ERROR,
-				sqlite3_extended_errcode(pref_db),
-				sqlite3_errmsg(pref_db));
-		sqlite3_finalize(*stmt);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-	ret = sqlite3_bind_text(*stmt, 3, key, -1, SQLITE_STATIC);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to bind(3) query (%d/%s)",
-				PREFERENCE_ERROR_IO_ERROR,
-				sqlite3_extended_errcode(pref_db),
-				sqlite3_errmsg(pref_db));
-		sqlite3_finalize(*stmt);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-static int _write_data(const char *key, const char *type, const char *data)
-{
-	int ret;
-	bool exist = false;
-	sqlite3_stmt *stmt;
-	char buf[BUF_LEN];
-
-	if (key == NULL || key[0] == '\0' || data == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-	/* insert data or update data if data already exist */
-	ret = preference_is_existing(key, &exist);
-	if (ret != PREFERENCE_ERROR_NONE)
-		return ret;
-
-	if (exist)
-		snprintf(buf, sizeof(buf), "UPDATE %s SET %s=?1, %s=?2 WHERE %s=?3;",
-				PREF_TBL_NAME, PREF_F_TYPE_NAME,
-				PREF_F_DATA_NAME, PREF_F_KEY_NAME);
 	else
-		snprintf(buf, sizeof(buf),
-				"INSERT INTO %s (%s, %s, %s) values (?3, ?1, ?2);",
-				PREF_TBL_NAME, PREF_F_KEY_NAME,
-				PREF_F_TYPE_NAME, PREF_F_DATA_NAME);
+	{
+		strerror_r(io_errno, err_buf, 100);
+		ERR("_preference_set_key(%s) step(%d) failed(%d / %s)", keynode->keyname, ret, io_errno, err_buf);
+		g_posix_errno = io_errno;
+		g_preference_errno = ret;
+	}
 
-	ret = _prepare_and_bind_stmt(buf, type, data, key, &stmt);
+	return ret;
+}
 
-	if (ret != PREFERENCE_ERROR_NONE)
-		return ret;
 
-	ret = sqlite3_step(stmt);
-	if (ret != SQLITE_DONE) {
-		LOGE("IO_ERROR(0x%08x): fail to write data(%d/%s)",
-			PREFERENCE_ERROR_IO_ERROR,
-			sqlite3_extended_errcode(pref_db),
-			sqlite3_errmsg(pref_db));
-		sqlite3_finalize(stmt);
+/*
+ * This function set the integer value of given key
+ * @param[in]	key	key
+ * @param[in]	intval integer value to set
+ * @return 0 on success, -1 on error
+ */
+API int preference_set_int(const char *key, int intval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
+
+	int func_ret = PREFERENCE_ERROR_NONE;
+
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if(func_ret != PREFERENCE_ERROR_NONE) {
+		_preference_keynode_free(pKeyNode);
+		ERR("set key name error");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+	_preference_keynode_set_value_int(pKeyNode, intval);
+
+	if (_preference_set_key(pKeyNode) != PREFERENCE_ERROR_NONE) {
+		ERR("preference_set_int(%d) : key(%s/%d) error", getpid(), key, intval);
+		func_ret = PREFERENCE_ERROR_IO_ERROR;
+	} else{
+		INFO("%s(%d) success", key, intval);
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+* This function set the boolean value of given key
+* @param[in]	key	key
+* @param[in]	boolval boolean value to set
+		(Integer value 1 is 'True', and 0 is 'False')
+* @return 0 on success, -1 on error
+*/
+API int preference_set_boolean(const char *key, bool boolval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
+
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if(func_ret != PREFERENCE_ERROR_NONE) {
+		_preference_keynode_free(pKeyNode);
+		ERR("set key name error");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+	_preference_keynode_set_value_boolean(pKeyNode, boolval);
+
+	if (_preference_set_key(pKeyNode) != PREFERENCE_ERROR_NONE) {
+		ERR("preference_set_boolean(%d) : key(%s/%d) error", getpid(), key, boolval);
+		func_ret = PREFERENCE_ERROR_IO_ERROR;
+	} else {
+		INFO("%s(%d) success", key, boolval);
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function set the double value of given key
+ * @param[in]	key	key
+ * @param[in]	dblval double value to set
+ * @return 0 on success, -1 on error
+ */
+API int preference_set_double(const char *key, double dblval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
+
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if(func_ret != PREFERENCE_ERROR_NONE) {
+		_preference_keynode_free(pKeyNode);
+		ERR("set key name error");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+	_preference_keynode_set_value_double(pKeyNode, dblval);
+
+	if (_preference_set_key(pKeyNode) != PREFERENCE_ERROR_NONE) {
+		ERR("preference_set_double(%d) : key(%s/%f) error", getpid(), key, dblval);
+		func_ret = PREFERENCE_ERROR_IO_ERROR;
+	} else {
+		INFO("%s(%f) success", key, dblval);
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function set the string value of given key
+ * @param[in]	key	key
+ * @param[in]	strval string value to set
+ * @return 0 on success, -1 on error
+ */
+API int preference_set_string(const char *key, const char *strval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
+	retvm_if(strval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: value is NULL");
+
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if(func_ret != PREFERENCE_ERROR_NONE) {
+		_preference_keynode_free(pKeyNode);
+		ERR("set key name error");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+	_preference_keynode_set_value_string(pKeyNode, strval);
+
+	if (_preference_set_key(pKeyNode) != PREFERENCE_ERROR_NONE) {
+		ERR("preference_set_string(%d) : key(%s/%s) error", getpid(), key, strval);
+		func_ret = PREFERENCE_ERROR_IO_ERROR;
+	} else {
+		INFO("%s(%s) success", key, strval);
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+static int _preference_get_key_filesys(keynode_t *keynode, int* io_errno)
+{
+	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	int ret = -1;
+	int func_ret = PREFERENCE_ERROR_NONE;
+	char err_buf[100] = { 0, };
+	int err_no = 0;
+	int type = 0;
+	FILE *fp = NULL;
+	int retry_cnt = 0;
+	int read_size = 0;
+
+retry_open :
+	errno = 0;
+	func_ret = PREFERENCE_ERROR_NONE;
+
+	ret = _preference_get_key_path(keynode->keyname, path);
+	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
+
+	if( (fp = fopen(path, "r")) == NULL ) {
+		func_ret = PREFERENCE_ERROR_FILE_OPEN;
+		err_no = errno;
+		goto out_return;
+	}
+
+retry :
+	err_no = 0;
+	func_ret = PREFERENCE_ERROR_NONE;
+
+	ret = _preference_set_read_lock(fileno(fp));
+	if(ret == -1) {
+		func_ret = PREFERENCE_ERROR_FILE_LOCK;
+		err_no = errno;
+		goto out_return;
+	}
+
+
+	/* read data type */
+	read_size = fread((void*)&type, sizeof(int), 1, fp);
+	if((read_size <= 0) || (read_size > sizeof(int))) {
+		if(!ferror(fp)) {
+			LOGW("number of read items for type is 0 with false ferror. err : %d", errno);
+			errno = ENODATA;
+		}
+		err_no = errno;
+		func_ret = PREFERENCE_ERROR_FILE_FREAD;
+		goto out_unlock;
+	}
+
+	/* read data value */
+	switch(type)
+	{
+		case PREFERENCE_TYPE_INT:
+		{
+			int value_int = 0;
+			int read_size = 0;
+			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
+			if((read_size <= 0) || (read_size > sizeof(int))) {
+				if(!ferror(fp)) {
+					LOGW("number of read items for value is wrong. err : %d", errno);
+				}
+				err_no = errno;
+				func_ret = PREFERENCE_ERROR_FILE_FREAD;
+				goto out_unlock;
+			} else {
+				_preference_keynode_set_value_int(keynode, value_int);
+			}
+
+			break;
+		}
+		case PREFERENCE_TYPE_DOUBLE:
+		{
+			double value_dbl = 0;
+			int read_size = 0;
+			read_size = fread((void*)&value_dbl, sizeof(double), 1, fp);
+			if((read_size <= 0) || (read_size > sizeof(double))) {
+				if(!ferror(fp)) {
+					LOGW("number of read items for value is wrong. err : %d", errno);
+				}
+				err_no = errno;
+				func_ret = PREFERENCE_ERROR_FILE_FREAD;
+				goto out_unlock;
+			} else {
+				_preference_keynode_set_value_double(keynode, value_dbl);
+			}
+
+			break;
+		}
+		case PREFERENCE_TYPE_BOOLEAN:
+		{
+			int value_int = 0;
+			int read_size = 0;
+			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
+			if((read_size <= 0) || (read_size > sizeof(int))) {
+				if(!ferror(fp)) {
+					LOGW("number of read items for value is wrong. err : %d", errno);
+				}
+				err_no = errno;
+				func_ret = PREFERENCE_ERROR_FILE_FREAD;
+				goto out_unlock;
+			} else {
+				_preference_keynode_set_value_boolean(keynode, value_int);
+			}
+
+			break;
+		}
+		case PREFERENCE_TYPE_STRING:
+		{
+			char file_buf[BUF_LEN] = {0,};
+			char *value = NULL;
+			int value_size = 0;
+
+			while(fgets(file_buf, sizeof(file_buf), fp))
+			{
+				if(value) {
+					value_size = value_size + strlen(file_buf);
+					value = (char *) realloc(value, value_size);
+					if(value == NULL) {
+						func_ret = PREFERENCE_ERROR_OUT_OF_MEMORY;
+						break;
+					}
+					strncat(value, file_buf, strlen(file_buf));
+				} else {
+					value_size = strlen(file_buf) + 1;
+					value = (char *)malloc(value_size);
+					if(value == NULL) {
+						func_ret = PREFERENCE_ERROR_OUT_OF_MEMORY;
+						break;
+					}
+					memset(value, 0x00, value_size);
+					strncpy(value, file_buf, strlen(file_buf));
+				}
+			}
+
+			if(ferror(fp)) {
+				err_no = errno;
+				func_ret = PREFERENCE_ERROR_FILE_FGETS;
+			} else {
+				if(value) {
+					_preference_keynode_set_value_string(keynode, value);
+				} else {
+					_preference_keynode_set_value_string(keynode, "");
+				}
+			}
+			if(value)
+				free(value);
+
+			break;
+		}
+		default :
+			func_ret = PREFERENCE_ERROR_WRONG_TYPE;
+	}
+
+out_unlock :
+	ret = _preference_set_unlock(fileno(fp));
+	if(ret == -1) {
+		func_ret = PREFERENCE_ERROR_FILE_LOCK;
+		err_no = errno;
+		goto out_return;
+	}
+
+
+out_return :
+	if (func_ret != PREFERENCE_ERROR_NONE)
+	{
+		strerror_r(err_no, err_buf, 100);
+
+		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_GET))
+		{
+			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT)
+			{
+				WARN("_preference_get_key_filesys(%s) step(%d) failed(%d / %s) retry(%d)",
+					keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
+				retry_cnt++;
+				usleep((retry_cnt)*PREFERENCE_ERROR_RETRY_SLEEP_UTIME);
+
+				if (fp)
+					goto retry;
+				else
+					goto retry_open;
+			}
+			else
+			{
+				ERR("_preference_get_key_filesys(%s) step(%d) faild(%d / %s) over the retry count.",
+					keynode->keyname, func_ret, err_no, err_buf);
+			}
+		}
+		else
+		{
+			ERR("_preference_get_key_filesys(%s) step(%d) failed(%d / %s) retry(%d) ",
+				keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
+		}
+	} else {
+		if(retry_cnt > 0) {
+			DBG("preference get filesys ok with retry cnt(%d)", retry_cnt);
+		}
+	}
+
+	if (fp)
+		fclose(fp);
+
+	*io_errno = err_no;
+
+	return func_ret;
+}
+
+int _preference_get_key(keynode_t *keynode)
+{
+	int ret = 0;
+	int io_errno = 0;
+	char err_buf[100] = {0,};
+
+	ret = _preference_get_key_filesys(keynode, &io_errno);
+	if(ret == PREFERENCE_ERROR_NONE) {
+		g_posix_errno = PREFERENCE_ERROR_NONE;
+		g_preference_errno = PREFERENCE_ERROR_NONE;
+	}
+	else
+	{
+		if (io_errno == ENOENT)
+			ret = PREFERENCE_ERROR_NO_KEY;
+		else
+			ret = PREFERENCE_ERROR_IO_ERROR;
+
+		strerror_r(io_errno, err_buf, 100);
+		ERR("_preference_get_key(%s) step(%d) failed(%d / %s)\n", keynode->keyname, ret, io_errno, err_buf);
+		g_posix_errno = io_errno;
+		g_preference_errno = ret;
+	}
+
+	return ret;
+}
+
+
+/*
+ * This function get the integer value of given key
+ * @param[in]	key	key
+ * @param[out]	intval output buffer
+ * @return 0 on success, -1 on error
+ */
+API int preference_get_int(const char *key, int *intval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(intval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
+
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	_preference_keynode_set_keyname(pKeyNode, key);
+
+	func_ret = _preference_get_key(pKeyNode);
+
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("preference_get_int(%d) : key(%s) error", getpid(), key);
+	} else {
+		*intval = pKeyNode->value.i;
+		if(pKeyNode->type == PREFERENCE_TYPE_INT) {
+			INFO("%s(%d) success", key, *intval);
+			func_ret = PREFERENCE_ERROR_NONE;
+		} else {
+			ERR("The type(%d) of keynode(%s) is not INT", pKeyNode->type, pKeyNode->keyname);
+			func_ret = PREFERENCE_ERROR_INVALID_PARAMETER;
+		}
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function get the boolean value of given key
+ * @param[in]	key	key
+ * @param[out]	boolval output buffer
+ * @return 0 on success, -1 on error
+ */
+API int preference_get_boolean(const char *key, bool *boolval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(boolval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
+
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	_preference_keynode_set_keyname(pKeyNode, key);
+
+	func_ret = _preference_get_key(pKeyNode);
+
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("preference_get_boolean(%d) : %s error", getpid(), key);
+	} else {
+		*boolval = !!(pKeyNode->value.b);
+		if(pKeyNode->type == PREFERENCE_TYPE_BOOLEAN) {
+			INFO("%s(%d) success", key, *boolval);
+			func_ret = PREFERENCE_ERROR_NONE;
+		} else {
+			ERR("The type(%d) of keynode(%s) is not BOOL", pKeyNode->type, pKeyNode->keyname);
+			func_ret = PREFERENCE_ERROR_INVALID_PARAMETER;
+		}
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function get the double value of given key
+ * @param[in]	key	key
+ * @param[out]	dblval output buffer
+ * @return 0 on success, -1 on error
+ */
+API int preference_get_double(const char *key, double *dblval)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(dblval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
+
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	_preference_keynode_set_keyname(pKeyNode, key);
+
+	func_ret = _preference_get_key(pKeyNode);
+
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("preference_get_double(%d) : %s error", getpid(), key);
+	} else {
+		*dblval = pKeyNode->value.d;
+
+		if(pKeyNode->type == PREFERENCE_TYPE_DOUBLE) {
+			INFO("%s(%f) success", key, *dblval);
+			func_ret = PREFERENCE_ERROR_NONE;
+		} else {
+			ERR("The type(%d) of keynode(%s) is not DBL", pKeyNode->type, pKeyNode->keyname);
+			func_ret = PREFERENCE_ERROR_INVALID_PARAMETER;
+		}
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function get the string value of given key
+ * @param[in]	key	key
+ * @return pointer of key value on success, NULL on error
+ */
+API int preference_get_string(const char *key, char **value)
+{
+	START_TIME_CHECK
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(value == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
+
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	_preference_keynode_set_keyname(pKeyNode, key);
+
+	char *tempstr = NULL;
+
+	func_ret = _preference_get_key(pKeyNode);
+
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("preference_get_string(%d) : %s error", getpid(), key);
+	} else {
+		if(pKeyNode->type == PREFERENCE_TYPE_STRING)
+			tempstr = pKeyNode->value.s;
+		else {
+			ERR("The type(%d) of keynode(%s) is not STR", pKeyNode->type, pKeyNode->keyname);
+			func_ret = PREFERENCE_ERROR_INVALID_PARAMETER;
+		}
+
+		if(tempstr) {
+			*value = strdup(tempstr);
+			INFO("%s(%s) success", key, value);
+		}
+	}
+
+	_preference_keynode_free(pKeyNode);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+/*
+ * This function unset given key
+ * @param[in]	key	key
+ * @return 0 on success, -1 on error
+ */
+API int preference_remove(const char *key)
+{
+	START_TIME_CHECK
+
+	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	int ret = -1;
+	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
+	int func_ret = PREFERENCE_ERROR_NONE;
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+
+	ret = _preference_get_key_path(key, path);
+	retvm_if(ret != PREFERENCE_ERROR_NONE, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is not valid");
+
+	retvm_if(access(path, F_OK) == -1, PREFERENCE_ERROR_NO_KEY, "Error : key(%s) is not exist", key);
+
+	do {
+		ret = remove(path);
+		if(ret == -1) {
+			ERR("preference_remove() failed. ret=%d(%s), key(%s)", errno, strerror(errno), key);
+			func_ret = PREFERENCE_ERROR_IO_ERROR;
+		} else {
+			func_ret = PREFERENCE_ERROR_NONE;
+			break;
+		}
+	} while(err_retry--);
+
+	END_TIME_CHECK
+
+	return func_ret;
+}
+
+API int preference_remove_all(void)
+{
+	START_TIME_CHECK
+
+	int ret = -1;
+	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
+	int func_ret = PREFERENCE_ERROR_NONE;
+	DIR *dir;
+	struct dirent *dent = NULL;
+	char *pref_dir_path = NULL;
+
+	pref_dir_path = _preference_get_pref_dir_path();
+	if (!pref_dir_path)
+	{
+		LOGE("_preference_get_pref_dir_path() failed.");
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	sqlite3_finalize(stmt);
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-static int _read_data(const char *key, char *type, char *data)
-{
-	int ret;
-	char *buf;
-	char **result;
-	int rows;
-	int columns;
-	char *errmsg;
-
-	if (key == NULL || key[0] == '\0'  || data == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	dir = opendir(pref_dir_path);
+	if (dir == NULL)
+	{
+		LOGE("opendir() failed. pref_path: %s, error: %d(%s)", pref_dir_path, errno, strerror(errno));
+		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	if (pref_db == NULL) {
-		if (_initialize() != PREFERENCE_ERROR_NONE) {
-			LOGE("IO_ERROR(0x%08x) : fail to initialize db",
-					PREFERENCE_ERROR_IO_ERROR);
+	while ((dent = readdir(dir)))
+	{
+		const char *entry = dent->d_name;
+		char keyname[PREFERENCE_KEY_PATH_LEN] = {0,};
+		char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+
+		if (entry[0] == '.')
+		{
+			continue;
+		}
+
+		ret = _preference_get_key_name(entry, keyname);
+		if (ret != PREFERENCE_ERROR_NONE)
+		{
+			ERR("_preference_get_key_name() failed(%d)", ret);
+			closedir(dir);
+			return ret;
+		}
+
+		ret = preference_unset_changed_cb(keyname);
+		if (ret != PREFERENCE_ERROR_NONE)
+		{
+			ERR("preference_unset_changed_cb() failed(%d)", ret);
+			closedir(dir);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
-	}
 
-	buf = sqlite3_mprintf("SELECT %s, %s, %s FROM %s WHERE %s=%Q;",
-			PREF_F_KEY_NAME, PREF_F_TYPE_NAME, PREF_F_DATA_NAME,
-			PREF_TBL_NAME, PREF_F_KEY_NAME, key);
-
-	if (buf == NULL) {
-		LOGE("IO_ERROR(0x%08x) : fail to create query string",
-				PREFERENCE_ERROR_IO_ERROR);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	ret = sqlite3_get_table(pref_db, buf, &result, &rows, &columns, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to read data (%s)",
-				PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	if (rows == 0) {
-		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)",
-				PREFERENCE_ERROR_NO_KEY, key);
-		sqlite3_free_table(result);
-		return PREFERENCE_ERROR_NO_KEY;
-	}
-
-	snprintf(type, 2, "%s", result[4]);
-	snprintf(data, BUF_LEN, "%s", result[5]);
-
-	sqlite3_free_table(result);
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-
-int preference_set_int(const char *key, int value)
-{
-	char type[2];
-	char data[BUF_LEN];
-	snprintf(type, 2, "%d", PREFERENCE_TYPE_INT);
-	snprintf(data, BUF_LEN, "%d", value);
-	return _write_data(key, type, data);
-}
-
-int preference_get_int(const char *key, int *value)
-{
-	char type[2];
-	char data[BUF_LEN];
-	int ret;
-
-	if (value == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	ret = _read_data(key, type, data);
-	if (ret == PREFERENCE_ERROR_NONE) {
-		if (atoi(type) == PREFERENCE_TYPE_INT)
-			*value = atoi(data);
-		else {
-			LOGE("INVALID_PARAMETER(0x%08x) : param type(%d)",
-					PREFERENCE_ERROR_INVALID_PARAMETER, atoi(type));
-			return PREFERENCE_ERROR_INVALID_PARAMETER;
+		ret = _preference_get_key_path(keyname, path);
+		if (ret != PREFERENCE_ERROR_NONE)
+		{
+			ERR("_preference_get_key_path() failed(%d)", ret);
+			closedir(dir);
+			return ret;
 		}
-	}
 
-	return ret;
-}
-
-int preference_set_double(const char *key, double value)
-{
-	char type[2];
-	char data[BUF_LEN];
-	snprintf(type, 2, "%d", PREFERENCE_TYPE_DOUBLE);
-	snprintf(data, BUF_LEN, "%f", value);
-	return _write_data(key, type, data);
-}
-
-int preference_get_double(const char *key, double *value)
-{
-	char type[2];
-	char data[BUF_LEN];
-
-	int ret;
-
-	if (value == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	ret = _read_data(key, type, data);
-	if (ret == PREFERENCE_ERROR_NONE) {
-		if (atoi(type) == PREFERENCE_TYPE_DOUBLE)
-			*value = atof(data);
-		else {
-			LOGE("INVALID_PARAMETER(0x%08x) : param type(%d)",
-					PREFERENCE_ERROR_INVALID_PARAMETER, atoi(type));
-			return PREFERENCE_ERROR_INVALID_PARAMETER;
-		}
-	}
-
-	return ret;
-}
-
-int preference_set_string(const char *key, const char *value)
-{
-	char type[2];
-
-	snprintf(type, 2, "%d", PREFERENCE_TYPE_STRING);
-	if (strlen(value) > (BUF_LEN-1)) {
-		LOGE("INVALID_PARAMETER(0x%08x) : param type(%d)",
-				PREFERENCE_ERROR_INVALID_PARAMETER, atoi(type));
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-	return _write_data(key, type, value);
-}
-
-int preference_get_string(const char *key, char **value)
-{
-	char type[2];
-	char data[BUF_LEN];
-
-	int ret;
-
-	if (value == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	ret = _read_data(key, type, data);
-	if (ret == PREFERENCE_ERROR_NONE) {
-		if (atoi(type) == PREFERENCE_TYPE_STRING) {
-			*value = strdup(data);
-			if (value == NULL) {
-				LOGE("OUT_OF_MEMORY(0x%08x)",
-						PREFERENCE_ERROR_OUT_OF_MEMORY);
-				return PREFERENCE_ERROR_OUT_OF_MEMORY;
+	// delete
+		do {
+			ret = remove(path);
+			if(ret == -1) {
+				ERR("preference_remove_all error: %d(%s)", errno, strerror(errno));
+				func_ret = PREFERENCE_ERROR_IO_ERROR;
+			} else {
+				func_ret = PREFERENCE_ERROR_NONE;
+				break;
 			}
-		} else {
-			LOGE("INVALID_PARAMETER(0x%08x) : param type(%d)",
-					PREFERENCE_ERROR_INVALID_PARAMETER, atoi(type));
-			return PREFERENCE_ERROR_INVALID_PARAMETER;
-		}
+		} while(err_retry--);
 	}
 
-	return ret;
+	closedir(dir);
+
+	END_TIME_CHECK
+
+	return func_ret;
 }
 
-int preference_set_boolean(const char *key, bool value)
-{
-	char type[2];
-	char data[BUF_LEN];
-	snprintf(type, 2, "%d", PREFERENCE_TYPE_BOOLEAN);
-	snprintf(data, BUF_LEN, "%d", value);
-	return _write_data(key, type, data);
-}
-
-int preference_get_boolean(const char *key, bool *value)
-{
-	char type[2];
-	char data[BUF_LEN];
-
-	int ret;
-
-	if (value == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	ret = _read_data(key, type, data);
-	if (ret == PREFERENCE_ERROR_NONE) {
-		if (atoi(type) == PREFERENCE_TYPE_BOOLEAN)
-			*value = (bool)atoi(data);
-		else {
-			LOGE("INVALID_PARAMETER(0x%08x) : param type(%d)",
-					PREFERENCE_ERROR_INVALID_PARAMETER, atoi(type));
-			return PREFERENCE_ERROR_INVALID_PARAMETER;
-		}
-	}
-
-	return ret;
-}
-
-
-/* TODO: below operation is too heavy, let's find the light way to check. */
 int preference_is_existing(const char *key, bool *exist)
 {
-	int ret;
-	char *buf;
-	char **result;
-	int rows;
-	int columns;
-	char *errmsg;
+	START_TIME_CHECK
 
-	if (key == NULL  || key[0] == '\0'  || exist == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	int ret = -1;
+	int func_ret = PREFERENCE_ERROR_NONE;
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(exist == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+
+	ret = _preference_get_key_path(key, path);
+	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
+
+	ret = access(path, F_OK);
+	if (ret == -1)
+	{
+		ERR("Error : key(%s) is not exist", key);
+		*exist = 0;
 	}
-
-	if (pref_db == NULL) {
-		if (_initialize() != PREFERENCE_ERROR_NONE) {
-			LOGE("IO_ERROR(0x%08x) : fail to initialize db",
-					PREFERENCE_ERROR_IO_ERROR);
-			return PREFERENCE_ERROR_IO_ERROR;
-		}
-	}
-
-	/* check data is exist */
-	buf = sqlite3_mprintf("SELECT %s FROM %s WHERE %s=%Q;",
-			PREF_F_KEY_NAME, PREF_TBL_NAME, PREF_F_KEY_NAME, key);
-
-	if (buf == NULL) {
-		LOGE("IO_ERROR(0x%08x) : fail to create query string",
-				PREFERENCE_ERROR_IO_ERROR);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	ret = sqlite3_get_table(pref_db, buf, &result, &rows, &columns, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to read data(%s)",
-				PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	if (rows > 0)
-		*exist = true;
 	else
-		*exist = false;
-
-	sqlite3_free_table(result);
-	return PREFERENCE_ERROR_NONE;
-}
-
-static pref_changed_cb_node_t *_find_node(const char *key)
-{
-	pref_changed_cb_node_t *tmp_node;
-
-	if (key == NULL || key[0] == '\0')
-		return NULL;
-
-	tmp_node = head;
-
-	while (tmp_node) {
-		if (strcmp(tmp_node->key, key) == 0)
-			break;
-		tmp_node = tmp_node->next;
+	{
+		*exist = 1;
 	}
 
-	return tmp_node;
+	END_TIME_CHECK
+
+	return func_ret;
 }
 
 
-static int _add_node(const char *key, preference_changed_cb cb, void *user_data)
+API int preference_set_changed_cb(const char *key, preference_changed_cb callback, void *user_data)
 {
-	pref_changed_cb_node_t *tmp_node;
+	START_TIME_CHECK
 
-	if (key == NULL || key[0] == '\0' || cb == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	tmp_node = _find_node(key);
-
-	if (tmp_node != NULL) {
-		tmp_node->cb = cb;
-		tmp_node->user_data = user_data;
-	} else {
-		tmp_node =
-			(pref_changed_cb_node_t *)malloc(sizeof(pref_changed_cb_node_t));
-		if (tmp_node == NULL) {
-			LOGE("OUT_OF_MEMORY(0x%08x)",
-					PREFERENCE_ERROR_OUT_OF_MEMORY);
-			return PREFERENCE_ERROR_OUT_OF_MEMORY;
-		}
-
-		tmp_node->key = strdup(key);
-		if (tmp_node->key == NULL) {
-			free(tmp_node);
-			LOGE("OUT_OF_MEMORY(0x%08x)", PREFERENCE_ERROR_OUT_OF_MEMORY);
-			return PREFERENCE_ERROR_OUT_OF_MEMORY;
-		}
-
-		if (head != NULL)
-			head->prev = tmp_node;
-		tmp_node->cb = cb;
-		tmp_node->user_data = user_data;
-		tmp_node->prev = NULL;
-		tmp_node->next = head;
-		head = tmp_node;
-	}
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-static int _remove_node(const char *key)
-{
-	pref_changed_cb_node_t *tmp_node;
-
-	if (key == NULL || key[0] == '\0') {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	tmp_node = _find_node(key);
-
-	if (tmp_node == NULL)
-		return PREFERENCE_ERROR_NONE;
-
-	if (tmp_node->prev != NULL)
-		tmp_node->prev->next = tmp_node->next;
-	else
-		head = tmp_node->next;
-
-	if (tmp_node->next != NULL)
-		tmp_node->next->prev = tmp_node->prev;
-
-	if (tmp_node->key)
-		free(tmp_node->key);
-
-	free(tmp_node);
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-
-static void _remove_all_node(void)
-{
-	pref_changed_cb_node_t *tmp_node;
-
-	while (head) {
-		tmp_node = head;
-		head = tmp_node->next;
-
-		if (tmp_node->key)
-			free(tmp_node->key);
-
-		free(tmp_node);
-	}
-}
-
-
-static void _update_cb(void *data, int action, char const *db_name,
-		char const *table_name, sqlite_int64 rowid)
-{
-	int ret;
-	char *buf;
-	char **result;
-	int rows;
-	int columns;
-	char *errmsg;
-	pref_changed_cb_node_t *tmp_node;
-
-	if (action != SQLITE_UPDATE)
-		return;
-
-	if (strcmp(table_name, PREF_TBL_NAME) != 0) {
-		SECURE_LOGE("given table name (%s) is not same", table_name);
-		return;
-	}
-
-	buf = sqlite3_mprintf("SELECT %s FROM %s WHERE rowid='%lld';",
-			PREF_F_KEY_NAME, PREF_TBL_NAME, rowid);
-	if (buf == NULL)
-		return;
-
-	ret = sqlite3_get_table(pref_db, buf, &result, &rows, &columns, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK) {
-		LOGI("fail to read data(%s)", errmsg);
-		sqlite3_free(errmsg);
-		return;
-	}
-
-	if (rows == 0) {
-		sqlite3_free_table(result);
-		return;
-	}
-
-	tmp_node = _find_node(result[1]);
-
-	if (tmp_node != NULL && tmp_node->cb != NULL)
-		tmp_node->cb(result[1], tmp_node->user_data);
-
-	sqlite3_free_table(result);
-}
-
-
-int preference_remove(const char *key)
-{
-	int ret;
-	char buf[BUF_LEN];
+	int ret = -1;
 	bool exist;
-	sqlite3_stmt *stmt;
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
 
 	ret = preference_is_existing(key, &exist);
 	if (ret != PREFERENCE_ERROR_NONE)
+	{
 		return ret;
+	}
 
 	if (!exist)
+	{
+		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
 		return PREFERENCE_ERROR_NO_KEY;
-
-	snprintf(buf, sizeof(buf), "DELETE FROM %s WHERE %s = ?",
-			PREF_TBL_NAME, PREF_F_KEY_NAME);
-
-	ret = sqlite3_prepare(pref_db, buf, -1, &stmt, NULL);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to prepare query (%d/%s)",
-			PREFERENCE_ERROR_IO_ERROR,
-			sqlite3_extended_errcode(pref_db),
-			sqlite3_errmsg(pref_db));
-		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	ret = sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to bind(1) query (%d/%s)",
-			PREFERENCE_ERROR_IO_ERROR,
-			sqlite3_extended_errcode(pref_db),
-			sqlite3_errmsg(pref_db));
-		sqlite3_finalize(stmt);
-		return PREFERENCE_ERROR_IO_ERROR;
+	if (_preference_kdb_add_notify(key, callback, user_data)) {
+		if(errno != 0 && errno != ENOENT) {
+			ERR("preference_notify_key_changed : key(%s) add notify fail", key);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+	INFO("%s noti is added", key);
+
+	END_TIME_CHECK
+
+	return PREFERENCE_ERROR_NONE;
+}
+
+API int preference_unset_changed_cb(const char *key)
+{
+	START_TIME_CHECK
+
+	int ret = -1;
+	bool exist;
+
+	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
+
+	ret = preference_is_existing(key, &exist);
+	if (ret != PREFERENCE_ERROR_NONE)
+	{
+		return ret;
 	}
 
-	ret = sqlite3_step(stmt);
-	if (ret != SQLITE_DONE) {
-		LOGE("IO_ERROR(0x%08x): fail to delete data(%d/%s)",
-			PREFERENCE_ERROR_IO_ERROR,
-			sqlite3_extended_errcode(pref_db),
-			sqlite3_errmsg(pref_db));
-		sqlite3_finalize(stmt);
-		return PREFERENCE_ERROR_IO_ERROR;
+	if (!exist)
+	{
+		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
+		return PREFERENCE_ERROR_NO_KEY;
 	}
 
-	sqlite3_finalize(stmt);
+	if (_preference_kdb_del_notify(key)) {
+		if (errno != 0 && errno != ENOENT) {
+			ERR("preference_unset_changed_cb() failed: key(%s) error(%d/%s)", key, errno, strerror(errno));
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+	INFO("%s noti removed", key);
 
-	 _remove_node(key);
+	END_TIME_CHECK
 
 	return PREFERENCE_ERROR_NONE;
 }
 
 
-int preference_remove_all(void)
+API int preference_foreach_item(preference_item_cb callback, void *user_data)
 {
-	int ret;
-	char *buf;
-	char *errmsg;
+	START_TIME_CHECK
 
-	if (pref_db == NULL) {
-		if (_initialize() != PREFERENCE_ERROR_NONE) {
-			LOGE("IO_ERROR(0x%08x) : fail to initialize db",
-					PREFERENCE_ERROR_IO_ERROR);
-			return PREFERENCE_ERROR_IO_ERROR;
+	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
+
+	int ret = 0;
+	DIR *dir;
+	struct dirent *dent = NULL;
+	char *pref_dir_path = NULL;
+
+	pref_dir_path = _preference_get_pref_dir_path();
+	if (!pref_dir_path)
+	{
+		LOGE("_preference_get_pref_dir_path() failed.");
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	dir = opendir(pref_dir_path);
+	if (dir == NULL)
+	{
+		LOGE("opendir() failed. path: %s, error: %d(%s)", pref_dir_path, errno, strerror(errno));
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	while((dent = readdir(dir)))
+	{
+		const char *entry = dent->d_name;
+		char keyname[PREFERENCE_KEY_PATH_LEN] = {0,};
+
+		if (entry[0] == '.')
+		{
+			continue;
 		}
+
+		ret = _preference_get_key_name(entry, keyname);
+		retv_if(ret != PREFERENCE_ERROR_NONE, ret);
+
+		callback(keyname, user_data);
 	}
 
-	/* insert data or update data if data already exist */
-	buf = sqlite3_mprintf("DELETE FROM %s;", PREF_TBL_NAME);
-	if (buf == NULL) {
-		LOGE("IO_ERROR(0x%08x) : fail to create query string",
-				PREFERENCE_ERROR_IO_ERROR);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	ret = sqlite3_exec(pref_db, buf, NULL, NULL, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to delete data (%s)",
-				PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	_remove_all_node();
-
-	return PREFERENCE_ERROR_NONE;
-}
-
-
-int preference_set_changed_cb(const char *key,
-		preference_changed_cb callback, void *user_data)
-{
-	int ret;
-	bool exist;
-
-	ret = preference_is_existing(key, &exist);
-	if (ret != PREFERENCE_ERROR_NONE)
-		return ret;
-
-	if (!exist) {
-		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)",
-				PREFERENCE_ERROR_NO_KEY, key);
-		return PREFERENCE_ERROR_NO_KEY;
-	}
-
-	if (!is_update_hook_registered) {
-		sqlite3_update_hook(pref_db, _update_cb, NULL);
-		is_update_hook_registered = true;
-	}
-
-	return _add_node(key, callback, user_data);
-}
-
-int preference_unset_changed_cb(const char *key)
-{
-	int ret;
-	bool exist;
-
-	ret = preference_is_existing(key, &exist);
-	if (ret != PREFERENCE_ERROR_NONE)
-		return ret;
-
-	if (!exist) {
-		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)",
-				PREFERENCE_ERROR_NO_KEY, key);
-		return PREFERENCE_ERROR_NO_KEY;
-	}
-
-	return _remove_node(key);
-}
-
-int preference_foreach_item(preference_item_cb callback, void *user_data)
-{
-	int ret;
-	char *buf;
-	char **result;
-	int rows;
-	int columns;
-	char *errmsg;
-	int i;
-
-	if (callback == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x)",
-				PREFERENCE_ERROR_INVALID_PARAMETER);
-		return PREFERENCE_ERROR_INVALID_PARAMETER;
-	}
-
-	if (pref_db == NULL) {
-		if (_initialize() != PREFERENCE_ERROR_NONE) {
-			LOGE("IO_ERROR(0x%08x) : fail to initialize db",
-					PREFERENCE_ERROR_IO_ERROR);
-			return PREFERENCE_ERROR_IO_ERROR;
-		}
-	}
-
-	buf = sqlite3_mprintf("SELECT %s FROM %s;",
-			PREF_F_KEY_NAME, PREF_TBL_NAME);
-	if (buf == NULL) {
-		LOGE("IO_ERROR(0x%08x) : fail to create query string",
-				PREFERENCE_ERROR_IO_ERROR);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	ret = sqlite3_get_table(pref_db, buf, &result, &rows, &columns, &errmsg);
-	sqlite3_free(buf);
-	if (ret != SQLITE_OK) {
-		LOGE("IO_ERROR(0x%08x) : fail to read data (%s)",
-				PREFERENCE_ERROR_IO_ERROR, errmsg);
-		sqlite3_free(errmsg);
-		return PREFERENCE_ERROR_IO_ERROR;
-	}
-
-	for (i = 1; i <= rows; i++) {
-		if (callback(result[i], user_data) != true)
-			break;
-	}
-
-	sqlite3_free_table(result);
+	closedir(dir);
+	END_TIME_CHECK
 
 	return PREFERENCE_ERROR_NONE;
 }
