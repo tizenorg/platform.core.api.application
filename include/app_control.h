@@ -197,6 +197,14 @@ typedef enum
 #define APP_CONTROL_OPERATION_COMPOSE "http://tizen.org/appcontrol/operation/compose"
 
 /**
+ * @brief Definition for the app_control operation: can be launched by interested event.
+ * @since_tizen 2.4
+ * @remarks This operation is for handling event from the platform or other application. This operation can not be requested via app_control_send_launch_request().
+ * @remarks Refer to "Launch on Event" section of Event module.
+ */
+#define APP_CONTROL_OPERATION_LAUNCH_ON_EVENT "http://tizen.org/appcontrol/operation/launch_on_event"
+
+/**
  * @brief Definition for app_control optional data: the subject of a message.
  * @since_tizen 2.3
  */
