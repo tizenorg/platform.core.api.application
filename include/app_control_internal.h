@@ -84,6 +84,54 @@ int app_control_create_request(bundle *data, app_control_h *app_control);
 
 int app_control_create_event(bundle *data, app_control_h *app_control);
 
+int app_control_to_bundle(app_control_h app_control, bundle **data);
+
+/**
+ * @brief Sets the window ID of the application.
+ *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] app_control The app_control handle
+ * @param[in] id The window ID of the caller application (if the @a id is not positive, it clears the previous value)
+ * @return @c 0 on success,
+ *         otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_CONTROL_ERROR_OUT_OF_MEMORY Out of memory
+ * @see app_control_get_window()
+ */
+int app_control_set_window(app_control_h app_control, unsigned int id);
+
+/**
+ * @brief Gets the window ID of the application.
+ *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] app_control The app_control handle
+ * @param[out] id The window ID of the caller application
+ * @return @c 0 on success,
+ *         otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_CONTROL_ERROR_OUT_OF_MEMORY Out of memory
+ * @see app_control_set_app_id()
+ */
+int app_control_get_window(app_control_h app_control, unsigned int *id);
+
+/**
+ * @brief Requests the specified callee window to be transient for the caller window.
+ *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @remarks The @a callee_id window is transient for the top-level caller window and should be handled accordingly.
+ * @param[in] app_control The app_control handle
+ * @param[in] callee_id The callee window ID
+ * @param[in] cbfunc The callback function to be called when the transient is requested
+ * @param[in] data A data pointer to pass to the callback function
+ * @return @c 0 on success,
+ *         otherwise a negative error value.
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ */
+int app_control_request_transient_app(app_control_h app_control, unsigned int callee_id, app_control_host_res_fn cbfunc, void *data);
+
 /**
  * @}
  */

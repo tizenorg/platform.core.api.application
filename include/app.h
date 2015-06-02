@@ -25,6 +25,7 @@
 #include <app_common.h>
 #include <app_preference.h>
 #include <app_i18n.h>
+#include <app_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,20 +35,6 @@ extern "C" {
  * @addtogroup CAPI_APPLICATION_MODULE
  * @{
  */
-
-
-/**
- * @brief Enumerations of error code for Application.
- */
-typedef enum
-{
-	APP_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
-	APP_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
-	APP_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */
-	APP_ERROR_INVALID_CONTEXT = TIZEN_ERROR_NOT_PERMITTED, /**< Invalid application context */
-	APP_ERROR_NO_SUCH_FILE = TIZEN_ERROR_NO_SUCH_FILE, /**< No such file or directory */
-	APP_ERROR_ALREADY_RUNNING = TIZEN_ERROR_ALREADY_IN_PROGRESS, /**< Application is already running */
-} app_error_e;
 
 
 /**

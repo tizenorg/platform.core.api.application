@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -25,26 +25,34 @@ extern "C"
 {
 #endif
 
+/**
+ * @file app_i18n.h
+ */
+
  /**
  * @addtogroup CAPI_I18N_MODULE
  * @{
  */
 
 /**
- * @brief	Marks a string for translation, gets replaced with the translated string at runtime.
- * @param [in] msg The string to be translated.
+ * @brief Definition to mark a string for translation, which is replaced with the translated string at runtime.
+ * @param[in] msg The string to be translated
  */
+#ifndef _
 #define _(msg) i18n_get_text(msg)
+#endif
 
 /**
  * @brief Gets the localized translation for the specified string.
  *
- * @details If a translation was not found in the localization file(.po file), @a message is returned.
+ * @details If a translation is not found in the localization file(.po file), @a message is returned.
  *
- * @remarks Do not free returned value
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @remarks Do not free the returned value.
  *
- * @param [in] message The string to be translated
- * @return  The localized translation for the given @a message on success, otherwise the given @a message.
+ * @param[in] message The string to be translated
+ * @return  The localized translation for the given @a message on success,
+ *          otherwise the given @a message
  */
 char* i18n_get_text(const char *message);
 
