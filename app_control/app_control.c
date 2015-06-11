@@ -48,6 +48,10 @@
 #define BUNDLE_KEY_WINDOW	"__APP_SVC_K_WIN_ID__"
 #define BUNDLE_KEY_CATEGORY	"__APP_SVC_CATEGORY__"
 
+#define LAUNCH_MODE_SIZE 8
+#define LAUNCH_MODE_SINGLE "single"
+#define LAUNCH_MODE_GROUP "group"
+
 typedef enum {
 	APP_CONTROL_TYPE_REQUEST,
 	APP_CONTROL_TYPE_EVENT,
@@ -680,6 +684,61 @@ int app_control_clone(app_control_h *clone, app_control_h app_control)
 	app_control_clone->data = bundle_dup(app_control->data);
 
 	*clone = app_control_clone;
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
+int app_control_set_launch_mode(app_control_h app_control,
+		app_control_launch_mode_e mode)
+{
+	char launch_mode[LAUNCH_MODE_SIZE] = { 0, };
+
+	if (app_control_validate(app_control)) {
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
+				__FUNCTION__, NULL);
+	}
+
+	switch (mode) {
+	case APP_CONTROL_LAUNCH_MODE_SINGLE:
+		strncpy(launch_mode, LAUNCH_MODE_SINGLE, strlen(LAUNCH_MODE_SINGLE));
+		break;
+	case APP_CONTROL_LAUNCH_MODE_GROUP:
+		strncpy(launch_mode, LAUNCH_MODE_GROUP, strlen(LAUNCH_MODE_GROUP));
+		break;
+	default:
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
+				__FUNCTION__, "invalid mode");
+	}
+
+	return appsvc_set_launch_mode(app_control->data, launch_mode);
+}
+
+int app_control_get_launch_mode(app_control_h app_control,
+		app_control_launch_mode_e *mode)
+{
+	const char *launch_mode;
+
+	if (app_control_validate(app_control)) {
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
+				__FUNCTION__, NULL);
+	}
+
+	launch_mode = appsvc_get_launch_mode(app_control->data);
+	if (launch_mode == NULL) {
+		*mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
+				__FUNCTION__, "fail to get launch_mode");
+	} else {
+		if (!strcmp(launch_mode, LAUNCH_MODE_SINGLE)) {
+			*mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+		} else if (!strcmp(launch_mode, LAUNCH_MODE_GROUP)) {
+			*mode = APP_CONTROL_LAUNCH_MODE_GROUP;
+		} else {
+			*mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
+			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
+					__FUNCTION__, "launch_mode is not matched");
+		}
+	}
 
 	return APP_CONTROL_ERROR_NONE;
 }
