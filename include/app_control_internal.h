@@ -133,6 +133,35 @@ int app_control_get_window(app_control_h app_control, unsigned int *id);
 int app_control_request_transient_app(app_control_h app_control, unsigned int callee_id, app_control_host_res_fn cbfunc, void *data);
 
 /**
+ * @brief Sends the launch request with uid.
+ *
+ * @details The operation is mandatory information for the launch request. \n
+ *          If the operation is not specified, #APP_CONTROL_OPERATION_DEFAULT is used by default.
+ *          If the operation is #APP_CONTROL_OPERATION_DEFAULT, the application ID is mandatory to explicitly launch the application.
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @privlevel	public
+ * @privilege	%http://tizen.org/privilege/appmanager.launch
+ * @remarks The function returns #APP_CONTROL_ERROR_LAUNCH_REJECTED if the operation value is #APP_CONTROL_OPERATION_LAUNCH_ON_EVENT which is only for handling the event from the platform or other application, refer to @a Event module.
+ * @param[in] app_control The app_control handle
+ * @param[in] callback The callback function to be called when the reply is delivered
+ * @param[in] user_data The user data to be passed to the callback function
+ * @param[in] uid The user id to be launched
+ * @return @c 0 on success,
+ *         otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_CONTROL_ERROR_OUT_OF_MEMORY Out of memory
+ * @retval #APP_CONTROL_ERROR_APP_NOT_FOUND The application to run the given launch request is not found
+ * @retval #APP_CONTROL_ERROR_LAUNCH_REJECTED The application cannot be launched in current context
+ * @retval #APP_CONTROL_ERROR_LAUNCH_FAILED Failed to launch the application
+ * @retval #APP_CONTROL_ERROR_TIMED_OUT Failed due to timeout. The application that handles @a app_control may be busy
+ * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
+ * @post If the launch request is sent for the result, the result will come back through app_control_reply_cb() from the callee application.
+ * @see app_control_reply_to_launch_request()
+ * @see app_control_reply_cb()
+ */
+int app_control_usr_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data, uid_t uid);
+/**
  * @}
  */
 
