@@ -26,6 +26,7 @@
 #include <dlog.h>
 
 #include <app_control.h>
+#include <app_control_internal.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -745,6 +746,11 @@ int app_control_get_launch_mode(app_control_h app_control,
 
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data)
 {
+	return app_control_usr_send_launch_request(app_control, callback, user_data, getuid());
+}
+
+int app_control_usr_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data, uid_t uid)
+{
 	const char *operation;
 
 	bool implicit_default_operation = false;
@@ -810,7 +816,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		appsvc_set_operation(app_control->data, APP_CONTROL_OPERATION_DEFAULT);
 	}
 
-	launch_pid = appsvc_usr_run_service(app_control->data, app_control->id, callback ? app_control_request_result_broker : NULL, request_context, getuid());
+	launch_pid = appsvc_usr_run_service(app_control->data, app_control->id, callback ? app_control_request_result_broker : NULL, request_context, uid);
 
 	if (implicit_default_operation == true)
 	{
