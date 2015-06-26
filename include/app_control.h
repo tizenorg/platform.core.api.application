@@ -730,6 +730,7 @@ int app_control_foreach_app_matched(app_control_h app_control, app_control_app_m
  * @see app_control_reply_cb()
  */
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data);
+int app_control_usr_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data, uid_t uid);
 
 
 /**
