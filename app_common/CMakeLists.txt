@@ -9,7 +9,7 @@ SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(INC_DIR ${CMAKE_SOURCE_DIR}/include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
-SET(requires "dlog aul ail capi-base-common appcore-common libtzplatform-config")
+SET(requires "dlog aul pkgmgr-info capi-base-common appcore-common libtzplatform-config")
 SET(pc_requires "capi-base-common")
 
 INCLUDE(FindPkgConfig)

@@ -9,7 +9,7 @@ SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(INC_DIR include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
-SET(requires "dlog bundle appcore-common appcore-efl aul ail appsvc elementary capi-base-common alarm-service sqlite3 libtzplatform-config pkgmgr-info glib-2.0 capi-system-info capi-system-system-settings")
+SET(requires "dlog bundle appcore-common appcore-efl aul appsvc elementary capi-base-common alarm-service sqlite3 libtzplatform-config pkgmgr-info glib-2.0 capi-system-info capi-system-system-settings")
 SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference capi-appfw-event")
 
 INCLUDE(FindPkgConfig)
