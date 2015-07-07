@@ -44,6 +44,8 @@ typedef struct event_cb_data {
 
 static GHashTable *interested_event_table;
 static int _initialized;
+static event_cb earlier_callback;
+static pthread_mutex_t register_sync_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static const char *event_error_to_string(event_error_e error)
 {
@@ -99,7 +101,19 @@ static void event_eventsystem_callback(const char *event_name,
 {
 	bundle *b_to = NULL;
 	bundle *b = NULL;
+
 	LOGD("event_name(%s)", event_name);
+
+	if (earlier_callback != NULL) {
+		b_to = bundle_decode(event_data, len);
+		if (b_to == NULL) {
+			LOGE("bundle_decode failed");
+			return;
+		}
+		earlier_callback(event_name, b_to, user_data);
+		bundle_free(b_to);
+		return;
+	}
 
 	GList *handler_list = (GList *)g_hash_table_lookup(interested_event_table,
 		event_name);
@@ -113,6 +127,7 @@ static void event_eventsystem_callback(const char *event_name,
 		b_to = bundle_decode(event_data, len);
 		if (b_to == NULL) {
 			LOGE("bundle_decode failed");
+			free(cb_data);
 			return;
 		}
 		b = bundle_dup(b_to);
@@ -204,8 +219,12 @@ int event_add_event_handler(const char *event_name, event_cb callback, void *use
 		return event_error(EVENT_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 	}
 
+	pthread_mutex_lock(&register_sync_lock);
+	earlier_callback = callback;
 	ret = eventsystem_register_application_event(event_name, &reg_id, &event_type,
 		(eventsystem_cb)event_eventsystem_callback, user_data);
+	earlier_callback = NULL;
+	pthread_mutex_unlock(&register_sync_lock);
 	if (ret < 0) {
 		free(handler);
 		if (ret == ES_R_ENOTPERMITTED) {
@@ -287,7 +306,7 @@ int event_remove_event_handler(event_handler_h event_handler)
 
 int event_publish_app_event(const char *event_name, bundle *event_data)
 {
-	if (event_data == NULL) {
+	if (event_data == NULL || event_name == NULL) {
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
@@ -300,7 +319,7 @@ int event_publish_app_event(const char *event_name, bundle *event_data)
 
 int event_publish_trusted_app_event(const char *event_name, bundle *event_data)
 {
-	if (event_data == NULL) {
+	if (event_data == NULL || event_name == NULL) {
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 

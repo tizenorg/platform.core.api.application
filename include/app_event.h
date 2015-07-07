@@ -152,7 +152,6 @@ typedef enum
 /**
  * @brief Definition for system-event of usb : status of usb connection.
  * @since_tizen 2.4
- * @remarks If there is earlier occurrence regarding this event, you will receive the event as soon as you register event handler for this event. You can use this earlier event-data as initial value.
  * @see EVENT_KEY_USB_STATUS
  */
 #define SYSTEM_EVENT_USB_STATUS "tizen.system.event.usb_status"
