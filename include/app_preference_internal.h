@@ -23,11 +23,12 @@ extern "C" {
 #endif
 
 #include "app_preference_log.h"
+#include "linux/limits.h"
 
 #define BUF_LEN			(4096)
 #define PREF_DIR	".pref/"
 
-#define PREFERENCE_KEY_PATH_LEN 	1024
+#define PREFERENCE_KEY_PATH_LEN        1024
 #define ERR_LEN 		128
 
 #define PREF_DB_NAME		".pref.db"
@@ -35,6 +36,15 @@ extern "C" {
 #define PREF_F_KEY_NAME		"pref_key"
 #define PREF_F_TYPE_NAME	"pref_type"
 #define PREF_F_DATA_NAME	"pref_data"
+
+/* ASCII VALUE */
+#define PREF_KEYNAME_C_PAD '='
+#define PREF_KEYNAME_C_PLUS '+'
+#define PREF_KEYNAME_C_SLASH '/'
+
+#define PREF_KEYNAME_C_DOT '.'
+#define PREF_KEYNAME_C_UNDERSCORE '_'
+#define PREF_KEYNAME_C_HYPHEN '-'
 
 /**
  * @brief Definition for PREFERENCE_ERROR_WRONG_PREFIX.
@@ -122,11 +132,11 @@ typedef struct _keylist_t {
 
 
 int _preference_kdb_add_notify
-	(const char *keyname, preference_changed_cb cb, void *data);
+	(keynode_t *keynode, preference_changed_cb cb, void *data);
 int _preference_kdb_del_notify
-	(const char *keyname);
+	(keynode_t *keynode);
 
-int _preference_get_key_path(const char *keyname, char *path);
+int _preference_get_key_path(keynode_t *keynode, char *path);
 int _preference_get_key(keynode_t *keynode);
 
 int _preference_keynode_set_keyname(keynode_t *keynode, const char *keyname);
