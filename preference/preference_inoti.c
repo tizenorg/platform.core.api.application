@@ -160,20 +160,21 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 					}
 
 					if ( (t) && (t->wd == ie.wd) && (t->keyname) ) {
+
+						res = _preference_keynode_set_keyname(keynode, t->keyname);
+						if (res != PREFERENCE_ERROR_NONE) {
+							ERR("_preference_keynode_set_keyname() failed(%d)", res);
+							goto out_func;
+						}
+
 						if ((ie.mask & IN_DELETE_SELF))
 						{
-							res = _preference_kdb_del_notify(t->keyname);
+							res = _preference_kdb_del_notify(keynode);
 							if (res != PREFERENCE_ERROR_NONE)
 								ERR("_preference_kdb_del_notify() failed(%d)", res);
 						}
 						else
 						{
-							res = _preference_keynode_set_keyname(keynode, t->keyname);
-							if (res != PREFERENCE_ERROR_NONE) {
-								ERR("_preference_keynode_set_keyname() failed(%d)", res);
-								goto out_func;
-							}
-
 							res = _preference_get_key(keynode);
 							if (res != PREFERENCE_ERROR_NONE)
 								ERR("_preference_get_key() failed(%d)", res);
@@ -258,15 +259,16 @@ static int _preference_kdb_noti_init(void)
 	return PREFERENCE_ERROR_NONE;
 }
 
-int _preference_kdb_add_notify(const char *keyname, preference_changed_cb cb, void *data)
+int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, void *data)
 {
-	char path[PREFERENCE_KEY_PATH_LEN];
+	char path[PATH_MAX];
 	int wd;
 	struct noti_node t, *n, *node;
 	char err_buf[ERR_LEN] = { 0, };
 	int ret = 0;
 	GList *list = NULL;
 	int func_ret = PREFERENCE_ERROR_NONE;
+	char *keyname = keynode->keyname;
 
 	retvm_if((keyname == NULL || cb == NULL), PREFERENCE_ERROR_INVALID_PARAMETER,
 			"_preference_kdb_add_notify : Invalid argument - keyname(%s) cb(%p)",
@@ -276,8 +278,11 @@ int _preference_kdb_add_notify(const char *keyname, preference_changed_cb cb, vo
 		if (_preference_kdb_noti_init())
 			return PREFERENCE_ERROR_IO_ERROR;
 
-	ret = _preference_get_key_path((char*)keyname, path);
-	retvm_if(ret != PREFERENCE_ERROR_NONE, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is not valid");
+	ret = _preference_get_key_path(keynode, path);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		ERR("Invalid argument: key is not valid");
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
 
 	if (0 != access(path, F_OK)) {
 		if (errno == ENOENT) {
@@ -318,8 +323,7 @@ int _preference_kdb_add_notify(const char *keyname, preference_changed_cb cb, vo
 	}
 
 	n->keyname = strndup(keyname, PREFERENCE_KEY_PATH_LEN);
-	if (n->keyname == NULL)
-	{
+	if (n->keyname == NULL) {
 		ERR("The memory is insufficient, errno: %d (%s)", errno, strerror(errno));
 		free(n);
 		goto out_func;
@@ -341,24 +345,36 @@ out_func:
 	return func_ret;
 }
 
-int _preference_kdb_del_notify(const char *keyname)
+int _preference_kdb_del_notify(keynode_t *keynode)
 {
 	int wd = 0;
 	int r = 0;
 	struct noti_node *n = NULL;
 	struct noti_node t;
-	char path[PREFERENCE_KEY_PATH_LEN] = { 0, };
+	char path[PATH_MAX] = { 0, };
 	char err_buf[ERR_LEN] = { 0, };
 	int del = 0;
 	int ret = 0;
+	char *keyname = keynode->keyname;
 	int func_ret = PREFERENCE_ERROR_NONE;
 	GList *noti_list;
 
 	retvm_if(keyname == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: keyname(%s)", keyname);
-	retvm_if(_kdb_inoti_fd == 0, PREFERENCE_ERROR_NONE, "Invalid operation: not exist anything for inotify");
 
-	ret = _preference_get_key_path((char*)keyname, path);
-	retvm_if(ret != PREFERENCE_ERROR_NONE, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is not valid");
+	ret = _preference_get_key_path(keynode, path);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		ERR("Invalid argument: key is not valid");
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
+
+	if (0 != access(path, F_OK)) {
+		if (errno == ENOENT) {
+			ERR("_preference_kdb_del_notify : Key(%s) does not exist", keyname);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+	}
+
+	retvm_if(_kdb_inoti_fd == 0, PREFERENCE_ERROR_NONE, "Invalid operation: not exist anything for inotify");
 
 	/* get wd */
 	wd = inotify_add_watch(_kdb_inoti_fd, path, INOTY_EVENT_MASK);

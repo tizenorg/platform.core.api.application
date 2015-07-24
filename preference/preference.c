@@ -25,10 +25,14 @@
 #include <ctype.h>
 #include <string.h>
 #include <execinfo.h>
+#include <glib.h>
 
 #include <app_preference.h>
 #include <app_preference_internal.h>
 #include <app_common.h>
+
+#include <sys/syscall.h>
+
 
 #ifndef API
 #define API __attribute__ ((visibility("default")))
@@ -42,7 +46,6 @@
 static int g_posix_errno;
 static int g_preference_errno;
 static char *g_pref_dir_path = NULL;
-
 
 enum preference_op_t {
     PREFERENCE_OP_GET = 0,
@@ -82,16 +85,16 @@ char* _preference_get_pref_dir_path()
 {
 	char *app_data_path = NULL;
 
-	if (!g_pref_dir_path)
-	{
+	if (!g_pref_dir_path) {
 		g_pref_dir_path = (char *)malloc(PREFERENCE_KEY_PATH_LEN + 1);
-		if ((app_data_path = app_get_data_path()) == NULL)
-		{
+
+		if ((app_data_path = app_get_data_path()) == NULL) {
 			ERR("IO_ERROR(0x%08x) : fail to get data directory", PREFERENCE_ERROR_IO_ERROR);
 			free(g_pref_dir_path);
 			g_pref_dir_path = NULL;
 			return NULL;
 		}
+
 		snprintf(g_pref_dir_path, PREFERENCE_KEY_PATH_LEN, "%s%s", app_data_path, PREF_DIR);
 		INFO("pref_dir_path: %s", g_pref_dir_path);
 		free(app_data_path);
@@ -152,61 +155,79 @@ inline void _preference_keynode_free(keynode_t *keynode)
 
 int _preference_get_key_name(const char *keyfile, char *keyname)
 {
-	char convert_key[PREFERENCE_KEY_PATH_LEN] = {0,};
-	char *chrptr = NULL;
+	unsigned int i = 0;
+	char convert_key[PATH_MAX] = {0,};
+	guchar *key_name = NULL;
+	gsize key_path_len = 0;
 
-	strncpy(convert_key, keyfile, strlen(keyfile));
+	strncpy(convert_key, keyfile, PATH_MAX - 1);
 
-	chrptr = strchr((const char*)convert_key, DELIMITER);
-	if(chrptr) {
-		chrptr = strchr((const char*)convert_key, DELIMITER);
-		while(chrptr) {
-			convert_key[chrptr-convert_key] = '/';
-			chrptr = strchr((const char*)chrptr+1, DELIMITER);
+	for (i = 0; i < strlen(convert_key); i++) {
+		switch (convert_key[i]) {
+		case PREF_KEYNAME_C_DOT:
+			convert_key[i] = PREF_KEYNAME_C_PAD;
+			break;
+		case PREF_KEYNAME_C_UNDERSCORE:
+			convert_key[i] = PREF_KEYNAME_C_PLUS;
+			break;
+		case PREF_KEYNAME_C_HYPHEN:
+			convert_key[i] = PREF_KEYNAME_C_SLASH;
+			break;
+		default:
+			break;
 		}
 	}
-	snprintf(keyname, PREFERENCE_KEY_PATH_LEN, "%s", (const char*)convert_key);
+
+	key_name = g_base64_decode((const gchar *)convert_key, &key_path_len);
+	snprintf(keyname, PREFERENCE_KEY_PATH_LEN-1, "%s", key_name);
+	free(key_name);
 
 	return PREFERENCE_ERROR_NONE;
 }
 
-
-int _preference_get_key_path(const char *keyname, char *path)
+int _preference_get_key_path(keynode_t *keynode, char *path)
 {
+	unsigned int i = 0;
 	const char *key = NULL;
+	char *keyname = keynode->keyname;
 
-	if(!keyname) {
+	if (!keyname) {
 		ERR("keyname is null");
 		return PREFERENCE_ERROR_WRONG_PREFIX;
 	}
 
-	char convert_key[PREFERENCE_KEY_PATH_LEN] = {0,};
-	char *chrptr = NULL;
+	char *convert_key = NULL;
 	char *pref_dir_path = NULL;
 
-	strncpy(convert_key, keyname, strlen(keyname));
+	convert_key = g_base64_encode((const guchar *)keyname, strlen(keyname));
 
 	pref_dir_path = _preference_get_pref_dir_path();
-	if (!pref_dir_path)
-	{
+	if (!pref_dir_path) {
 		LOGE("_preference_get_pref_dir_path() failed.");
+		g_free(convert_key);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	chrptr = strchr((const char*)convert_key, (int)'/');
-	if(!chrptr)	{
-		key = (const char*)convert_key;
-	}
-	else {
-		chrptr = strchr((const char*)convert_key, (int)'/');
-		while(chrptr) {
-			convert_key[chrptr-convert_key] = DELIMITER;
-			chrptr = strchr((const char*)chrptr+1, (int)'/');
+	for (i = 0; i < strlen(convert_key); i++) {
+		switch (convert_key[i]) {
+		case PREF_KEYNAME_C_PAD:
+			convert_key[i] = PREF_KEYNAME_C_DOT;
+			break;
+		case PREF_KEYNAME_C_PLUS:
+			convert_key[i] = PREF_KEYNAME_C_UNDERSCORE;
+			break;
+		case PREF_KEYNAME_C_SLASH:
+			convert_key[i] = PREF_KEYNAME_C_HYPHEN;
+			break;
+		default:
+			break;
 		}
-		key = (const char*)convert_key;
 	}
 
-	snprintf(path, PREFERENCE_KEY_PATH_LEN, "%s%s", pref_dir_path, key);
+	key = (const char*)convert_key;
+
+	snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, key);
+	g_free(convert_key);
 
 	return PREFERENCE_ERROR_NONE;
 }
@@ -217,16 +238,13 @@ static int _preference_set_key_check_pref_dir()
 	mode_t dir_mode = 0664 | 0111;
 
 	pref_dir_path = _preference_get_pref_dir_path();
-	if (!pref_dir_path)
-	{
+	if (!pref_dir_path) {
 		LOGE("_preference_get_pref_dir_path() failed.");
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	if (access(pref_dir_path, F_OK) < 0)
-	{
-		if (mkdir(pref_dir_path, dir_mode) < 0)
-		{
+	if (access(pref_dir_path, F_OK) < 0) {
+		if (mkdir(pref_dir_path, dir_mode) < 0) {
 			ERR("mkdir() failed(%d/%s)", errno, strerror(errno));
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
@@ -242,6 +260,7 @@ static int _preference_set_key_creation(const char* path)
 	temp = umask(0000);
 	fd = open(path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
 	umask(temp);
+
 	if(fd == -1) {
 		ERR("open(rdwr,create) error: %d(%s)", errno, strerror(errno));
 		return PREFERENCE_ERROR_IO_ERROR;
@@ -299,6 +318,34 @@ static int _preference_set_unlock(int fd)
 	return _preference_set_file_lock(fd, F_UNLCK);
 }
 
+static void _preference_log_subject_label(void)
+{
+	int fd;
+	int ret;
+	char smack_label[256] = {0,};
+	char curren_path[256] = {0,};
+	int tid;
+
+	tid = (int)syscall(SYS_gettid);
+	snprintf(curren_path, sizeof(curren_path)-1, "/proc/%d/attr/current", tid);
+	fd = open(curren_path, O_RDONLY);
+	if (fd < 0) {
+		LOGE("fail to open self current attr (err: %s)", strerror(errno));
+		return;
+	}
+
+	ret = read(fd, smack_label, sizeof(smack_label)-1);
+	if (ret < 0) {
+		close(fd);
+		LOGE("fail to open self current attr (err: %s)", strerror(errno));
+		return;
+	}
+
+	ERR("current(%d) subject label : %s", tid, smack_label);
+
+	close(fd);
+}
+
 static int _preference_check_retry_err(keynode_t *keynode, int preference_errno, int io_errno, int op_type)
 {
 	int is_busy_err = 0;
@@ -312,28 +359,36 @@ static int _preference_check_retry_err(keynode_t *keynode, int preference_errno,
 				if(op_type == PREFERENCE_OP_SET)
 				{
 					int rc = 0;
-					char path[PREFERENCE_KEY_PATH_LEN] = {0,};
-					rc = _preference_get_key_path(keynode->keyname, path);
+					char path[PATH_MAX] = {0,};
+					rc = _preference_get_key_path(keynode, path);
 					if (rc != PREFERENCE_ERROR_NONE) {
 						ERR("_preference_get_key_path error");
+						_preference_log_subject_label();
 						break;
 					}
 
 					rc = _preference_set_key_check_pref_dir();
 					if (rc != PREFERENCE_ERROR_NONE) {
 						ERR("_preference_set_key_check_pref_dir() failed.");
+						_preference_log_subject_label();
 						break;
 					}
 
-					preference_errno = _preference_set_key_creation(path);
+					rc = _preference_set_key_creation(path);
 					if (rc != PREFERENCE_ERROR_NONE) {
 						ERR("_preference_set_key_creation error : %s", path);
+						_preference_log_subject_label();
 						break;
 					}
 					INFO("%s key is created", keynode->keyname);
 
 					is_busy_err = 1;
 				}
+				break;
+			}
+			case EACCES :
+			{
+				_preference_log_subject_label();
 				break;
 			}
 			case EAGAIN :
@@ -411,7 +466,7 @@ static int _preference_check_retry_err(keynode_t *keynode, int preference_errno,
 
 static int _preference_set_key_filesys(keynode_t *keynode, int *io_errno)
 {
-	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char path[PATH_MAX] = {0,};
 	FILE *fp = NULL;
 	int ret = -1;
 	int func_ret = PREFERENCE_ERROR_NONE;
@@ -425,7 +480,7 @@ retry_open :
 	err_no = 0;
 	func_ret = PREFERENCE_ERROR_NONE;
 
-	ret = _preference_get_key_path(keynode->keyname, path);
+	ret = _preference_get_key_path(keynode, path);
 	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
 
 	if( (fp = fopen(path, "r+")) == NULL ) {
@@ -566,13 +621,10 @@ static int _preference_set_key(keynode_t *keynode)
 	char err_buf[100] = { 0, };
 
 	ret = _preference_set_key_filesys(keynode, &io_errno);
-	if (ret == PREFERENCE_ERROR_NONE)
-	{
+	if (ret == PREFERENCE_ERROR_NONE) {
 		g_posix_errno = PREFERENCE_ERROR_NONE;
 		g_preference_errno = PREFERENCE_ERROR_NONE;
-	}
-	else
-	{
+	} else {
 		strerror_r(io_errno, err_buf, 100);
 		ERR("_preference_set_key(%s) step(%d) failed(%d / %s)", keynode->keyname, ret, io_errno, err_buf);
 		g_posix_errno = io_errno;
@@ -601,9 +653,9 @@ API int preference_set_int(const char *key, int intval)
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
-	if(func_ret != PREFERENCE_ERROR_NONE) {
-		_preference_keynode_free(pKeyNode);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	_preference_keynode_set_value_int(pKeyNode, intval);
@@ -611,7 +663,7 @@ API int preference_set_int(const char *key, int intval)
 	if (_preference_set_key(pKeyNode) != PREFERENCE_ERROR_NONE) {
 		ERR("preference_set_int(%d) : key(%s/%d) error", getpid(), key, intval);
 		func_ret = PREFERENCE_ERROR_IO_ERROR;
-	} else{
+	} else {
 		INFO("%s(%d) success", key, intval);
 	}
 
@@ -640,9 +692,9 @@ API int preference_set_boolean(const char *key, bool boolval)
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
-	if(func_ret != PREFERENCE_ERROR_NONE) {
-		_preference_keynode_free(pKeyNode);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	_preference_keynode_set_value_boolean(pKeyNode, boolval);
@@ -678,9 +730,9 @@ API int preference_set_double(const char *key, double dblval)
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
-	if(func_ret != PREFERENCE_ERROR_NONE) {
-		_preference_keynode_free(pKeyNode);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	_preference_keynode_set_value_double(pKeyNode, dblval);
@@ -717,9 +769,9 @@ API int preference_set_string(const char *key, const char *strval)
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
-	if(func_ret != PREFERENCE_ERROR_NONE) {
-		_preference_keynode_free(pKeyNode);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	_preference_keynode_set_value_string(pKeyNode, strval);
@@ -740,7 +792,7 @@ API int preference_set_string(const char *key, const char *strval)
 
 static int _preference_get_key_filesys(keynode_t *keynode, int* io_errno)
 {
-	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char path[PATH_MAX] = {0,};
 	int ret = -1;
 	int func_ret = PREFERENCE_ERROR_NONE;
 	char err_buf[100] = { 0, };
@@ -754,7 +806,7 @@ retry_open :
 	errno = 0;
 	func_ret = PREFERENCE_ERROR_NONE;
 
-	ret = _preference_get_key_path(keynode->keyname, path);
+	ret = _preference_get_key_path(keynode, path);
 	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
 
 	if( (fp = fopen(path, "r")) == NULL ) {
@@ -793,7 +845,6 @@ retry :
 		case PREFERENCE_TYPE_INT:
 		{
 			int value_int = 0;
-			int read_size = 0;
 			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
 			if((read_size <= 0) || (read_size > sizeof(int))) {
 				if(!ferror(fp)) {
@@ -811,7 +862,6 @@ retry :
 		case PREFERENCE_TYPE_DOUBLE:
 		{
 			double value_dbl = 0;
-			int read_size = 0;
 			read_size = fread((void*)&value_dbl, sizeof(double), 1, fp);
 			if((read_size <= 0) || (read_size > sizeof(double))) {
 				if(!ferror(fp)) {
@@ -829,7 +879,6 @@ retry :
 		case PREFERENCE_TYPE_BOOLEAN:
 		{
 			int value_int = 0;
-			int read_size = 0;
 			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
 			if((read_size <= 0) || (read_size > sizeof(int))) {
 				if(!ferror(fp)) {
@@ -901,16 +950,11 @@ out_unlock :
 
 
 out_return :
-	if (func_ret != PREFERENCE_ERROR_NONE)
-	{
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		strerror_r(err_no, err_buf, 100);
 
-		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_GET))
-		{
-			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT)
-			{
-				WARN("_preference_get_key_filesys(%s) step(%d) failed(%d / %s) retry(%d)",
-					keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
+		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_GET)) {
+			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT) {
 				retry_cnt++;
 				usleep((retry_cnt)*PREFERENCE_ERROR_RETRY_SLEEP_UTIME);
 
@@ -919,20 +963,10 @@ out_return :
 				else
 					goto retry_open;
 			}
-			else
-			{
+			else {
 				ERR("_preference_get_key_filesys(%s) step(%d) faild(%d / %s) over the retry count.",
 					keynode->keyname, func_ret, err_no, err_buf);
 			}
-		}
-		else
-		{
-			ERR("_preference_get_key_filesys(%s) step(%d) failed(%d / %s) retry(%d) ",
-				keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
-		}
-	} else {
-		if(retry_cnt > 0) {
-			DBG("preference get filesys ok with retry cnt(%d)", retry_cnt);
 		}
 	}
 
@@ -951,12 +985,11 @@ int _preference_get_key(keynode_t *keynode)
 	char err_buf[100] = {0,};
 
 	ret = _preference_get_key_filesys(keynode, &io_errno);
-	if(ret == PREFERENCE_ERROR_NONE) {
+	if (ret == PREFERENCE_ERROR_NONE) {
 		g_posix_errno = PREFERENCE_ERROR_NONE;
 		g_preference_errno = PREFERENCE_ERROR_NONE;
 	}
-	else
-	{
+	else {
 		if (io_errno == ENOENT)
 			ret = PREFERENCE_ERROR_NO_KEY;
 		else
@@ -989,15 +1022,19 @@ API int preference_get_int(const char *key, int *intval)
 	keynode_t* pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
-	_preference_keynode_set_keyname(pKeyNode, key);
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
 
 	func_ret = _preference_get_key(pKeyNode);
-
 	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("preference_get_int(%d) : key(%s) error", getpid(), key);
 	} else {
 		*intval = pKeyNode->value.i;
-		if(pKeyNode->type == PREFERENCE_TYPE_INT) {
+		if (pKeyNode->type == PREFERENCE_TYPE_INT) {
 			INFO("%s(%d) success", key, *intval);
 			func_ret = PREFERENCE_ERROR_NONE;
 		} else {
@@ -1030,7 +1067,12 @@ API int preference_get_boolean(const char *key, bool *boolval)
 	keynode_t* pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
-	_preference_keynode_set_keyname(pKeyNode, key);
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
 
 	func_ret = _preference_get_key(pKeyNode);
 
@@ -1038,7 +1080,7 @@ API int preference_get_boolean(const char *key, bool *boolval)
 		ERR("preference_get_boolean(%d) : %s error", getpid(), key);
 	} else {
 		*boolval = !!(pKeyNode->value.b);
-		if(pKeyNode->type == PREFERENCE_TYPE_BOOLEAN) {
+		if (pKeyNode->type == PREFERENCE_TYPE_BOOLEAN) {
 			INFO("%s(%d) success", key, *boolval);
 			func_ret = PREFERENCE_ERROR_NONE;
 		} else {
@@ -1071,7 +1113,12 @@ API int preference_get_double(const char *key, double *dblval)
 	keynode_t* pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
-	_preference_keynode_set_keyname(pKeyNode, key);
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
 
 	func_ret = _preference_get_key(pKeyNode);
 
@@ -1079,8 +1126,7 @@ API int preference_get_double(const char *key, double *dblval)
 		ERR("preference_get_double(%d) : %s error", getpid(), key);
 	} else {
 		*dblval = pKeyNode->value.d;
-
-		if(pKeyNode->type == PREFERENCE_TYPE_DOUBLE) {
+		if (pKeyNode->type == PREFERENCE_TYPE_DOUBLE) {
 			INFO("%s(%f) success", key, *dblval);
 			func_ret = PREFERENCE_ERROR_NONE;
 		} else {
@@ -1099,7 +1145,8 @@ API int preference_get_double(const char *key, double *dblval)
 /*
  * This function get the string value of given key
  * @param[in]	key	key
- * @return pointer of key value on success, NULL on error
+ * @param[out]	value output buffer
+ * @return 0 on success, -1 on error
  */
 API int preference_get_string(const char *key, char **value)
 {
@@ -1112,16 +1159,20 @@ API int preference_get_string(const char *key, char **value)
 	keynode_t* pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
-	_preference_keynode_set_keyname(pKeyNode, key);
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
 
 	char *tempstr = NULL;
-
 	func_ret = _preference_get_key(pKeyNode);
 
 	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("preference_get_string(%d) : %s error", getpid(), key);
 	} else {
-		if(pKeyNode->type == PREFERENCE_TYPE_STRING)
+		if (pKeyNode->type == PREFERENCE_TYPE_STRING)
 			tempstr = pKeyNode->value.s;
 		else {
 			ERR("The type(%d) of keynode(%s) is not STR", pKeyNode->type, pKeyNode->keyname);
@@ -1150,17 +1201,35 @@ API int preference_remove(const char *key)
 {
 	START_TIME_CHECK
 
-	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char path[PATH_MAX] = {0,};
 	int ret = -1;
 	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
 	int func_ret = PREFERENCE_ERROR_NONE;
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	ret = _preference_get_key_path(key, path);
-	retvm_if(ret != PREFERENCE_ERROR_NONE, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is not valid");
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
-	retvm_if(access(path, F_OK) == -1, PREFERENCE_ERROR_NO_KEY, "Error : key(%s) is not exist", key);
+	ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	ret = _preference_get_key_path(pKeyNode, path);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		ERR("Invalid argument: key is not valid");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_INVALID_PARAMETER;
+	}
+
+	if (access(path, F_OK) == -1) {
+		ERR("Error : key(%s) is not exist", key);
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_NO_KEY;
+	}
 
 	do {
 		ret = remove(path);
@@ -1173,7 +1242,9 @@ API int preference_remove(const char *key)
 		}
 	} while(err_retry--);
 
-	END_TIME_CHECK
+	END_TIME_CHECK;
+
+	_preference_keynode_free(pKeyNode);
 
 	return func_ret;
 }
@@ -1203,37 +1274,52 @@ API int preference_remove_all(void)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
+	keynode_t* pKeyNode = _preference_keynode_new();
+	if (pKeyNode == NULL)
+	{
+		ERR("key malloc fail");
+		closedir(dir);
+		return PREFERENCE_ERROR_OUT_OF_MEMORY;
+	}
+
 	while ((dent = readdir(dir)))
 	{
 		const char *entry = dent->d_name;
 		char keyname[PREFERENCE_KEY_PATH_LEN] = {0,};
-		char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+		char path[PATH_MAX] = {0,};
 
-		if (entry[0] == '.')
-		{
+		if (entry[0] == '.') {
 			continue;
 		}
 
 		ret = _preference_get_key_name(entry, keyname);
-		if (ret != PREFERENCE_ERROR_NONE)
-		{
+		if (ret != PREFERENCE_ERROR_NONE) {
 			ERR("_preference_get_key_name() failed(%d)", ret);
+			_preference_keynode_free(pKeyNode);
 			closedir(dir);
 			return ret;
 		}
 
 		ret = preference_unset_changed_cb(keyname);
-		if (ret != PREFERENCE_ERROR_NONE)
-		{
+		if (ret != PREFERENCE_ERROR_NONE) {
 			ERR("preference_unset_changed_cb() failed(%d)", ret);
+			_preference_keynode_free(pKeyNode);
 			closedir(dir);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
 
-		ret = _preference_get_key_path(keyname, path);
-		if (ret != PREFERENCE_ERROR_NONE)
-		{
+		ret = _preference_keynode_set_keyname(pKeyNode, keyname);
+		if (ret != PREFERENCE_ERROR_NONE) {
+			ERR("set key name error");
+			_preference_keynode_free(pKeyNode);
+			closedir(dir);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
+
+		ret = _preference_get_key_path(pKeyNode, path);
+		if (ret != PREFERENCE_ERROR_NONE) {
 			ERR("_preference_get_key_path() failed(%d)", ret);
+			_preference_keynode_free(pKeyNode);
 			closedir(dir);
 			return ret;
 		}
@@ -1251,6 +1337,7 @@ API int preference_remove_all(void)
 		} while(err_retry--);
 	}
 
+	_preference_keynode_free(pKeyNode);
 	closedir(dir);
 
 	END_TIME_CHECK
@@ -1262,26 +1349,38 @@ int preference_is_existing(const char *key, bool *exist)
 {
 	START_TIME_CHECK
 
-	char path[PREFERENCE_KEY_PATH_LEN] = {0,};
+	char path[PATH_MAX] = {0,};
 	int ret = -1;
 	int func_ret = PREFERENCE_ERROR_NONE;
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(exist == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	ret = _preference_get_key_path(key, path);
-	retv_if(ret != PREFERENCE_ERROR_NONE, ret);
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
+	}
+
+	ret = _preference_get_key_path(pKeyNode, path);
+	if (ret != PREFERENCE_ERROR_NONE) {
+		_preference_keynode_free(pKeyNode);
+		return ret;
+	}
 
 	ret = access(path, F_OK);
-	if (ret == -1)
-	{
+	if (ret == -1) {
 		ERR("Error : key(%s) is not exist", key);
 		*exist = 0;
-	}
-	else
-	{
+	} else {
 		*exist = 1;
 	}
+
+	_preference_keynode_free(pKeyNode);
 
 	END_TIME_CHECK
 
@@ -1293,31 +1392,34 @@ API int preference_set_changed_cb(const char *key, preference_changed_cb callbac
 {
 	START_TIME_CHECK
 
-	int ret = -1;
-	bool exist;
-
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
 
-	ret = preference_is_existing(key, &exist);
-	if (ret != PREFERENCE_ERROR_NONE)
-	{
-		return ret;
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	if (!exist)
-	{
-		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
-		return PREFERENCE_ERROR_NO_KEY;
-	}
-
-	if (_preference_kdb_add_notify(key, callback, user_data)) {
-		if(errno != 0 && errno != ENOENT) {
+	if (_preference_kdb_add_notify(pKeyNode, callback, user_data)) {
+		if (errno == ENOENT) {
+			LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
+			_preference_keynode_free(pKeyNode);
+			return PREFERENCE_ERROR_NO_KEY;
+		} else if(errno != 0) {
 			ERR("preference_notify_key_changed : key(%s) add notify fail", key);
+			_preference_keynode_free(pKeyNode);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
 	}
 	INFO("%s noti is added", key);
+	_preference_keynode_free(pKeyNode);
 
 	END_TIME_CHECK
 
@@ -1328,30 +1430,33 @@ API int preference_unset_changed_cb(const char *key)
 {
 	START_TIME_CHECK
 
-	int ret = -1;
-	bool exist;
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	ret = preference_is_existing(key, &exist);
-	if (ret != PREFERENCE_ERROR_NONE)
-	{
-		return ret;
+	keynode_t* pKeyNode = _preference_keynode_new();
+	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
+
+	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
+	if (func_ret != PREFERENCE_ERROR_NONE) {
+		ERR("set key name error");
+		_preference_keynode_free(pKeyNode);
+		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	if (!exist)
-	{
-		LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
-		return PREFERENCE_ERROR_NO_KEY;
-	}
-
-	if (_preference_kdb_del_notify(key)) {
-		if (errno != 0 && errno != ENOENT) {
+	if (_preference_kdb_del_notify(pKeyNode)) {
+		if (errno == ENOENT) {
+			LOGE("NO_KEY(0x%08x) : fail to find given key(%s)", PREFERENCE_ERROR_NO_KEY, key);
+			_preference_keynode_free(pKeyNode);
+			return PREFERENCE_ERROR_NO_KEY;
+		} else if (errno != 0) {
 			ERR("preference_unset_changed_cb() failed: key(%s) error(%d/%s)", key, errno, strerror(errno));
+			_preference_keynode_free(pKeyNode);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
 	}
 	INFO("%s noti removed", key);
+	_preference_keynode_free(pKeyNode);
 
 	END_TIME_CHECK
 
@@ -1371,26 +1476,22 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 	char *pref_dir_path = NULL;
 
 	pref_dir_path = _preference_get_pref_dir_path();
-	if (!pref_dir_path)
-	{
+	if (!pref_dir_path) {
 		LOGE("_preference_get_pref_dir_path() failed.");
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
 	dir = opendir(pref_dir_path);
-	if (dir == NULL)
-	{
+	if (dir == NULL) {
 		LOGE("opendir() failed. path: %s, error: %d(%s)", pref_dir_path, errno, strerror(errno));
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	while((dent = readdir(dir)))
-	{
+	while((dent = readdir(dir))) {
 		const char *entry = dent->d_name;
 		char keyname[PREFERENCE_KEY_PATH_LEN] = {0,};
 
-		if (entry[0] == '.')
-		{
+		if (entry[0] == '.') {
 			continue;
 		}
 
