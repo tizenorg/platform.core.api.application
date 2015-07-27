@@ -19,13 +19,14 @@
 #include <string.h>
 #include <glib.h>
 #include <bundle.h>
+#include <bundle_internal.h>
 #include <aul.h>
 #include <dlog.h>
 #include <unistd.h>
 #include <system_info.h>
-#include <system_settings.h>
 #include <pkgmgr-info.h>
 #include <pkgmgrinfo_resource.h>
+#include <vconf.h>
 
 #include "app_resource_manager.h"
 #include "app_common.h"
@@ -94,30 +95,33 @@ static resource_node_attr_t map[] = {
 };
 
 static GHashTable *attr_key = NULL;
+static const char *res_path = NULL;
+static char *cur_language = NULL;
 
-static gint _resource_manager_comp(gconstpointer a, gconstpointer b)
+static gint __resource_manager_comp(gconstpointer a, gconstpointer b)
 {
 	resource_group_t *rsc_group = (resource_group_t *) a;
 
 	return strcmp(rsc_group->type, b);
 }
 
-static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
+static void __bundle_iterator_get_valid_nodes(const char *key, const int type,
 		const bundle_keyval_t *kv, void *data)
 {
 	unsigned int node_attr;
 	bool *invalid = (bool *) data;
-
 	bool ret_bool = true;
-	int ret_int = 0;
-	char *ret_str = NULL;
-
 	int min, max;
 	char from[5] = { 0, };
 	char to[3] = { 0, };
 	bool t_val;
 	char *val;
 	size_t size;
+	static int screen_dpi = -1;
+	static int screen_width = -1;
+	static int screen_size_large = -1;
+	static char *version = NULL;
+	static int screen_bpp = -1;
 
 	if (*invalid)
 		return;
@@ -134,26 +138,29 @@ static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
 
 	switch (node_attr) {
 		case NODE_ATTR_SCREEN_DPI:
-			system_info_get_platform_int("http://tizen.org/feature/screen.dpi",
-					&ret_int);
-			if (ret_int != atoi(val))
+			if (screen_dpi == -1)
+				system_info_get_platform_int("http://tizen.org/feature/screen.dpi",
+						&screen_dpi);
+			if (screen_dpi != atoi(val))
 				*invalid = true;
 			break;
 
 		case NODE_ATTR_SCREEN_DPI_RANGE:
 			sscanf(val, "%s %d %s %d", from, &min, to, &max);
-			system_info_get_platform_int("http://tizen.org/feature/screen.dpi",
-					&ret_int);
+			if (screen_dpi == -1)
+				system_info_get_platform_int("http://tizen.org/feature/screen.dpi",
+						&screen_dpi);
 
-			if (!(min <= ret_int && ret_int <= max))
+			if (!(min <= screen_dpi && screen_dpi <= max))
 				*invalid = true;
 			break;
 
 		case NODE_ATTR_SCREEN_WIDTH_RANGE:
 			sscanf(val, "%s %d %s %d", from, &min, to, &max);
-			system_info_get_platform_int(
-					"http://tizen.org/feature/screen.width", &ret_int);
-			if (!(min <= ret_int && ret_int <= max))
+			if (screen_width == -1)
+				system_info_get_platform_int(
+						"http://tizen.org/feature/screen.width", &screen_width);
+			if (!(min <= screen_width && screen_width <= max))
 				*invalid = true;
 			break;
 
@@ -162,30 +169,38 @@ static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
 				t_val = true;
 			else
 				t_val = false;
-			system_info_get_platform_bool(
-					"http://tizen.org/feature/screen.size.large", &ret_bool);
-			if (ret_bool != t_val)
+			if (screen_size_large == -1) {
+				system_info_get_platform_bool(
+						"http://tizen.org/feature/screen.size.large", &ret_bool);
+				if (ret_bool)
+					screen_size_large = 1;
+				else
+					screen_size_large = 0;
+			}
+			if (((bool)screen_size_large) != t_val)
 				*invalid = true;
 			break;
 
 		case NODE_ATTR_SCREEN_BPP:
-			system_info_get_platform_int("http://tizen.org/feature/screen.bpp",
-					&ret_int);
-			if (ret_int != atoi(val))
+			if (screen_bpp == -1)
+				system_info_get_platform_int("http://tizen.org/feature/screen.bpp",
+						&screen_bpp);
+			if (screen_bpp != atoi(val))
 				*invalid = true;
 			break;
 
 		case NODE_ATTR_PLATFORM_VER:
-			system_info_get_platform_string(
-					"http://tizen.org/feature/platform.version", &ret_str);
-			if (strcmp(ret_str, val))
+			if (version == NULL)
+				system_info_get_platform_string(
+						"http://tizen.org/feature/platform.version", &version);
+			if (strcmp(version, val))
 				*invalid = true;
 			break;
 
 		case NODE_ATTR_LANGUAGE:
-			/*system_settings_get_value_string(
-					SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &ret_str);*/
-			if (strcmp(ret_str, val))
+			if (cur_language == NULL)
+				cur_language = vconf_get_str(VCONFKEY_LANGSET);
+			if (strncmp(cur_language, val, strlen(val)))
 				*invalid = true;
 			break;
 
@@ -194,7 +209,7 @@ static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
 	}
 }
 
-static void _bundle_iterator_get_best_node(const char *key, const char *val,
+static void __bundle_iterator_get_best_node(const char *key, const char *val,
 		void *data)
 {
 	unsigned int node_attr;
@@ -241,7 +256,7 @@ static void _bundle_iterator_get_best_node(const char *key, const char *val,
 	}
 }
 
-static const char *app_resource_manager_get_cache(app_resource_e type,
+static const char *__get_cache(app_resource_e type,
 		const char *id)
 {
 	unsigned int total_len = 0;
@@ -336,7 +351,7 @@ static gboolean __cache_remove(gpointer key, gpointer value, gpointer user_data)
 	return FALSE;
 }
 
-static void app_resource_manager_trim_cache(void)
+static void __trim_cache(void)
 {
 	GList *values = g_hash_table_get_values(resource_handle->cache);
 	values = g_list_sort(values, __cache_hit_compare);
@@ -359,13 +374,14 @@ static void app_resource_manager_trim_cache(void)
 
 }
 
-static void app_resource_manager_put_cache(app_resource_e type, const char *id,
+static void __put_cache(app_resource_e type, const char *id,
 		const char *val)
 {
 	unsigned int total_len = 0;
 	char *key;
 	char *rsc_type;
 	resource_cache_context_t *resource_cache;
+	LOGD("@@@@@@@@@@@@@@path : %s", val);
 
 	/* To remove chache from the low frequency of use. */
 	if (val == NULL) {
@@ -408,7 +424,7 @@ static void app_resource_manager_put_cache(app_resource_e type, const char *id,
 	}
 
 	if (g_hash_table_size(resource_handle->cache) > THRESHOLD_TO_CLEAN)
-		app_resource_manager_trim_cache();
+		__trim_cache();
 
 	resource_cache = (resource_cache_context_t *) calloc(1,
 			sizeof(resource_cache_context_t));
@@ -438,62 +454,7 @@ static void app_resource_manager_put_cache(app_resource_e type, const char *id,
 	g_hash_table_insert(resource_handle->cache, key, resource_cache);
 }
 
-static int app_resource_manager_get_pkgid_by_appid(char *pkgid, int pkgid_len,
-		const char *appid)
-{
-	pkgmgrinfo_appinfo_h handle = NULL;
-	char *tmp_pkgid = NULL;
-
-	int err = pkgmgrinfo_appinfo_get_usr_appinfo(appid, getuid(), &handle);
-	if (err != PMINFO_R_OK) {
-		LOGE("Failed to get app info. (err:%d)", err);
-		return APP_RESOURCE_ERROR_INVALID_PARAMETER;
-	}
-
-	err = pkgmgrinfo_appinfo_get_pkgid(handle, &tmp_pkgid);
-	if (err != PMINFO_R_OK) {
-		LOGE("Failed to get pkgid. (err:%d)", err);
-		pkgmgrinfo_appinfo_destroy_appinfo(handle);
-		return APP_RESOURCE_ERROR_INVALID_PARAMETER;
-	}
-	strncpy(pkgid, tmp_pkgid, pkgid_len);
-	pkgmgrinfo_appinfo_destroy_appinfo(handle);
-
-	return APP_RESOURCE_ERROR_NONE;
-}
-
-static char *app_resource_manager_get_package_name(void)
-{
-	int retval = APP_RESOURCE_ERROR_NONE;
-	int pid;
-	char buffer[256] = { 0, };
-	char *app_id = NULL;
-	char *pkg_id = NULL;
-
-	pid = getpid();
-	if (!pid) {
-		LOGE("Invalid pid(%d)", pid);
-		return NULL;
-	}
-
-	retval = aul_app_get_appid_bypid(pid, buffer, sizeof(buffer));
-	if (retval != AUL_R_OK) {
-		LOGE("IO_ERROR(0x%08x), get appid,  AUL_RET(0x%08x)",
-				APP_RESOURCE_ERROR_IO_ERROR, retval);
-		return NULL;
-	} else {
-		app_id = strdup(buffer);
-		int ret = app_resource_manager_get_pkgid_by_appid(buffer,
-				sizeof(buffer), app_id);
-		free(app_id);
-		if (ret == APP_RESOURCE_ERROR_NONE)
-			pkg_id = strdup(buffer);
-	}
-
-	return pkg_id;
-}
-
-static resource_group_t *app_resource_manager_find_group(resource_data_t *data,
+static resource_group_t *__find_group(resource_data_t *data,
 		int type)
 {
 	resource_group_t *rsc_group = NULL;
@@ -533,7 +494,7 @@ static resource_group_t *app_resource_manager_find_group(resource_data_t *data,
 	}
 
 	GList* found = g_list_find_custom(data->group_list, rsc_type,
-			_resource_manager_comp);
+			__resource_manager_comp);
 	if (found == NULL) {
 		LOGE("IO_ERROR(0x%08x), find list resource_group %s",
 				APP_RESOURCE_ERROR_IO_ERROR, rsc_type);
@@ -545,7 +506,7 @@ static resource_group_t *app_resource_manager_find_group(resource_data_t *data,
 	return rsc_group;
 }
 
-static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
+static GList *__get_valid_nodes(resource_group_t *group,
 		const char *id)
 {
 	GList *list = NULL;
@@ -565,10 +526,11 @@ static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
 	while (list) {
 		bool invalid = false;
 		rsc_node = (resource_node_t *) list->data;
-		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", app_get_resource_path(),
+
+		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", res_path,
 				rsc_node->folder, id);
 		if (access(path_buf, R_OK) == 0) {
-			bundle_foreach(rsc_node->attr, _bundle_iterator_get_valid_nodes,
+			bundle_foreach(rsc_node->attr, __bundle_iterator_get_valid_nodes,
 					&invalid);
 
 			if (!invalid) {
@@ -583,7 +545,7 @@ static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
 	return valid_list;
 }
 
-static resource_node_t *app_resource_manager_get_best_node(GList *nodes)
+static resource_node_t *__get_best_node(GList *nodes)
 {
 	unsigned int weight_tmp = 0;
 	resource_node_t *best_node = NULL;
@@ -601,7 +563,7 @@ static resource_node_t *app_resource_manager_get_best_node(GList *nodes)
 		unsigned int weight = 0;
 		resource_node_t *res_node = (resource_node_t *) (list->data);
 
-		bundle_iterate(res_node->attr, _bundle_iterator_get_best_node, &weight);
+		bundle_iterate(res_node->attr, __bundle_iterator_get_best_node, &weight);
 		if (weight > weight_tmp) {
 			best_node = res_node;
 			weight_tmp = weight;
@@ -612,17 +574,11 @@ static resource_node_t *app_resource_manager_get_best_node(GList *nodes)
 	return best_node;
 }
 
-static int app_resource_manager_open(const char *package,
-		resource_manager_t **handle)
+static int __open(resource_manager_t **handle)
 {
 	int retval = APP_RESOURCE_ERROR_NONE;
 	resource_manager_t *rsc_manager = NULL;
-
-	if (package == NULL) {
-		LOGE("INVALID_PARAMETER(0x%08x), resource_data_t",
-				APP_RESOURCE_ERROR_INVALID_PARAMETER);
-		return APP_RESOURCE_ERROR_INVALID_PARAMETER;
-	}
+	char buf[1024] = { 0, };
 
 	rsc_manager = (resource_manager_t *) calloc(1, sizeof(resource_manager_t));
 	if (!rsc_manager) {
@@ -631,7 +587,8 @@ static int app_resource_manager_open(const char *package,
 		return APP_RESOURCE_ERROR_OUT_OF_MEMORY;
 	}
 
-	retval = pkgmgrinfo_resource_open(package, &(rsc_manager->data));
+	snprintf(buf, 1023, "%sres.xml", res_path);
+	retval = pkgmgrinfo_resource_open(buf, &(rsc_manager->data));
 	if (retval != PMINFO_R_OK) {
 		LOGE("IO_ERROR(0x%08x), failed to get db for resource manager",
 				APP_RESOURCE_ERROR_IO_ERROR);
@@ -645,7 +602,7 @@ static int app_resource_manager_open(const char *package,
 	return APP_RESOURCE_ERROR_NONE;
 }
 
-void app_resource_manager_invalidate_cache()
+static void __invalidate_cache()
 {
 	if (resource_handle != NULL) {
 		if (resource_handle->cache != NULL) {
@@ -660,11 +617,15 @@ void app_resource_manager_invalidate_cache()
 				free(value);
 			}
 			g_hash_table_remove_all(resource_handle->cache);
+			if (cur_language) {
+				free(cur_language);
+				cur_language = NULL;
+			}
 		}
 	}
 }
 
-static int app_resource_manager_close(resource_manager_t *handle)
+static int __close(resource_manager_t *handle)
 {
 	if (handle == NULL) {
 		LOGE("INVALID_PARAMETER(0x%08x), resource_manager",
@@ -672,7 +633,7 @@ static int app_resource_manager_close(resource_manager_t *handle)
 		return APP_RESOURCE_ERROR_INVALID_PARAMETER;
 	}
 
-	app_resource_manager_invalidate_cache();
+	__invalidate_cache();
 	if (handle->cache != NULL) {
 		g_hash_table_destroy(handle->cache);
 	}
@@ -686,27 +647,27 @@ static int app_resource_manager_close(resource_manager_t *handle)
 	return APP_RESOURCE_ERROR_NONE;
 }
 
+static void __vconf_cb(keynode_t *key, void *data)
+{
+	__invalidate_cache();
+}
+
 int app_resource_manager_init()
 {
-	/* To get resource_manager handle from db */
 	if (resource_handle == NULL) {
-		char *package;
 		int retval = APP_RESOURCE_ERROR_NONE;
 
-		/* To get package name - by aul */
-		package = app_resource_manager_get_package_name();
-		if (package == NULL) {
-			LOGE("IO_ERROR(0x%08x), failed to get package name",
+		res_path = aul_get_app_resource_path();
+		if (res_path == NULL) {
+			LOGE("IO_ERROR(0x%08x), failed to get resource path",
 					APP_RESOURCE_ERROR_IO_ERROR);
 			return APP_RESOURCE_ERROR_IO_ERROR;
 		}
 
-		/* To create resource manager and to get from db */
-		retval = app_resource_manager_open(package, &resource_handle);
+		retval = __open(&resource_handle);
 		if (retval != APP_RESOURCE_ERROR_NONE) {
 			LOGE("IO_ERROR(0x%08x), failed to get resource_handle(%d)",
 					APP_RESOURCE_ERROR_IO_ERROR, retval);
-			free(package);
 			return APP_RESOURCE_ERROR_IO_ERROR;
 		}
 
@@ -723,7 +684,14 @@ int app_resource_manager_init()
 			}
 		}
 
-		free(package);
+		int r = vconf_notify_key_changed(VCONFKEY_LANGSET, __vconf_cb, NULL);
+
+		if (r < 0) {
+			LOGE("IO_ERROR(0x%08x), failed to register vconf(%d)",
+					APP_RESOURCE_ERROR_IO_ERROR, r);
+			return APP_RESOURCE_ERROR_IO_ERROR;
+		}
+
 	}
 
 	return APP_RESOURCE_ERROR_NONE;
@@ -752,7 +720,6 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path)
 		return APP_RESOURCE_ERROR_INVALID_PARAMETER;
 	}
 
-	/* To get resource_manager handle from db */
 	if (resource_handle == NULL) {
 		retval = app_resource_manager_init();
 		if (retval != APP_RESOURCE_ERROR_NONE)
@@ -760,13 +727,15 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path)
 	}
 
 	/* To get fname from cache */
-	cached_path = app_resource_manager_get_cache(type, id);
+	cached_path = __get_cache(type, id);
 	if (cached_path != NULL) {
 		*path = strdup(cached_path);
 		return APP_RESOURCE_ERROR_NONE;
 	} else { /* can't find fname from cache */
-		resource_group = app_resource_manager_find_group(resource_handle->data,
-				type);
+		if (resource_handle == NULL)
+			return APP_RESOURCE_ERROR_IO_ERROR;
+
+		resource_group = __find_group(resource_handle->data, type);
 		if (resource_group == NULL) {
 			LOGE("IO_ERROR(0x%08x), failed to get resource_group",
 					APP_RESOURCE_ERROR_IO_ERROR);
@@ -774,28 +743,25 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path)
 			goto Exception;
 		}
 
-		list = app_resource_manager_get_valid_nodes(resource_group, id);
+		list = __get_valid_nodes(resource_group, id);
 		if (list == NULL) {
 			retval = APP_RESOURCE_ERROR_IO_ERROR;
 			goto Exception;
 		}
 
-		resource_node = app_resource_manager_get_best_node(list);
+		resource_node = __get_best_node(list);
 		if (resource_node == NULL) {
 			retval = APP_RESOURCE_ERROR_IO_ERROR;
 			goto Exception;
 		} else {
-			char *res_path = app_get_resource_path();
 			unsigned int total_len = strlen(res_path)
 					+ strlen(resource_node->folder) + strlen(id) + 3;
 			put_fname = (char *) calloc(1, total_len);
 			snprintf(put_fname, total_len, "%s%s/%s", res_path,
 					resource_node->folder, id);
 			*path = strdup(put_fname);
-			if (res_path != NULL)
-				free(res_path);
 		}
-		app_resource_manager_put_cache(type, id, put_fname);
+		__put_cache(type, id, put_fname);
 	}
 
 Exception:
@@ -805,14 +771,17 @@ Exception:
 	if (put_fname == NULL && resource_group != NULL) {
 		char path_buf[MAX_PATH] = { 0, };
 
-		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", app_get_resource_path(),
+		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", res_path,
 				resource_group->folder, id);
 		if (access(path_buf, R_OK) == 0) {
-			app_resource_manager_put_cache(type, id, strdup(path_buf));
+			__put_cache(type, id, path_buf);
 			*path = strdup(path_buf);
 			retval = APP_RESOURCE_ERROR_NONE;
 		}
 	}
+
+	if (put_fname != NULL)
+		free(put_fname);
 
 	return retval;
 }
@@ -820,7 +789,7 @@ Exception:
 int app_resource_manager_release()
 {
 	if (resource_handle != NULL) {
-		app_resource_manager_close(resource_handle);
+		__close(resource_handle);
 		resource_handle = NULL;
 	}
 
@@ -829,6 +798,12 @@ int app_resource_manager_release()
 		attr_key = NULL;
 	}
 
+	if (cur_language) {
+		free(cur_language);
+		cur_language = NULL;
+	}
+
+	vconf_ignore_key_changed(VCONFKEY_LANGSET, __vconf_cb);
 	return APP_RESOURCE_ERROR_NONE;
 }
 
