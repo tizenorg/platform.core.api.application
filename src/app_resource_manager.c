@@ -19,6 +19,7 @@
 #include <string.h>
 #include <glib.h>
 #include <bundle.h>
+#include <bundle_internal.h>
 #include <aul.h>
 #include <dlog.h>
 #include <unistd.h>
@@ -183,8 +184,8 @@ static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
 			break;
 
 		case NODE_ATTR_LANGUAGE:
-			/*system_settings_get_value_string(
-					SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &ret_str);*/
+			system_settings_get_value_string(
+					SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &ret_str);
 			if (strcmp(ret_str, val))
 				*invalid = true;
 			break;
@@ -192,6 +193,8 @@ static void _bundle_iterator_get_valid_nodes(const char *key, const int type,
 		default:
 			break;
 	}
+	if (ret_str != NULL)
+		free(ret_str);
 }
 
 static void _bundle_iterator_get_best_node(const char *key, const char *val,
@@ -552,10 +555,17 @@ static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
 	GList *valid_list = NULL;
 	resource_node_t *valid_node = NULL;
 	resource_node_t *rsc_node = NULL;
+	char *res_path = NULL;
 
 	if (group->node_list == NULL) {
 		LOGE("INVALID_PARAMETER(0x%08x), resource_group",
 				APP_RESOURCE_ERROR_INVALID_PARAMETER);
+		return NULL;
+	}
+
+	res_path = app_get_resource_path();
+	if (res_path == NULL) {
+		LOGE("Fail to get RESOURCE PATH");
 		return NULL;
 	}
 
@@ -565,7 +575,8 @@ static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
 	while (list) {
 		bool invalid = false;
 		rsc_node = (resource_node_t *) list->data;
-		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", app_get_resource_path(),
+
+		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", res_path,
 				rsc_node->folder, id);
 		if (access(path_buf, R_OK) == 0) {
 			bundle_foreach(rsc_node->attr, _bundle_iterator_get_valid_nodes,
@@ -579,6 +590,8 @@ static GList *app_resource_manager_get_valid_nodes(resource_group_t *group,
 
 		list = g_list_next(list);
 	}
+
+	free(res_path);
 
 	return valid_list;
 }
@@ -765,6 +778,9 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path)
 		*path = strdup(cached_path);
 		return APP_RESOURCE_ERROR_NONE;
 	} else { /* can't find fname from cache */
+		if (resource_handle == NULL)
+			return APP_RESOURCE_ERROR_IO_ERROR;
+
 		resource_group = app_resource_manager_find_group(resource_handle->data,
 				type);
 		if (resource_group == NULL) {
@@ -786,14 +802,17 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path)
 			goto Exception;
 		} else {
 			char *res_path = app_get_resource_path();
+			if (res_path == NULL) {
+				retval = APP_RESOURCE_ERROR_IO_ERROR;
+				goto Exception;
+			}
 			unsigned int total_len = strlen(res_path)
 					+ strlen(resource_node->folder) + strlen(id) + 3;
 			put_fname = (char *) calloc(1, total_len);
 			snprintf(put_fname, total_len, "%s%s/%s", res_path,
 					resource_node->folder, id);
 			*path = strdup(put_fname);
-			if (res_path != NULL)
-				free(res_path);
+			free(res_path);
 		}
 		app_resource_manager_put_cache(type, id, put_fname);
 	}
@@ -804,15 +823,23 @@ Exception:
 
 	if (put_fname == NULL && resource_group != NULL) {
 		char path_buf[MAX_PATH] = { 0, };
+		char *res_path = app_get_resource_path();
 
-		snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", app_get_resource_path(),
-				resource_group->folder, id);
-		if (access(path_buf, R_OK) == 0) {
-			app_resource_manager_put_cache(type, id, strdup(path_buf));
-			*path = strdup(path_buf);
-			retval = APP_RESOURCE_ERROR_NONE;
+		if (res_path != NULL) {
+			snprintf(path_buf, MAX_PATH - 1, "%s%s/%s", res_path,
+					resource_group->folder, id);
+			if (access(path_buf, R_OK) == 0) {
+				app_resource_manager_put_cache(type, id, path_buf);
+				*path = strdup(path_buf);
+				retval = APP_RESOURCE_ERROR_NONE;
+			}
+
+			free(res_path);
 		}
 	}
+
+	if (put_fname != NULL)
+		free(put_fname);
 
 	return retval;
 }
