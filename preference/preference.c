@@ -153,80 +153,59 @@ inline void _preference_keynode_free(keynode_t *keynode)
 	}
 }
 
-int _preference_get_key_name(const char *keyfile, char *keyname)
+int _preference_get_key_name(const char *path, char *keyname)
 {
-	unsigned int i = 0;
-	char convert_key[PATH_MAX] = {0,};
-	guchar *key_name = NULL;
-	gsize key_path_len = 0;
+	int read_size = 0;
+	char file_buf[BUF_LEN] = {0,};
+	FILE *fp = NULL;
 
-	strncpy(convert_key, keyfile, PATH_MAX - 1);
-
-	for (i = 0; i < strlen(convert_key); i++) {
-		switch (convert_key[i]) {
-		case PREF_KEYNAME_C_DOT:
-			convert_key[i] = PREF_KEYNAME_C_PAD;
-			break;
-		case PREF_KEYNAME_C_UNDERSCORE:
-			convert_key[i] = PREF_KEYNAME_C_PLUS;
-			break;
-		case PREF_KEYNAME_C_HYPHEN:
-			convert_key[i] = PREF_KEYNAME_C_SLASH;
-			break;
-		default:
-			break;
-		}
+	if( (fp = fopen(path, "r")) == NULL ) {
+		return PREFERENCE_ERROR_FILE_OPEN;
 	}
 
-	key_name = g_base64_decode((const gchar *)convert_key, &key_path_len);
-	snprintf(keyname, PREFERENCE_KEY_PATH_LEN-1, "%s", key_name);
-	free(key_name);
+	read_size = fscanf(fp, "%s", file_buf);
+	if (read_size <= 0) {
+		return PREFERENCE_ERROR_FILE_FREAD;
+	}
+
+	snprintf(keyname, PREFERENCE_KEY_PATH_LEN-1, "%s", (const char*)file_buf);
+
+	if (fp)
+		fclose(fp);
 
 	return PREFERENCE_ERROR_NONE;
 }
 
 int _preference_get_key_path(keynode_t *keynode, char *path)
 {
-	unsigned int i = 0;
 	const char *key = NULL;
+	char *pref_dir_path = NULL;
+	gchar *convert_key;
 	char *keyname = keynode->keyname;
 
-	if (!keyname) {
-		ERR("keyname is null");
+	if(!keyname) {
+		LOGE("keyname is null");
 		return PREFERENCE_ERROR_WRONG_PREFIX;
 	}
-
-	char *convert_key = NULL;
-	char *pref_dir_path = NULL;
-
-	convert_key = g_base64_encode((const guchar *)keyname, strlen(keyname));
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path) {
 		LOGE("_preference_get_pref_dir_path() failed.");
-		g_free(convert_key);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	for (i = 0; i < strlen(convert_key); i++) {
-		switch (convert_key[i]) {
-		case PREF_KEYNAME_C_PAD:
-			convert_key[i] = PREF_KEYNAME_C_DOT;
-			break;
-		case PREF_KEYNAME_C_PLUS:
-			convert_key[i] = PREF_KEYNAME_C_UNDERSCORE;
-			break;
-		case PREF_KEYNAME_C_SLASH:
-			convert_key[i] = PREF_KEYNAME_C_HYPHEN;
-			break;
-		default:
-			break;
-		}
+	convert_key = g_compute_checksum_for_string(G_CHECKSUM_SHA1,
+							keyname,
+							strlen(keyname));
+	if (convert_key == NULL) {
+		LOGE("fail to convert");
+		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
 	key = (const char*)convert_key;
 
-	snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, key);
+	snprintf(path, PREFERENCE_KEY_PATH_LEN, "%s%s", pref_dir_path, key);
+
 	g_free(convert_key);
 
 	return PREFERENCE_ERROR_NONE;
@@ -495,7 +474,7 @@ retry :
 	func_ret = PREFERENCE_ERROR_NONE;
 
 	ret = _preference_set_write_lock(fileno(fp));
-	if(ret == -1) {
+	if (ret == -1) {
 		func_ret = PREFERENCE_ERROR_FILE_LOCK;
 		err_no = errno;
 		ERR("file(%s) lock owner(%d)",
@@ -504,11 +483,9 @@ retry :
 		goto out_return;
 	}
 
-	/* write key type */
-	ret = fwrite((void *)&(keynode->type), sizeof(int), 1, fp);
-	if(ret <= 0)
-	{
-		if(!errno) {
+	ret = fprintf(fp,"%s %d",keynode->keyname, keynode->type);
+	if (ret <= 0) {
+		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
 		}
@@ -518,34 +495,32 @@ retry :
 	}
 
 	/* write key value */
-	switch(keynode->type)
-	{
-		case PREFERENCE_TYPE_INT:
-			ret = fwrite((void *)&(keynode->value.i), sizeof(int), 1, fp);
-			if(ret <= 0) is_write_error = 1;
-			break;
-		case PREFERENCE_TYPE_DOUBLE:
-			ret = fwrite((void *)&(keynode->value.d), sizeof(double), 1, fp);
-			if(ret <= 0) is_write_error = 1;
-			break;
-		case PREFERENCE_TYPE_BOOLEAN:
-			ret = fwrite((void *)&(keynode->value.b), sizeof(int), 1, fp);
-			if(ret <= 0) is_write_error = 1;
-			break;
-		case PREFERENCE_TYPE_STRING:
-			ret = fprintf(fp,"%s",keynode->value.s);
-			if(ret < strlen(keynode->value.s)) is_write_error = 1;
-			if (ftruncate(fileno(fp), ret) == -1) {
-				is_write_error = 1;
-			}
-			break;
-		default :
-			func_ret = PREFERENCE_ERROR_WRONG_TYPE;
-			goto out_unlock;
+	switch (keynode->type) {
+	case PREFERENCE_TYPE_INT:
+		ret = fwrite((void *)&(keynode->value.i), sizeof(int), 1, fp);
+		if (ret <= 0) is_write_error = 1;
+		break;
+	case PREFERENCE_TYPE_DOUBLE:
+		ret = fwrite((void *)&(keynode->value.d), sizeof(double), 1, fp);
+		if (ret <= 0) is_write_error = 1;
+		break;
+	case PREFERENCE_TYPE_BOOLEAN:
+		ret = fwrite((void *)&(keynode->value.b), sizeof(int), 1, fp);
+		if (ret <= 0) is_write_error = 1;
+		break;
+	case PREFERENCE_TYPE_STRING:
+		ret = fprintf(fp,"%s",keynode->value.s);
+		if (ret < strlen(keynode->value.s)) is_write_error = 1;
+		if (ftruncate(fileno(fp), ret) == -1)
+			is_write_error = 1;
+		break;
+	default :
+		func_ret = PREFERENCE_ERROR_WRONG_TYPE;
+		goto out_unlock;
 	}
-	if(is_write_error)
-	{
-		if(!errno) {
+
+	if (is_write_error) {
+		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
 		}
@@ -558,20 +533,17 @@ retry :
 
 out_unlock :
 	ret = _preference_set_unlock(fileno(fp));
-	if(ret == -1) {
+	if (ret == -1) {
 		func_ret = PREFERENCE_ERROR_FILE_LOCK;
 		err_no = errno;
 		goto out_return;
 	}
 
 out_return :
-	if (func_ret != PREFERENCE_ERROR_NONE)
-	{
+	if (func_ret != PREFERENCE_ERROR_NONE) {
 		strerror_r(err_no, err_buf, 100);
-		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_SET))
-		{
-			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT)
-			{
+		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_SET)) {
+			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT) {
 				WARN("_preference_set_key_filesys(%d-%s) step(%d) failed(%d / %s) retry(%d)", keynode->type, keynode->keyname, func_ret, err_no, err_buf, retry_cnt);
 				retry_cnt++;
 				usleep((retry_cnt)*PREFERENCE_ERROR_RETRY_SLEEP_UTIME);
@@ -580,15 +552,11 @@ out_return :
 					goto retry;
 				else
 					goto retry_open;
-			}
-			else
-			{
+			} else {
 				ERR("_preference_set_key_filesys(%d-%s) step(%d) faild(%d / %s) over the retry count.",
 					keynode->type, keynode->keyname, func_ret, err_no, err_buf);
 			}
-		}
-		else
-		{
+		} else {
 			ERR("_preference_set_key_filesys(%d-%s) step(%d) failed(%d / %s)\n", keynode->type, keynode->keyname, func_ret, err_no, err_buf);
 		}
 	} else {
@@ -597,12 +565,10 @@ out_return :
 		}
 	}
 
-	if (fp)
-	{
-		if(func_ret == PREFERENCE_ERROR_NONE)
-		{
+	if (fp) {
+		if (func_ret == PREFERENCE_ERROR_NONE) {
 			ret = fdatasync(fileno(fp));
-			if(ret == -1) {
+			if (ret == -1) {
 				err_no = errno;
 				func_ret = PREFERENCE_ERROR_FILE_SYNC;
 			}
@@ -793,6 +759,7 @@ API int preference_set_string(const char *key, const char *strval)
 static int _preference_get_key_filesys(keynode_t *keynode, int* io_errno)
 {
 	char path[PATH_MAX] = {0,};
+	char keyname[BUF_LEN] = {0,};
 	int ret = -1;
 	int func_ret = PREFERENCE_ERROR_NONE;
 	char err_buf[100] = { 0, };
@@ -826,12 +793,9 @@ retry :
 		goto out_return;
 	}
 
-
-	/* read data type */
-	read_size = fread((void*)&type, sizeof(int), 1, fp);
-	if((read_size <= 0) || (read_size > sizeof(int))) {
+	read_size = fscanf(fp, "%s %d", keyname, &type);
+	if (read_size <= 0) {
 		if(!ferror(fp)) {
-			LOGW("number of read items for type is 0 with false ferror. err : %d", errno);
 			errno = ENODATA;
 		}
 		err_no = errno;
@@ -846,8 +810,8 @@ retry :
 		{
 			int value_int = 0;
 			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
-			if((read_size <= 0) || (read_size > sizeof(int))) {
-				if(!ferror(fp)) {
+			if ((read_size <= 0) || (read_size > sizeof(int))) {
+				if (!ferror(fp)) {
 					LOGW("number of read items for value is wrong. err : %d", errno);
 				}
 				err_no = errno;
@@ -863,8 +827,8 @@ retry :
 		{
 			double value_dbl = 0;
 			read_size = fread((void*)&value_dbl, sizeof(double), 1, fp);
-			if((read_size <= 0) || (read_size > sizeof(double))) {
-				if(!ferror(fp)) {
+			if ((read_size <= 0) || (read_size > sizeof(double))) {
+				if (!ferror(fp)) {
 					LOGW("number of read items for value is wrong. err : %d", errno);
 				}
 				err_no = errno;
@@ -880,8 +844,8 @@ retry :
 		{
 			int value_int = 0;
 			read_size = fread((void*)&value_int, sizeof(int), 1, fp);
-			if((read_size <= 0) || (read_size > sizeof(int))) {
-				if(!ferror(fp)) {
+			if ((read_size <= 0) || (read_size > sizeof(int))) {
+				if (!ferror(fp)) {
 					LOGW("number of read items for value is wrong. err : %d", errno);
 				}
 				err_no = errno;
@@ -901,10 +865,10 @@ retry :
 
 			while(fgets(file_buf, sizeof(file_buf), fp))
 			{
-				if(value) {
+				if (value) {
 					value_size = value_size + strlen(file_buf);
 					value = (char *) realloc(value, value_size);
-					if(value == NULL) {
+					if (value == NULL) {
 						func_ret = PREFERENCE_ERROR_OUT_OF_MEMORY;
 						break;
 					}
@@ -912,7 +876,7 @@ retry :
 				} else {
 					value_size = strlen(file_buf) + 1;
 					value = (char *)malloc(value_size);
-					if(value == NULL) {
+					if (value == NULL) {
 						func_ret = PREFERENCE_ERROR_OUT_OF_MEMORY;
 						break;
 					}
@@ -921,17 +885,17 @@ retry :
 				}
 			}
 
-			if(ferror(fp)) {
+			if (ferror(fp)) {
 				err_no = errno;
 				func_ret = PREFERENCE_ERROR_FILE_FGETS;
 			} else {
-				if(value) {
+				if (value) {
 					_preference_keynode_set_value_string(keynode, value);
 				} else {
 					_preference_keynode_set_value_string(keynode, "");
 				}
 			}
-			if(value)
+			if (value)
 				free(value);
 
 			break;
@@ -942,7 +906,7 @@ retry :
 
 out_unlock :
 	ret = _preference_set_unlock(fileno(fp));
-	if(ret == -1) {
+	if (ret == -1) {
 		func_ret = PREFERENCE_ERROR_FILE_LOCK;
 		err_no = errno;
 		goto out_return;
@@ -1292,7 +1256,9 @@ API int preference_remove_all(void)
 			continue;
 		}
 
-		ret = _preference_get_key_name(entry, keyname);
+		snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, entry);
+
+		ret = _preference_get_key_name(path, keyname);
 		if (ret != PREFERENCE_ERROR_NONE) {
 			ERR("_preference_get_key_name() failed(%d)", ret);
 			_preference_keynode_free(pKeyNode);
@@ -1308,26 +1274,9 @@ API int preference_remove_all(void)
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
 
-		ret = _preference_keynode_set_keyname(pKeyNode, keyname);
-		if (ret != PREFERENCE_ERROR_NONE) {
-			ERR("set key name error");
-			_preference_keynode_free(pKeyNode);
-			closedir(dir);
-			return PREFERENCE_ERROR_IO_ERROR;
-		}
-
-		ret = _preference_get_key_path(pKeyNode, path);
-		if (ret != PREFERENCE_ERROR_NONE) {
-			ERR("_preference_get_key_path() failed(%d)", ret);
-			_preference_keynode_free(pKeyNode);
-			closedir(dir);
-			return ret;
-		}
-
-	// delete
 		do {
 			ret = remove(path);
-			if(ret == -1) {
+			if (ret == -1) {
 				ERR("preference_remove_all error: %d(%s)", errno, strerror(errno));
 				func_ret = PREFERENCE_ERROR_IO_ERROR;
 			} else {
@@ -1490,12 +1439,15 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 	while((dent = readdir(dir))) {
 		const char *entry = dent->d_name;
 		char keyname[PREFERENCE_KEY_PATH_LEN] = {0,};
+		char path[PATH_MAX] = {0,};
 
 		if (entry[0] == '.') {
 			continue;
 		}
 
-		ret = _preference_get_key_name(entry, keyname);
+		snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, entry);
+
+		ret = _preference_get_key_name(path, keyname);
 		retv_if(ret != PREFERENCE_ERROR_NONE, ret);
 
 		callback(keyname, user_data);
