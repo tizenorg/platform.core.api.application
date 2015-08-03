@@ -401,6 +401,18 @@ char *app_get_external_cache_path(void);
 char *app_get_external_shared_data_path(void);
 
 /**
+ * @brief       Gets the absolute path to the application's TEP(Tizen Expansion Package) directory.
+ *              The resource files are delivered with the expansion package.
+ * @details     An application can only read its own files in the application's TEP(Tizen Expansion Package) directory.
+ * @since_tizen 2.4
+ * @remarks     The returned path should be released.
+ *
+ * @return      The absolute path to the application's TEP(Tizen Expansion Package) directory, @n
+ *              otherwise a null pointer if the memory is insufficient
+ **/
+char *app_get_tep_resource_path(void);
+
+/**
  * @}
  */
 
