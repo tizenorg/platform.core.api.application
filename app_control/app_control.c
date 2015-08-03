@@ -73,7 +73,7 @@ typedef struct app_control_request_context_s {
 
 extern int appsvc_allow_transient_app(bundle *b, unsigned int id);
 extern int appsvc_request_transient_app(bundle *b, unsigned int callee_id, appsvc_host_res_fn cbfunc, void *data);
-
+extern int aul_invoke_caller_cb(int launch_pid);
 static int app_control_create_reply(bundle *data, struct app_control_s **app_control);
 
 static const char* app_control_error_to_string(app_control_error_e error)
@@ -112,6 +112,9 @@ static const char* app_control_error_to_string(app_control_error_e error)
 
 	case APP_CONTROL_ERROR_TIMED_OUT:
 		return "TIMED_OUT";
+
+	case APP_CONTROL_ERROR_IO_ERROR:
+		return "IO ERROR";
 
 	default :
 		return "UNKNOWN";
@@ -351,6 +354,12 @@ int app_control_destroy(app_control_h app_control)
 	if (app_control_validate(app_control))
 	{
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if(app_control->type == APP_CONTROL_TYPE_REQUEST && app_control->launch_pid > 0 &&
+		bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED) == NULL)
+	{
+		aul_remove_caller_cb(app_control->launch_pid);
 	}
 
 	bundle_free(app_control->data);
@@ -743,6 +752,65 @@ int app_control_get_launch_mode(app_control_h app_control,
 	return APP_CONTROL_ERROR_NONE;
 }
 
+static void __update_launch_pid(int launched_pid, void *data)
+{
+	app_control_h app_control;
+
+	if(data == NULL)
+		return;
+
+	app_control = data;
+
+	app_control->launch_pid = launched_pid;
+}
+
+static void __handle_launch_result(int launched_pid, void *data)
+{
+	app_control_request_context_h request_context;
+	app_control_h reply = NULL;
+	app_control_h request;
+	app_control_result_e result;
+	app_control_reply_cb reply_cb;
+	void *user_data;
+	char callee[255] = {0, };
+	int ret = 0;
+
+	if (data == NULL)
+		return;
+
+	request_context = (app_control_request_context_h)data;
+
+	if (app_control_create_event(request_context->app_control->data, &reply) != 0)
+	{
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to create app_control event");
+		return;
+	}
+
+	ret = aul_app_get_appid_bypid(launched_pid, callee, sizeof(callee));
+	if (ret < 0) {
+		LOGE("aul_app_get_appid_bypid failed: %d", launched_pid);
+	}
+
+	app_control_set_app_id(reply, callee);
+	LOGI("app control async result callback callee pid:%d", launched_pid);
+
+	result = APP_CONTROL_RESULT_APP_STARTED;
+	request = request_context->app_control;
+	user_data = request_context->user_data;
+	reply_cb = request_context->reply_cb;
+
+	if (reply_cb != NULL)
+	{
+		reply_cb(request, reply, result, user_data);
+	}
+	else
+	{
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalid callback ");
+	}
+
+	app_control_destroy(reply);
+}
+
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data)
 {
 	const char *operation;
@@ -838,6 +906,24 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 	}
 
 	app_control->launch_pid = launch_pid;
+	/* app_control_enable_app_started_result_event called */
+	if (bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED)) {
+		char callee[255] = {0,};
+		if (aul_app_get_appid_bypid(launch_pid, callee, sizeof(callee)) != AUL_R_OK)
+			LOGE("aul_app_get_appid_bypid failed: %d", launch_pid);
+
+		if (request_context && request_context->app_control)
+			request_context->app_control->launch_pid = launch_pid;
+
+		aul_add_caller_cb(launch_pid, __handle_launch_result, request_context);
+
+		/* launched without app selector */
+		if (strncmp(callee, APP_SELECTOR, strlen(APP_SELECTOR)) != 0)
+			aul_invoke_caller_cb(launch_pid);
+
+	} else { /* default case */
+		aul_add_caller_cb(launch_pid, __update_launch_pid, app_control);
+	}
 
 	return APP_CONTROL_ERROR_NONE;
 }
@@ -905,6 +991,11 @@ int app_control_reply_to_launch_request(app_control_h reply, app_control_h reque
 	if (app_control_validate(reply) || app_control_validate(request))
 	{
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	if (result == APP_CONTROL_RESULT_APP_STARTED)
+	{
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "APP_CONTROL_RESULT_APP_STARTED is not allowed to use");
 	}
 
 	if (appsvc_create_result_bundle(request->data, &reply_data) != 0)
@@ -1133,7 +1224,8 @@ int app_control_is_extra_data_array(app_control_h app_control, const char *key, 
 	if (app_control_validate_internal_key(key))
 	{
 		return app_control_error(APP_CONTROL_ERROR_KEY_REJECTED, __FUNCTION__, "the given key is reserved as internal use");
-	}
+
+	}
 
 	if (!appsvc_data_is_array(app_control->data, key))
 	{
@@ -1378,7 +1470,6 @@ int app_control_export_as_bundle(app_control_h app_control, bundle **data)
 	return APP_CONTROL_ERROR_NONE;
 }
 
-
 int app_control_request_transient_app(app_control_h app_control, unsigned int callee_id, app_control_host_res_fn cbfunc, void *data)
 {
 	int ret;
@@ -1398,3 +1489,21 @@ int app_control_request_transient_app(app_control_h app_control, unsigned int ca
 	return APP_CONTROL_ERROR_NONE;
 }
 
+int app_control_enable_app_started_result_event(app_control_h app_control)
+{
+	int ret;
+
+	if (app_control_validate(app_control))
+	{
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	ret = aul_svc_subscribe_launch_result(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED);
+
+	if (ret < 0)
+	{
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+	}
+
+	return APP_CONTROL_ERROR_NONE;
+}
