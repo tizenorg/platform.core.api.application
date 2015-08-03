@@ -67,13 +67,15 @@ typedef enum
 
 /**
  * @brief Enumeration for App Control Result.
+ * @see app_control_enable_app_started_result_event()
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
 typedef enum
 {
+	APP_CONTROL_RESULT_APP_STARTED = 1, /**< Callee application launched actually (Since 2.4) */
 	APP_CONTROL_RESULT_SUCCEEDED = 0, /**< Operation succeeded */
 	APP_CONTROL_RESULT_FAILED = -1, /**< Operation failed by the callee */
-	APP_CONTROL_RESULT_CANCELED = -2, /**< Operation canceled by the framework */
+	APP_CONTROL_RESULT_CANCELED = -2, /**< Operation canceled by the platform */
 } app_control_result_e;
 
 /**
@@ -81,8 +83,8 @@ typedef enum
  * @since_tizen 2.4
  */
 typedef enum {
-	APP_CONTROL_LAUNCH_MODE_SINGLE = 0,
-	APP_CONTROL_LAUNCH_MODE_GROUP,
+	APP_CONTROL_LAUNCH_MODE_SINGLE = 0, /**< Prefer to launch an application as single mode */
+	APP_CONTROL_LAUNCH_MODE_GROUP, /**< Prefer to launch an application as group mode */
 } app_control_launch_mode_e;
 
 /**
@@ -288,8 +290,12 @@ typedef enum {
  * @param[in] result The result code of the launch request
  * @param[in] user_data	The user data passed from the callback registration function
  * @pre When the callee replies to the launch request, this callback will be invoked.
+ * @pre Since 2.4, if #APP_CONTROL_RESULT_APP_STARTED event is enabled,
+ *      this callback also will be invoked when the callee app actually launched.
  * @see app_control_send_launch_request()
  * @see app_control_reply_to_launch_request()
+ * @see app_control_enable_app_started_result_event()
+ * @see #APP_CONTROL_RESULT_APP_STARTED
  */
 typedef void (*app_control_reply_cb) (app_control_h request, app_control_h reply, app_control_result_e result, void *user_data);
 
@@ -725,15 +731,19 @@ int app_control_foreach_app_matched(app_control_h app_control, app_control_app_m
  * @retval #APP_CONTROL_ERROR_LAUNCH_FAILED Failed to launch the application
  * @retval #APP_CONTROL_ERROR_TIMED_OUT Failed due to timeout. The application that handles @a app_control may be busy
  * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
- * @post If the launch request is sent for the result, the result will come back through app_control_reply_cb() from the callee application.
+ * @post If the launch request is sent for the result, the result will come back through app_control_reply_cb() from the callee application. Additional replies may be delivered on app_control_enable_app_started_result_event() called.
  * @see app_control_reply_to_launch_request()
  * @see app_control_reply_cb()
+ * @see app_control_enable_app_started_result_event()
  */
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data);
 
 
 /**
  * @brief Sends the terminate request to the application that is launched by app_control. This API is only effective for some applications that are provided by default for handling platform default app_controls. You are not allowed to terminate other general applications using this API.
+ *
+ * @remarks Since Tizen 2.4, this API can be used to terminate sub-applications which were launched as group mode by caller application.
+ *          Once callee application is being terminated by this API, other applications which were launched by callee application as group mode will be terminated as well.
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] app_control The app_control handle
@@ -743,6 +753,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
  * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
  * @see app_control_send_launch_request()
+ * @see app_control_set_launch_mode()
  */
 int app_control_send_terminate_request(app_control_h app_control);
 
@@ -752,6 +763,7 @@ int app_control_send_terminate_request(app_control_h app_control);
  * @details If the caller application sent the launch request to receive the result, the callee application can return the result back to the caller.
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @remarks The function is not allowed to send reply #APP_CONTROL_RESULT_APP_STARTED as @a result which is reserved for platform developers.
  * @param[in] reply The app_control handle in which the results of the callee are contained
  * @param[in] request The app_control handle sent by the caller
  * @param[in] result  The result code of the launch request
@@ -821,6 +833,11 @@ int app_control_is_reply_requested(app_control_h app_control, bool *requested);
 /**
  * @brief Sets the launch mode of the application.
  *
+ * @details This function allows callee application to be launched as group or single mode.
+ * @remarks Although launch_mode were set as #APP_CONTROL_LAUNCH_MODE_GROUP, callee application would be launched as single mode if the manifest file of callee application defined the launch mode as "single".
+ *          This function can just set the preference of caller application to launch an application.
+ * @remarks Sub-applications which were launched as group mode always have own process.
+ *
  * @since_tizen 2.4
  * @param[in] app_control The app_control handle
  * @param[in] launch_mode The launch mode of app
@@ -849,6 +866,22 @@ int app_control_set_launch_mode(app_control_h app_control,
  */
 int app_control_get_launch_mode(app_control_h app_control,
 		app_control_launch_mode_e *mode);
+
+/**
+ * @brief Enables additional launch result event on launch request.
+ *
+ * @details The function allows to receive #APP_CONTROL_RESULT_APP_STARTED event on\n
+ *         application get launched by app_control.
+ * @remarks app_control_reply_cb() will be called on APP_CONTROL_RESULT_APP_STARTED event received.
+ * @since_tizen 2.4
+ * @param[in] app_control The app_control handle
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ * @see app_control_send_launch_request()
+ * @see #APP_CONTROL_RESULT_APP_STARTED
+ */
+int app_control_enable_app_started_result_event(app_control_h app_control);
 /**
  * @}
  */
