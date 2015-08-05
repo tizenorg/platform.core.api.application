@@ -19,7 +19,7 @@
 #include <string.h>
 #include <libintl.h>
 
-#include <app_private.h>
+#include <app_internal.h>
 
 typedef struct _app_finalizer_s_ {
 	app_finalizer_cb callback;

@@ -11,18 +11,18 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
-#ifndef __TIZEN_APPFW_APP_PRIVATE_H__
-#define __TIZEN_APPFW_APP_PRIVATE_H__
+#ifndef __TIZEN_APPFW_APP_INTERNAL_H__
+#define __TIZEN_APPFW_APP_INTERNAL_H__
 
 #include <appcore-common.h>
 #include <tzplatform_config.h>
 
 // GNU gettext macro is already defined at appcore-common.h
-#ifdef _ 
+#ifdef _
 #undef _
 #endif
 
@@ -74,4 +74,4 @@ void app_finalizer_execute(void);
 }
 #endif
 
-#endif /* __TIZEN_APPFW_APP_PRIVATE_H__ */
+#endif /* __TIZEN_APPFW_APP_INTERNAL_H__ */
