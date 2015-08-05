@@ -25,7 +25,7 @@
 #include <alarm.h>
 #include <dlog.h>
 
-#include <app_private.h>
+#include <app_internal.h>
 #include <app_alarm.h>
 #include <app_control_internal.h>
 
