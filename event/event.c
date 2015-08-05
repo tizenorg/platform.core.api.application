@@ -21,7 +21,7 @@
 #include <app_event.h>
 #include <eventsystem.h>
 #include <app.h>
-#include <app_private.h>
+#include <app_internal.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG

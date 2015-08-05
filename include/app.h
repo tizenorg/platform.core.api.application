@@ -38,55 +38,84 @@ extern "C" {
 
 
 /**
- * @brief Called at the start of the application.
+ * @brief Called when the application starts.
  *
- * @details The callback function is called before the main loop of application starts.
- * In this callback you can initialize application resources like window creation, data structure, etc.
- * After this callback function returns @c true, the main loop starts up and app_service_cb() is subsequently called.
- * If this callback function returns @c false, the main loop doesn't start and app_terminate_cb() is subsequently called.
- * 
- * @param[in]	user_data	The user data passed from the callback registration function
- * @return @c true on success, otherwise @c false
- * @pre	app_efl_main() will invoke this callback function.
- * @see app_efl_main()
- * @see #app_event_callback_s
+ * @details The callback function is called before the main loop of the application starts.
+ *          In this callback, you can initialize application resources like window creation, data structure, and so on.
+ *          After this callback function returns @c true, the main loop starts up and app_control_cb() is subsequently called.
+ *          If this callback function returns @c false, the main loop doesn't start and app_terminate_cb() is subsequently called.
+ *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] user_data	The user data passed from the callback registration function
+ * @return @c true on success,
+ *         otherwise @c false
+ * @pre	ui_app_main() will invoke this callback function.
+ * @see ui_app_main()
+ * @see #ui_app_lifecycle_callback_s
  */
 typedef bool (*app_create_cb) (void *user_data);
 
 
 /**
- * @brief   Called when the application is completely obscured by another application and becomes invisible.
+ * @brief Called when the application is completely obscured by another application and becomes invisible.
  *
- * @details The application is not terminated and still running in paused state.
+ * @details The application is not terminated and still running in the paused state.
  *
- * @param[in]	user_data	The user data passed from the callback registration function
- * @see	app_efl_main()
- * @see	#app_event_callback_s
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] user_data	The user data passed from the callback registration function
+ * @see	ui_app_main()
+ * @see	#ui_app_lifecycle_callback_s
  */
 typedef void (*app_pause_cb) (void *user_data);
 
 
 /**
- * @brief   Called when the application becomes visible.
+ * @brief Called when the application becomes visible.
  *
- * @remarks This callback function is not called when the application moved from created state to running state.
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
- * @param[in]	user_data	The user data passed from the callback registration function
- * @see	app_efl_main()
- * @see #app_event_callback_s
+ * @param[in] user_data	The user data passed from the callback registration function
+ * @see	ui_app_main()
+ * @see #ui_app_lifecycle_callback_s
  */
 typedef void (*app_resume_cb) (void *user_data);
 
 
 /**
- * @brief   Called once after the main loop of application exits.
+ * @brief Called when the application's main loop exits.
  * @details You should release the application's resources in this function.
  *
- * @param[in]	user_data	The user data passed from the callback registration function
- * @see	app_efl_main()
- * @see #app_event_callback_s
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] user_data	The user data passed from the callback registration function
+ * @see	ui_app_main()
+ * @see #ui_app_lifecycle_callback_s
  */
 typedef void (*app_terminate_cb) (void *user_data);
+
+
+/**
+ * @brief Called when another application sends a launch request to the application.
+ *
+ * @details When the application is launched, this callback function is called after the main loop of the application starts up.
+ *          The passed app_control handle describes the launch request and contains the information about why the application is launched.
+ *          If the launch request is sent to the application in the running or pause state,
+ *          this callback function can be called again to notify that the application has been asked to launch.
+ *
+ *          The application could be explicitly launched by the user from the application launcher or be launched to perform the specific operation by another application.
+ *          The application is responsible for handling each launch request and responding appropriately.
+ *          Using the App Control API, the application can get information about what is to be performed.
+ *          If the application is launched from the application launcher or explicitly launched by another application,
+ *          the passed app_control handle may include only the default operation (#APP_CONTROL_OPERATION_DEFAULT) without any data.
+ *          For more information, see The @ref CAPI_APP_CONTROL_MODULE API description.
+ *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @param[in] app_control The handle to the app_control
+ * @param[in] user_data	The user data passed from the callback registration function
+ * @see ui_app_main()
+ * @see #ui_app_lifecycle_callback_s
+ * @see @ref CAPI_APP_CONTROL_MODULE API
+ */
+typedef void (*app_control_cb) (app_control_h app_control, void *user_data);
 
 
 /**
@@ -111,30 +140,6 @@ typedef void (*app_terminate_cb) (void *user_data);
  * @see @ref CAPI_SERVICE_MODULE API
  */
 typedef void (*app_service_cb) (service_h service, void *user_data);
-
-
-/**
- * @brief Called when other application send the launch request to the application.
- *
- * @details When the application is launched, this callback function is called after the main loop of application starts up.
- * The passed app_control handle describes the launch request and contains the information about why the application is launched.
- * If the launch request is sent to the application on running or pause state,
- * this callback function can be called again to notify that the application is asked to be launched.
- *
- * The application could be explicitly launched by the user from the application launcher or be launched to perform the specific operation by the other application.
- * The application is responsible for handling each launch request and responding accordingly.
- * Using the app_control API, the application can get the information it needs to perform.
- * If the application is launched from the application launcher or explicitly launched by other application,
- * the passed app_control handle may include only the default operation (#APP_CONTROL_OPERATION_DEFAULT) without any data
- * For more information, see The @ref CAPI_APP_CONTROL_MODULE API description.
- *
- * @param[in]	app_control_h	The handle to the app_control
- * @param[in]	user_data	The user data passed from the callback registration function
- * @see app_efl_main()
- * @see #app_event_callback_s
- * @see @ref CAPI_APP_CONTROL_MODULE API
- */
-typedef void (*app_control_cb) (app_control_h app_control, void *user_data);
 
 
 /**
@@ -227,6 +232,7 @@ typedef struct
  * @brief The structure type containing the set of callback functions for handling application lifecycle events.
  * @details It is one of the input parameters of the ui_app_main() function.
  *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @see ui_app_main()
  * @see app_create_cb()
  * @see app_pause_cb()
@@ -292,6 +298,7 @@ void app_efl_exit(void);
 /**
  * @brief Gets the current device orientation.
  *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @return The current device orientation
  */
 app_device_orientation_e app_get_device_orientation(void);
@@ -317,6 +324,7 @@ void app_set_reclaiming_system_cache_on_pause(bool enable);
  *          If the app_create_cb() callback function returns false, the main loop doesn't start up and app_terminate_cb() callback function is called.
  *          This main loop supports event handling for the Ecore Main Loop.
  *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] argc The argument count
  * @param[in] argv The argument vector
  * @param[in] callback The set of callback functions to handle application lifecycle events
@@ -343,6 +351,7 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
  * @brief Exits the main loop of application.
  *
  * @details The main loop of application stops and app_terminate_cb() is invoked.
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  *
  * @see ui_app_main()
  * @see app_terminate_cb()
@@ -353,6 +362,7 @@ void ui_app_exit(void);
 /**
  * @brief Adds the system event handler
  *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[out] event_handler The event handler
  * @param[in] event_type The system event type
  * @param[in] callback The callback function
@@ -373,6 +383,7 @@ int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_
 /**
  * @brief Removes registered event handler
  *
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] event_handler The event handler
  *
  * @return 0 on success, otherwise a negative error value

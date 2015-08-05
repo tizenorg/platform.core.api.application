@@ -29,7 +29,7 @@
 #include <dlog.h>
 #include <vconf.h>
 
-#include <app_private.h>
+#include <app_internal.h>
 #include <app_service_private.h>
 
 #ifdef LOG_TAG

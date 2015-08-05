@@ -31,7 +31,7 @@
 
 #include <Elementary.h>
 
-#include <app_private.h>
+#include <app_internal.h>
 #include <app_service_private.h>
 #include <app_control_internal.h>
 
