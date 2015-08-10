@@ -57,11 +57,6 @@ extern "C" {
 #define PREFERENCE_ERROR_WRONG_TYPE      -3
 
 /**
- * @brief Definition for PREFERENCE_ERROR_OUT_OF_MEMORY.
- */
-#define PREFERENCE_ERROR_OUT_OF_MEMORY      -12
-
-/**
  * @brief Definition for PREFERENCE_ERROR_FILE_OPEN.
  */
 #define PREFERENCE_ERROR_FILE_OPEN       -21

@@ -1328,7 +1328,7 @@ API int preference_remove_all(void)
 			ERR("_preference_get_key_name() failed(%d)", ret);
 			_preference_keynode_free(pKeyNode);
 			closedir(dir);
-			return ret;
+			return PREFERENCE_ERROR_IO_ERROR;
 		}
 
 		ret = preference_unset_changed_cb(keyname);
@@ -1516,7 +1516,11 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 		snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, entry);
 
 		ret = _preference_get_key_name(path, &keyname);
-		retv_if(ret != PREFERENCE_ERROR_NONE, ret);
+		if (ret != PREFERENCE_ERROR_NONE) {
+			ERR("_preference_get_key_name() failed(%d)", ret);
+			closedir(dir);
+			return PREFERENCE_ERROR_IO_ERROR;
+		}
 
 		callback(keyname, user_data);
 		free(keyname);
