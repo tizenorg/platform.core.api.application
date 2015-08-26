@@ -1354,7 +1354,7 @@ int app_control_foreach_app_matched(app_control_h app_control, app_control_app_m
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	appsvc_get_list(app_control->data, app_control_cb_broker_foreach_app_matched, &foreach_context);
+	appsvc_usr_get_list(app_control->data, app_control_cb_broker_foreach_app_matched, &foreach_context, getuid());
 
 	return APP_CONTROL_ERROR_NONE;
 }
