@@ -98,6 +98,11 @@ static int convert_error_code_to_alarm(const char* function, alarm_error_t alarm
 		return ALARM_ERROR_CONNECTION_FAIL;
 		break;
 
+	case ERR_ALARM_NO_PERMISSION:
+		LOGE("[%s] PERMISSION_DENIED(0x%08x)", function, ALARM_ERROR_PERMISSION_DENIED);
+		return ALARM_ERROR_PERMISSION_DENIED;
+		break;
+
 	case ALARMMGR_RESULT_SUCCESS:
 		return ALARM_ERROR_NONE;
 		break;
