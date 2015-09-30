@@ -125,14 +125,14 @@ int app_control_error(app_control_error_e error, const char* function, const cha
 {
 	if (description)
 	{
-		LOGE("[%s] %s(0x%08x) : %s", function, app_control_error_to_string(error), error, description);
+		LOGE("LMK [%s] %s(0x%08x) : %s", function, app_control_error_to_string(error), error, description);
 	}
 	else
 	{
 		if (error == APP_CONTROL_ERROR_KEY_NOT_FOUND)
-			LOGW("[%s] %s(0x%08x)", function, app_control_error_to_string(error), error);
+			LOGE("LMK [%s] %s(0x%08x)", function, app_control_error_to_string(error), error);
 		else
-			LOGE("[%s] %s(0x%08x)", function, app_control_error_to_string(error), error);
+			LOGE("LMK [%s] %s(0x%08x)", function, app_control_error_to_string(error), error);
 	}
 
 	return error;
@@ -814,15 +814,14 @@ static void __handle_launch_result(int launched_pid, void *data)
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data)
 {
 	const char *operation;
-
 	bool implicit_default_operation = false;
 	int launch_pid;
-
+LOGE("LMK app_control_send_launch_request +");
 	app_control_request_context_h request_context = NULL;
 
 	if (app_control_validate(app_control))
 	{
-		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "LMK 825");
 	}
 
 	operation = appsvc_get_operation(app_control->data);
@@ -835,7 +834,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 	if (!strcmp(operation, APP_CONTROL_OPERATION_LAUNCH_ON_EVENT))
 	{
 		return app_control_error(APP_CONTROL_ERROR_LAUNCH_REJECTED, __FUNCTION__,
-				"Not supported operation value");
+				"LMK Not supported operation value");
 	}
 
 	// TODO: Check the privilege for call operation
@@ -846,8 +845,9 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		const char *appid  = appsvc_get_appid(app_control->data);
 		if (appid == NULL)
 		{
-			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, "package must be specified if the operation is default value");
+			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, "LMK package must be specified if the operation is default value");
 		}
+LOGE("LMK appid : %s", appid);
 	}
 
 	if (callback != NULL)
@@ -858,7 +858,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 
 		if (request_context == NULL)
 		{
-			return app_control_error(APP_CONTROL_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_OUT_OF_MEMORY, __FUNCTION__, "LMK 861");
 		}
 
 		request_context->reply_cb = callback;
@@ -866,7 +866,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		if (app_control_clone(&request_clone, app_control) != APP_CONTROL_ERROR_NONE)
 		{
 			free(request_context);
-			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to clone the app_control request handle");
+			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "LMK failed to clone the app_control request handle");
 		}
 
 		request_context->app_control = request_clone;
@@ -889,42 +889,49 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 	{
 		if (launch_pid == APPSVC_RET_ENOMATCH)
 		{
-			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, "LMK 892");
 		}
 		else if (launch_pid == APPSVC_RET_EILLACC)
 		{
-			return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, "LMK 896");
 		}
 		else if (launch_pid == APPSVC_RET_EINVAL)
 		{
-			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "LMK 900");
 		}
 		else
 		{
-			return app_control_error(APP_CONTROL_ERROR_LAUNCH_REJECTED, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_LAUNCH_REJECTED, __FUNCTION__, "LMK 904");
 		}
 	}
-
 	app_control->launch_pid = launch_pid;
+	{
+	const char *val;
 	/* app_control_enable_app_started_result_event called */
-	if (bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED)) {
+	val = bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED);
+LOGE("LMK app_control_send_launch_request %d, %s", __LINE__, val);
+	//if (bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED)) {
+	if (val) {
+LOGE("LMK app_control_send_launch_request %d", __LINE__);
 		char callee[255] = {0,};
 		if (aul_app_get_appid_bypid(launch_pid, callee, sizeof(callee)) != AUL_R_OK)
-			LOGE("aul_app_get_appid_bypid failed: %d", launch_pid);
-
+			LOGE("LMK aul_app_get_appid_bypid failed: %d", launch_pid);
+LOGE("LMK app_control_send_launch_request %d, %s", __LINE__, callee);
 		if (request_context && request_context->app_control)
 			request_context->app_control->launch_pid = launch_pid;
-
+LOGE("LMK app_control_send_launch_request %d", __LINE__);
 		aul_add_caller_cb(launch_pid, __handle_launch_result, request_context);
-
+LOGE("LMK app_control_send_launch_request %d", __LINE__);
 		/* launched without app selector */
 		if (strncmp(callee, APP_SELECTOR, strlen(APP_SELECTOR)) != 0)
 			aul_invoke_caller_cb(launch_pid);
-
+LOGE("LMK app_control_send_launch_request %d", __LINE__);
 	} else { /* default case */
+LOGE("LMK app_control_send_launch_request %d", __LINE__);
 		aul_add_caller_cb(launch_pid, __update_launch_pid, app_control);
 	}
-
+	}
+LOGE("LMK app_control_send_launch_request -");
 	return APP_CONTROL_ERROR_NONE;
 }
 
@@ -1127,7 +1134,7 @@ int app_control_get_extra_data(app_control_h app_control, const char *key, char 
 
 	if (app_control_validate(app_control) || app_control_validate_extra_data(key) || value == NULL)
 	{
-		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "invalidate");
 	}
 
 
@@ -1142,11 +1149,11 @@ int app_control_get_extra_data(app_control_h app_control, const char *key, char 
 	{
 		if (errno == ENOTSUP)
 		{
-			return app_control_error(APP_CONTROL_ERROR_INVALID_DATA_TYPE, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_INVALID_DATA_TYPE, __FUNCTION__, "ENOTSUP");
 		}
 		else
 		{
-			return app_control_error(APP_CONTROL_ERROR_KEY_NOT_FOUND, __FUNCTION__, NULL);
+			return app_control_error(APP_CONTROL_ERROR_KEY_NOT_FOUND, __FUNCTION__, "ERRNO");
 		}
 	}
 
