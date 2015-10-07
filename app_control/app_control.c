@@ -23,6 +23,7 @@
 #include <bundle.h>
 #include <aul.h>
 #include <appsvc.h>
+#include <aul_svc.h>
 #include <dlog.h>
 
 #include <app_control.h>
@@ -357,7 +358,7 @@ int app_control_destroy(app_control_h app_control)
 	}
 
 	if (app_control->type == APP_CONTROL_TYPE_REQUEST && app_control->launch_pid > 0 &&
-		bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED) == NULL)
+		bundle_get_val(app_control->data, AUL_SVC_K_LAUNCH_RESULT_APP_STARTED) == NULL)
 	{
 		aul_remove_caller_cb(app_control->launch_pid);
 	}
@@ -907,7 +908,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 
 	app_control->launch_pid = launch_pid;
 	/* app_control_enable_app_started_result_event called */
-	if (bundle_get_val(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED)) {
+	if (bundle_get_val(app_control->data, AUL_SVC_K_LAUNCH_RESULT_APP_STARTED)) {
 		char callee[255] = {0,};
 		if (aul_app_get_appid_bypid(launch_pid, callee, sizeof(callee)) != AUL_R_OK)
 			LOGE("aul_app_get_appid_bypid failed: %d", launch_pid);
@@ -1497,7 +1498,7 @@ int app_control_enable_app_started_result_event(app_control_h app_control)
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 	}
 
-	ret = aul_svc_subscribe_launch_result(app_control->data, APPSVC_K_LAUNCH_RESULT_APP_STARTED);
+	ret = aul_svc_subscribe_launch_result(app_control->data, AUL_SVC_K_LAUNCH_RESULT_APP_STARTED);
 
 	if (ret < 0)
 	{
