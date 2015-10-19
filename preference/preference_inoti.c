@@ -94,9 +94,10 @@ static GList* _preference_copy_noti_list(GList *orig_notilist)
 			}
 
 			n->keyname = strndup(t->keyname, PREFERENCE_KEY_PATH_LEN);
-			if (n->keyname == NULL)
-			{
-				ERR("The memory is insufficient, errno: %d (%s)", errno, strerror(errno));
+			if (n->keyname == NULL)	{
+				char err_buf[ERR_LEN] = {0,};
+				strerror_r(errno, err_buf, sizeof(err_buf));
+				ERR("The memory is insufficient, errno: %d (%s)", errno, err_buf);
 				free(n);
 				break;
 			}
@@ -324,7 +325,8 @@ int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, voi
 
 	n->keyname = strndup(keyname, PREFERENCE_KEY_PATH_LEN);
 	if (n->keyname == NULL) {
-		ERR("The memory is insufficient, errno: %d (%s)", errno, strerror(errno));
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		ERR("The memory is insufficient, errno: %d (%s)", errno, err_buf);
 		free(n);
 		goto out_func;
 	}
