@@ -168,7 +168,7 @@ int _preference_get_key_name(const char *path, char **keyname)
 	}
 
 	read_size = fread((void *)&keyname_len, sizeof(int), 1, fp);
-	if (read_size <= 0) {
+	if (read_size <= 0 || keyname_len > PREFERENCE_KEY_PATH_LEN) {
 		fclose(fp);
 		return PREFERENCE_ERROR_FILE_FREAD;
 	}
@@ -242,7 +242,9 @@ static int _preference_set_key_check_pref_dir()
 
 	if (access(pref_dir_path, F_OK) < 0) {
 		if (mkdir(pref_dir_path, dir_mode) < 0) {
-			ERR("mkdir() failed(%d/%s)", errno, strerror(errno));
+			char err_buf[ERR_LEN] = {0,};
+			strerror_r(errno, err_buf, sizeof(err_buf));
+			ERR("mkdir() failed(%d/%s)", errno, err_buf);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
 	}
@@ -259,7 +261,9 @@ static int _preference_set_key_creation(const char* path)
 	umask(temp);
 
 	if(fd == -1) {
-		ERR("open(rdwr,create) error: %d(%s)", errno, strerror(errno));
+		char err_buf[ERR_LEN] = {0,};
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		ERR("open(rdwr,create) error: %d(%s)", errno, err_buf);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 	close(fd);
@@ -322,19 +326,22 @@ static void _preference_log_subject_label(void)
 	char smack_label[256] = {0,};
 	char curren_path[256] = {0,};
 	int tid;
+	char err_buf[ERR_LEN] = {0,};
 
 	tid = (int)syscall(SYS_gettid);
 	snprintf(curren_path, sizeof(curren_path)-1, "/proc/%d/attr/current", tid);
 	fd = open(curren_path, O_RDONLY);
 	if (fd < 0) {
-		LOGE("fail to open self current attr (err: %s)", strerror(errno));
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		LOGE("fail to open self current attr (err: %s)", err_buf);
 		return;
 	}
 
 	ret = read(fd, smack_label, sizeof(smack_label)-1);
 	if (ret < 0) {
 		close(fd);
-		LOGE("fail to open self current attr (err: %s)", strerror(errno));
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		LOGE("fail to open self current attr (err: %s)", err_buf);
 		return;
 	}
 
@@ -456,7 +463,9 @@ static int _preference_check_retry_err(keynode_t *keynode, int preference_errno,
 	}
 	else
 	{
-		ERR("key(%s), check retry err: %d/(%d/%s).",keynode->keyname, preference_errno, io_errno, strerror(io_errno));
+		char err_buf[ERR_LEN] = {0,};
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		ERR("key(%s), check retry err: %d/(%d/%s).",keynode->keyname, preference_errno, io_errno, err_buf);
 		return 0;
 	}
 }
@@ -1263,7 +1272,9 @@ API int preference_remove(const char *key)
 	do {
 		ret = remove(path);
 		if(ret == -1) {
-			ERR("preference_remove() failed. ret=%d(%s), key(%s)", errno, strerror(errno), key);
+			char err_buf[ERR_LEN] = {0,};
+			strerror_r(errno, err_buf, sizeof(err_buf));
+			ERR("preference_remove() failed. ret=%d(%s), key(%s)", errno, err_buf, key);
 			func_ret = PREFERENCE_ERROR_IO_ERROR;
 		} else {
 			func_ret = PREFERENCE_ERROR_NONE;
@@ -1286,8 +1297,10 @@ API int preference_remove_all(void)
 	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
 	int func_ret = PREFERENCE_ERROR_NONE;
 	DIR *dir;
-	struct dirent *dent = NULL;
+	struct dirent dent;
+	struct dirent *result = NULL;
 	char *pref_dir_path = NULL;
+	char err_buf[ERR_LEN] = {0,};
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path)
@@ -1299,7 +1312,8 @@ API int preference_remove_all(void)
 	dir = opendir(pref_dir_path);
 	if (dir == NULL)
 	{
-		LOGE("opendir() failed. pref_path: %s, error: %d(%s)", pref_dir_path, errno, strerror(errno));
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		LOGE("opendir() failed. pref_path: %s, error: %d(%s)", pref_dir_path, errno, err_buf);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
@@ -1311,9 +1325,9 @@ API int preference_remove_all(void)
 		return PREFERENCE_ERROR_OUT_OF_MEMORY;
 	}
 
-	while ((dent = readdir(dir)))
+	while (readdir_r(dir, &dent, &result) == 0 && result != NULL)
 	{
-		const char *entry = dent->d_name;
+		const char *entry = dent.d_name;
 		char *keyname = NULL;
 		char path[PATH_MAX] = {0,};
 
@@ -1343,7 +1357,8 @@ API int preference_remove_all(void)
 		do {
 			ret = remove(path);
 			if (ret == -1) {
-				ERR("preference_remove_all error: %d(%s)", errno, strerror(errno));
+				strerror_r(errno, err_buf, sizeof(err_buf));
+				ERR("preference_remove_all error: %d(%s)", errno, err_buf);
 				func_ret = PREFERENCE_ERROR_IO_ERROR;
 			} else {
 				func_ret = PREFERENCE_ERROR_NONE;
@@ -1467,7 +1482,9 @@ API int preference_unset_changed_cb(const char *key)
 			_preference_keynode_free(pKeyNode);
 			return PREFERENCE_ERROR_NO_KEY;
 		} else if (errno != 0) {
-			ERR("preference_unset_changed_cb() failed: key(%s) error(%d/%s)", key, errno, strerror(errno));
+			char err_buf[ERR_LEN] = {0,};
+			strerror_r(errno, err_buf, sizeof(err_buf));
+			ERR("preference_unset_changed_cb() failed: key(%s) error(%d/%s)", key, errno, err_buf);
 			_preference_keynode_free(pKeyNode);
 			return PREFERENCE_ERROR_IO_ERROR;
 		}
@@ -1489,8 +1506,10 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 
 	int ret = 0;
 	DIR *dir;
-	struct dirent *dent = NULL;
+	struct dirent dent;
+	struct dirent *result = NULL;
 	char *pref_dir_path = NULL;
+	char err_buf[ERR_LEN] = {0,};
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path) {
@@ -1500,12 +1519,13 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 
 	dir = opendir(pref_dir_path);
 	if (dir == NULL) {
-		LOGE("opendir() failed. path: %s, error: %d(%s)", pref_dir_path, errno, strerror(errno));
+		strerror_r(errno, err_buf, sizeof(err_buf));
+		LOGE("opendir() failed. path: %s, error: %d(%s)", pref_dir_path, errno, err_buf);
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	while((dent = readdir(dir))) {
-		const char *entry = dent->d_name;
+	while(readdir_r(dir, &dent, &result) == 0 && result != NULL) {
+		const char *entry = dent.d_name;
 		char *keyname = NULL;
 		char path[PATH_MAX] = {0,};
 
