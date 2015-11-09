@@ -1347,11 +1347,15 @@ API int preference_remove_all(void)
 
 		ret = preference_unset_changed_cb(keyname);
 		if (ret != PREFERENCE_ERROR_NONE) {
-			ERR("preference_unset_changed_cb() failed(%d)", ret);
-			_preference_keynode_free(pKeyNode);
-			closedir(dir);
-			free(keyname);
-			return PREFERENCE_ERROR_IO_ERROR;
+			if (ret == PREFERENCE_ERROR_NO_KEY) {
+				ERR("can't find %s's cb()", keyname);
+			} else {
+				ERR("preference_unset_changed_cb() failed(%d)", ret);
+				_preference_keynode_free(pKeyNode);
+				closedir(dir);
+				free(keyname);
+				return PREFERENCE_ERROR_IO_ERROR;
+			}
 		}
 
 		do {
