@@ -79,27 +79,37 @@ typedef enum
  * @see EVENT_VAL_BATTERY_CHARGER_DISCONNECTED
  * @see EVENT_VAL_BATTERY_CHARGER_CONNECTED
  * @see EVENT_VAL_BATTERY_CHARGER_CHARGING
+ * @see EVENT_VAL_BATTERY_CHARGER_DISCHARGING
  */
 #define EVENT_KEY_BATTERY_CHARGER_STATUS "battery_charger_status"
 
 /**
  * @brief Definition for value of EVENT_KEY_BATTERY_CHARGER_STATUS.
  * @since_tizen 2.4
+ * @remarks charger disconnected
  */
 #define EVENT_VAL_BATTERY_CHARGER_DISCONNECTED "disconnected"
 
 /**
  * @brief Definition for value of EVENT_KEY_BATTERY_CHARGER_STATUS.
  * @since_tizen 2.4
- * @remarks Connected but not-available.
+ * @remarks charger connected
  */
 #define EVENT_VAL_BATTERY_CHARGER_CONNECTED "connected"
 
 /**
  * @brief Definition for value of EVENT_KEY_BATTERY_CHARGER_STATUS.
  * @since_tizen 2.4
+ * @remarks charging is enabled
  */
 #define EVENT_VAL_BATTERY_CHARGER_CHARGING "charging"
+
+/**
+ * @brief Definition for value of EVENT_KEY_BATTERY_CHARGER_STATUS.
+ * @since_tizen 2.4
+ * @remarks charging is disabled
+ */
+#define EVENT_VAL_BATTERY_CHARGER_DISCHARGING "discharging"
 
 /**
  * @brief Definition for system-event of battery : level status.
@@ -778,6 +788,8 @@ typedef enum
  * @retval #EVENT_ERROR_NONE Successful
  * @retval #EVENT_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #EVENT_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #EVENT_ERROR_IO_ERROR Adding handler failed
+ * @retval #EVENT_ERROR_OUT_OF_MEMORY Out of memory
  */
 int event_add_event_handler(const char *event_name, event_cb callback, void *user_data,
 	event_handler_h *event_handler);
