@@ -20,7 +20,6 @@
 #include <dlog.h>
 #include <app_event.h>
 #include <eventsystem.h>
-#include <app.h>
 #include <app_internal.h>
 
 #ifdef LOG_TAG
@@ -142,50 +141,6 @@ static void event_eventsystem_callback(const char *event_name,
 	}
 }
 
-static void event_remove_handler_list(gpointer data, gpointer user_data)
-{
-	int ret = 0;
-
-	event_handler_h handler = (event_handler_h)data;
-
-	if (handler) {
-		ret = eventsystem_unregister_application_event(handler->reg_id);
-		if (ret < 0) {
-			LOGE("unregister event error");
-			return;
-		}
-		free(handler->event_name);
-		free(handler);
-	}
-}
-
-static void event_finalize(void *data)
-{
-	GHashTableIter iter;
-	gpointer key, value;
-
-	LOGD("event finalizer");
-
-	if (interested_event_table) {
-		g_hash_table_iter_init(&iter, interested_event_table);
-
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			GList *handler_list = (GList *)value;
-			if (handler_list) {
-				g_list_foreach(handler_list, event_remove_handler_list, NULL);
-				g_list_free(handler_list);
-			} else {
-				LOGE("handler list is NULL");
-			}
-		}
-
-		g_hash_table_unref(interested_event_table);
-		interested_event_table = NULL;
-	}
-
-	eventsystem_application_finalize();
-}
-
 int event_add_event_handler(const char *event_name, event_cb callback, void *user_data,
 	event_handler_h *event_handler)
 {
@@ -201,11 +156,6 @@ int event_add_event_handler(const char *event_name, event_cb callback, void *use
 				return event_error(EVENT_ERROR_OUT_OF_MEMORY,
 					__FUNCTION__, NULL);
 			}
-		}
-		ret = app_finalizer_add(event_finalize, NULL);
-		if (ret != APP_ERROR_NONE) {
-			return event_error(EVENT_ERROR_OUT_OF_MEMORY, __FUNCTION__,
-				"add finalizer error");
 		}
 		_initialized = 1;
 	}
