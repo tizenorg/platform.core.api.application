@@ -38,8 +38,7 @@ extern "C" {
  * @brief Enumeration for Preference Error.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	PREFERENCE_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	PREFERENCE_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
 	PREFERENCE_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */

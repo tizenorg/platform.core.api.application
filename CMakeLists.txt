@@ -28,6 +28,10 @@ ENDIF("${ARCH}" STREQUAL "arm")
 ADD_DEFINITIONS("-DPREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
 ADD_DEFINITIONS("-DSLP_DEBUG")
 
+IF(_APPFW_FEATURE_PROCESS_POOL)
+	ADD_DEFINITIONS("-D_APPFW_FEATURE_PROCESS_POOL")
+ENDIF(_APPFW_FEATURE_PROCESS_POOL)
+
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${LIB_INSTALL_DIR}")
 
 aux_source_directory(src SOURCES)
@@ -71,10 +75,10 @@ IF(UNIX)
 
 ADD_CUSTOM_TARGET (distclean @echo cleaning for source distribution)
 ADD_CUSTOM_COMMAND(
-        DEPENDS clean 
+        DEPENDS clean
         COMMENT "distribution clean"
         COMMAND find
-        ARGS    . 
+        ARGS    .
         -not -name config.cmake -and \(
         -name tester.c -or
         -name Testing -or
@@ -97,4 +101,3 @@ ADD_CUSTOM_COMMAND(
 )
 
 ENDIF(UNIX)
-

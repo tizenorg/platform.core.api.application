@@ -26,6 +26,8 @@ BuildRequires:  pkgconfig(glib-2.0)
 %description
 An Application library in SLP C API package.
 
+%define appfw_feature_process_pool 1
+
 %package devel
 Summary:  An Application library in SLP C API (Development)
 Group:    System/API
@@ -39,8 +41,13 @@ An Application library in SLP C API (Development) package.
 cp %{SOURCE1001} .
 
 %build
+%if 0%{?appfw_feature_process_pool}
+_APPFW_FEATURE_PROCESS_POOL=ON
+%endif
+
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
-%cmake . -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
+%cmake . -DFULLVER=%{version} -DMAJORVER=${MAJORVER} \
+	 -D_APPFW_FEATURE_PROCESS_POOL:BOOL=${_APPFW_FEATURE_PROCESS_POOL}
 %__make %{?jobs:-j%jobs}
 
 %install

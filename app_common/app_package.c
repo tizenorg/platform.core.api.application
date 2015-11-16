@@ -39,16 +39,14 @@ int app_get_package_app_name(const char *appid, char **name)
 	if (appid == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 
-	// com.vendor.name -> name
+	/* com.vendor.name -> name */
 	name_token = strrchr(appid, '.');
-
 	if (name_token == NULL)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 
 	name_token++;
 
 	*name = strdup(name_token);
-
 	if (*name == NULL)
 		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 
@@ -78,7 +76,6 @@ int app_get_id(char **id)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the application ID");
 
 	*id = strdup(id_buf);
-
 	if (*id == NULL)
 		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 
@@ -92,7 +89,7 @@ int app_get_name(char **name)
 	char *label = NULL;
 	pkgmgrinfo_appinfo_h appinfo = NULL;
 
-	if(name == NULL)
+	if (name == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 
 	if (app_get_id(&appid) != 0)
@@ -130,7 +127,7 @@ int app_get_version(char **version)
 	pkgmgrinfo_pkginfo_h pkginfo = NULL;
 	pkgmgrinfo_appinfo_h appinfo = NULL;
 
-	if(version == NULL)
+	if (version == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 
 	if (app_get_id(&appid) != 0)
