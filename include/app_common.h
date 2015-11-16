@@ -38,51 +38,54 @@ extern "C" {
  * @brief Enumeration for system events
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_EVENT_LOW_MEMORY, /**< The low memory event */
 	APP_EVENT_LOW_BATTERY, /**< The low battery event */
 	APP_EVENT_LANGUAGE_CHANGED, /**< The system language changed event */
 	APP_EVENT_DEVICE_ORIENTATION_CHANGED, /**< The device orientation changed event */
 	APP_EVENT_REGION_FORMAT_CHANGED, /**< The region format changed event */
+	APP_EVENT_SUSPENDED_STATE_CHANGED, /**< The suspended state changed event of the application (since 2.4)
+					     @see app_event_get_suspended_state */
 } app_event_type_e;
-
 
 /**
  * @brief Enumeration for device orientation.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_DEVICE_ORIENTATION_0 = 0, /**< The device is oriented in a natural position */
 	APP_DEVICE_ORIENTATION_90 = 90, /**< The device's left side is at the top */
 	APP_DEVICE_ORIENTATION_180 = 180, /**< The device is upside down */
 	APP_DEVICE_ORIENTATION_270 = 270, /**< The device's right side is at the top */
 } app_device_orientation_e;
 
-
 /**
  * @brief Enumeration for low memory status.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_EVENT_LOW_MEMORY_NORMAL = 0x01, /**< Normal status */
 	APP_EVENT_LOW_MEMORY_SOFT_WARNING = 0x02, /**< Soft warning status */
 	APP_EVENT_LOW_MEMORY_HARD_WARNING = 0x04, /**< Hard warning status */
 } app_event_low_memory_status_e;
 
-
 /**
  * @brief Enumeration for battery status.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_EVENT_LOW_BATTERY_POWER_OFF = 1, /**< The battery status is under 1% */
 	APP_EVENT_LOW_BATTERY_CRITICAL_LOW, /**< The battery status is under 5% */
 } app_event_low_battery_status_e;
 
+/**
+ * @brief Enumeration for suspended state
+ * @since_tizen 2.4
+ */
+typedef enum {
+	APP_SUSPENDED_STATE_WILL_ENTER = 0, /**< Application will enter the suspended state */
+	APP_SUSPENDED_STATE_DID_EXIT, /**< Application did exit from the suspended state */
+} app_suspended_state_e;
 
 /**
  * @brief The event handler that returned from add event handler function
@@ -105,6 +108,7 @@ typedef struct app_event_handler* app_event_handler_h;
  * @see app_event_get_language
  * @see app_event_get_region_format
  * @see app_event_get_device_orientation
+ * @see app_event_get_suspended_state
  */
 typedef struct app_event_info* app_event_info_h;
 
@@ -117,7 +121,13 @@ typedef struct app_event_info* app_event_info_h;
  * @param[in] user_data The user data passed from the add event handler function
  *
  * @see app_add_event_handler
- * @see app_event_info_h
+ * @see app_event_info_ha
+ *
+ * @remarks If the given @a event_info has #APP_SUSPENDED_STATE_WILL_ENTER value,
+ * the application should not call any asynchronous operations in this callback.
+ * After the callback returns, process of the application will be changed to suspended
+ * state immediately. Thus, asynchronous operations may work incorrectly. (since 2.4)
+ *
  */
 typedef void (*app_event_cb)(app_event_info_h event_info, void *user_data);
 
@@ -210,6 +220,25 @@ int app_event_get_region_format(app_event_info_h event_info, char **region);
  * @see app_device_orientation_e
  */
 int app_event_get_device_orientation(app_event_info_h event_info, app_device_orientation_e *orientation);
+
+
+/**
+ * @brief Gets the suspended state of the application from given event info.
+ *
+ * @since_tizen 2.4
+ * @param[in] event_info The handle for getting the suspended state
+ * @param[out] state The suspended state of the application
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT Invalid event context
+ *
+ * @remarks The application should not use any asynchronous operations in #APP_SUSPENDED_STATE_WILL_ENTER event.
+ * Because applications will be changed to suspended state just after #APP_SUSPENDED_STATE_WILL_ENTER,
+ * asynchronous calls are not guaranteed to work properly.
+ */
+int app_event_get_suspended_state(app_event_info_h event_info, app_suspended_state_e *state);
 
 
 /**
@@ -362,6 +391,8 @@ char *app_get_shared_trusted_path(void);
  * @remarks	The returned path should be released. @n
  *          The important files stored in the application's external data directory should be
  *          encrypted because they can be exported via the external sdcard.
+ * @remarks	To access the path returned by this function requires the privilege
+ *		that is "http://tizen.org/privilege/externalstorage.appdata".
  *
  * @return	The absolute path to the application's external data directory, @n
  *			otherwise a null pointer if the memory is insufficient
@@ -380,6 +411,8 @@ char *app_get_external_data_path(void);
  *          Setting application while the application is running. @n
  *          The important files stored in the application's external cache directory should be
  *          encrypted because they can be exported via the external sdcard.
+ * @remarks	To access the path returned by this function requires the privilege
+ *		that is "http://tizen.org/privilege/externalstorage.appdata".
  *
  * @return	The absolute path to the application's external cache directory, @n
  *          otherwise a null pointer if the memory is insufficient
@@ -388,12 +421,16 @@ char *app_get_external_cache_path(void);
 
 
 /**
+ * @deprecated Deprecated since 2.4.
  * @brief	Gets the absolute path to the application's external shared data directory which is
  *          used to share data with other applications.
  * @details	An application can read and write its own files in the application's external shared
  *          data directory and others can only read the files.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @remarks	The specified @a path should be released.
+ * @remarks	To access the path returned by this function requires the privilege
+ *		that is "http://tizen.org/privilege/externalstorage.appdata".
+ * @remarks	The function may not work as intended in certain devices due to some implementation issues.
  *
  * @return	The absolute path to the application's external shared data directory, @n
  *          otherwise a null pointer if the memory is insufficient

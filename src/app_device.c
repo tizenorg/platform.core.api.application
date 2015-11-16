@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 
@@ -44,10 +44,7 @@ app_device_orientation_e app_get_device_orientation(void)
 	app_device_orientation_e dev_orientation = APP_DEVICE_ORIENTATION_0;
 
 	if (appcore_get_rotation_state(&rm) == 0)
-	{
 		dev_orientation = app_convert_appcore_rm(rm);
-	}
 
 	return dev_orientation;
 }
-
