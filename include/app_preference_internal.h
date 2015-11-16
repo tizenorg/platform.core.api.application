@@ -28,8 +28,8 @@ extern "C" {
 #define BUF_LEN			(4096)
 #define PREF_DIR	".pref/"
 
-#define PREFERENCE_KEY_PATH_LEN 	1024
-#define ERR_LEN 		128
+#define PREFERENCE_KEY_PATH_LEN	1024
+#define ERR_LEN			128
 
 #define PREF_DB_NAME		".pref.db"
 #define PREF_TBL_NAME		"pref"
@@ -91,8 +91,7 @@ extern "C" {
  */
 #define PREFERENCE_ERROR_FILE_LOCK       -29
 
-typedef enum
-{
+typedef enum {
 	PREFERENCE_TYPE_NONE = 0,
 	PREFERENCE_TYPE_STRING,
 	PREFERENCE_TYPE_INT,
@@ -100,7 +99,7 @@ typedef enum
 	PREFERENCE_TYPE_BOOLEAN,
 } preference_type_e;
 
-typedef struct _pref_changed_cb_node_t{
+typedef struct _pref_changed_cb_node_t {
 	char *key;
 	preference_changed_cb cb;
 	void *user_data;
@@ -109,15 +108,15 @@ typedef struct _pref_changed_cb_node_t{
 } pref_changed_cb_node_t;
 
 typedef struct _keynode_t {
-    char *keyname;           /**< Keyname for keynode */
-    int type;                /**< Keynode type */
-    union {
-        int i;               /**< Integer type */
-        int b;               /**< Bool type */
-        double d;            /**< Double type */
-        char *s;             /**< String type */
-    } value;                 /**< Value for keynode */
-    struct _keynode_t *next; /**< Next keynode */
+	char *keyname;			/**< Keyname for keynode */
+	int type;			/**< Keynode type */
+	union {
+		int i;			/**< Integer type */
+		int b;			/**< Bool type */
+		double d;		/**< Double type */
+		char *s;		/**< String type */
+	} value;			/**< Value for keynode */
+	struct _keynode_t *next;	/**< Next keynode */
 } keynode_t;
 
 /**
@@ -125,9 +124,9 @@ typedef struct _keynode_t {
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
 typedef struct _keylist_t {
-    int num;           /**< Number of list */
-    keynode_t *head;   /**< Head node */
-    keynode_t *cursor; /**< Cursor node */
+	int num;		/**< Number of list */
+	keynode_t *head;	/**< Head node */
+	keynode_t *cursor;	/**< Cursor node */
 } keylist_t;
 
 
