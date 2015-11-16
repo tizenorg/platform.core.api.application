@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an AS IS BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 
 #include <stdio.h>
@@ -41,21 +41,16 @@ int app_finalizer_add(app_finalizer_cb callback, void *data)
 	app_finalizer_h finalizer_new;
 
 	finalizer_new = malloc(sizeof(app_finalizer_s));
-
 	if (finalizer_new == NULL)
-	{
 		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
-	}
 
 	finalizer_new->callback = callback;
 	finalizer_new->data = data;
 	finalizer_new->next = NULL;
 
 	while (finalizer_tail->next)
-	{
 		finalizer_tail = finalizer_tail->next;
-	}
-	
+
 	finalizer_tail->next = finalizer_new;
 
 	return APP_ERROR_NONE;
@@ -65,10 +60,8 @@ int app_finalizer_remove(app_finalizer_cb callback)
 {
 	app_finalizer_h finalizer_node = &finalizer_head;
 
-	while (finalizer_node->next)
-	{
-		if (finalizer_node->next->callback == callback)
-		{
+	while (finalizer_node->next) {
+		if (finalizer_node->next->callback == callback) {
 			app_finalizer_h removed_node = finalizer_node->next;
 			finalizer_node->next = removed_node->next;
 			free(removed_node);
@@ -76,7 +69,7 @@ int app_finalizer_remove(app_finalizer_cb callback)
 		}
 
 		finalizer_node = finalizer_node->next;
-	}	
+	}
 
 	return APP_ERROR_INVALID_PARAMETER;
 }
@@ -87,11 +80,10 @@ void app_finalizer_execute(void)
 	app_finalizer_h finalizer_executed;
 	app_finalizer_cb finalizer_cb = NULL;
 
-	if(finalizer_node)
+	if (finalizer_node)
 		finalizer_node = finalizer_node->next;
 
-	while (finalizer_node)
-	{
+	while (finalizer_node) {
 		finalizer_cb = finalizer_node->callback;
 
 		finalizer_cb(finalizer_node->data);
@@ -105,4 +97,3 @@ void app_finalizer_execute(void)
 
 	finalizer_head.next = NULL;
 }
-

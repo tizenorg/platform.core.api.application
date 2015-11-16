@@ -17,6 +17,9 @@
 
 #include <appcore-common.h>
 #include <appcore-efl.h>
+#include <aul.h>
+
+#include "app_extension.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -24,8 +27,21 @@
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION"
 
-void app_set_reclaiming_system_cache_on_pause(bool enable)
+void *app_get_preinitialized_window(const char *win_name)
 {
-	appcore_set_system_resource_reclaiming(enable);
+	if (aul_get_preinit_window(win_name) == NULL)
+		return NULL;
+
+	appcore_set_preinit_window_name(win_name);
+	return aul_get_preinit_window(win_name);
 }
 
+void *app_get_preinitialized_background(void)
+{
+	return aul_get_preinit_background();
+}
+
+void *app_get_preinitialized_conformant(void)
+{
+	return aul_get_preinit_conformant();
+}

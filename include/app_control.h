@@ -48,8 +48,7 @@ typedef struct app_control_s* app_control_h;
  * @brief Enumeration for App Control Error.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_CONTROL_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	APP_CONTROL_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
 	APP_CONTROL_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */
@@ -70,8 +69,7 @@ typedef enum
  * @see app_control_enable_app_started_result_event()
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	APP_CONTROL_RESULT_APP_STARTED = 1, /**< Callee application launched actually (Since 2.4) */
 	APP_CONTROL_RESULT_SUCCEEDED = 0, /**< Operation succeeded */
 	APP_CONTROL_RESULT_FAILED = -1, /**< Operation failed by the callee */
