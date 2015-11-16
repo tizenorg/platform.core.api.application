@@ -45,13 +45,13 @@ extern "C" {
  * @brief Enumeration for Alarm Error.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	ALARM_ERROR_NONE = TIZEN_ERROR_NONE,	/**< Successful */
 	ALARM_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,	/**< Invalid parameter */
 	ALARM_ERROR_INVALID_TIME = TIZEN_ERROR_APPLICATION | 0x05,	/**< Invalid time */
 	ALARM_ERROR_INVALID_DATE = TIZEN_ERROR_APPLICATION | 0x06,	/**< Invalid date */
 	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION | 0x07,	/**< The alarm service connection failed */
+	ALARM_ERROR_NOT_PERMITTED_APP = TIZEN_ERROR_APPLICATION | 0x08, /**< Application is not permitted. (Since 2.4) */
 	ALARM_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of memory */
 	ALARM_ERROR_PERMISSION_DENIED = TIZEN_ERROR_PERMISSION_DENIED	/**< Permission denied */
 } alarm_error_e;
@@ -61,8 +61,7 @@ typedef enum
  * @brief Enumeration for Alarm Week Flag, the days of the week.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef enum
-{
+typedef enum {
 	ALARM_WEEK_FLAG_SUNDAY = 0x01,	/**< Sunday */
 	ALARM_WEEK_FLAG_MONDAY = 0x02,	/**< Monday */
 	ALARM_WEEK_FLAG_TUESDAY = 0x04,	/**< Tuesday */
@@ -96,11 +95,17 @@ typedef bool (*alarm_registered_alarm_cb)(int alarm_id, void *user_data);
  * @privlevel	public
  * @privilege	%http://tizen.org/privilege/alarm.set
  * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
+ *	    If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
+ *	    If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
+ *	    Since 2.4, this api does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.
+ *	    If you want to trigger an alarm exactly, see @see alarm_schedule_once_after_delay()
+ *	    Since 2.4 If @a app_control is specified with service-application, the application is only allowed to run on which has Background Category.
+ *	    Since 2.4 If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
  *
  * @param[in] app_control The destination app_control to perform a specific task when the alarm is triggered
- * @param[in] delay	The amount of time before the first execution (in seconds)
- * @param[in] period The amount of time between subsequent alarms (in seconds)
- * @param[out] alarm_id	The alarm ID that uniquely identifies an alarm
+ * @param[in] delay	The amount of time before the first execution (in seconds). Since 2.4, Although this is inexact, the alarm will not fire before this time
+ * @param[in] period The amount of time between subsequent alarms (in seconds). Since 2.4, This value does not guarantee the accuracy. The actual interval is calculated by the OS. The minimum value is 600sec
+ * @param[out] alarm_id	The alarm ID that uniquely identifies an alarm.
  * @return	@c 0 on success,
  *          otherwise a negative error value
  * @retval  #ALARM_ERROR_NONE Successful
@@ -108,10 +113,10 @@ typedef bool (*alarm_registered_alarm_cb)(int alarm_id, void *user_data);
  * @retval  #ALARM_ERROR_INVALID_TIME Triggered time is invalid
  * @retval  #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
  * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @retval  #ALARM_ERROR_NOT_PERMITTED_APP @a app_control is not permitted
  * @see alarm_cancel()
  * @see alarm_cancel_all()
  * @see alarm_get_scheduled_date()
- * @see alarm_get_scheduled_period()
  */
 int alarm_schedule_after_delay(app_control_h app_control, int delay, int period, int *alarm_id);
 
@@ -156,6 +161,11 @@ int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int perio
  * @privlevel	public
  * @privilege	%http://tizen.org/privilege/alarm.set
  * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
+ *	    If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
+ *	    If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
+ *	    If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
+ *	    The @a app_control only supports UI application with this api. If @a app_control is not UI application, #ALARM_ERROR_NOT_PERMITTED_APP returned.
+ *	    When the alarm is expired, Alarm Manager will turn on LCD to prohibit background jobs.
  *
  * @param[in] app_control The destination app_control to perform a specific task when the alarm is triggered
  * @param[in] delay	The amount of time before the execution (in seconds)
@@ -167,10 +177,10 @@ int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int perio
  * @retval  #ALARM_ERROR_INVALID_TIME Triggered time is invalid
  * @retval  #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
  * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @retval  #ALARM_ERROR_NOT_PERMITTED_APP @a app_control is not permitted. @a app_control for UI application is only permitted.
  * @see alarm_cancel()
  * @see alarm_cancel_all()
  * @see alarm_get_scheduled_date()
- * @see alarm_get_scheduled_period()
  */
 int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *alarm_id);
 
@@ -185,6 +195,9 @@ int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *a
  * @remarks If application is uninstalled after setting an alarm, the alarm is cancelled automatically.
  *          If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
  *          If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
+ *          If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
+ *          The @a app_control only supports UI application with this api. If @a app_control is not UI application, #ALARM_ERROR_NOT_PERMITTED_APP returned.
+ *          When the alarm is expired, Alarm Manager will turn on LCD to prohibit background jobs.
  *
  * @param[in]	app_control The destination app_control to perform specific work when the alarm is triggered
  * @param[in]	date	The first active alarm time
@@ -196,10 +209,10 @@ int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *a
  * @retval  #ALARM_ERROR_INVALID_DATE Triggered date is invalid
  * @retval  #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
  * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @retval  #ALARM_ERROR_NOT_PERMITTED_APP @a app_control is not permitted. @a app_control for UI application is only permitted.
  * @see alarm_cancel()
  * @see alarm_cancel_all()
  * @see alarm_get_scheduled_date()
- * @see alarm_get_scheduled_period()
  */
 int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int *alarm_id);
 
@@ -233,8 +246,7 @@ int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int 
  * @see alarm_get_scheduled_date()
  * @see	#alarm_week_flag_e
  */
-int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag,int *alarm_id);
-
+int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag, int *alarm_id);
 
 /**
  * @brief Gets the recurrence days of the week.
@@ -245,13 +257,17 @@ int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct t
  *          an error (error code #ALARM_ERROR_INVALID_PARAMETER) will occur because this alarm is scheduled with no recurrence.
  *          If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
  *          If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
+ *          Since 2.4, The @a app_control only supports UI application with this api. If @a app_control is not UI application, #ALARM_ERROR_NOT_PERMITTED_APP returned.
+ *          When the alarm is expired, Alarm Manager will turn on LCD to prohibit background jobs.
+ *          Since 2.4, If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
  * @param[in] alarm_id The alarm ID returned when the alarm is scheduled
  * @param[out] week_flag The recurrence days of the week, @a week_flag may be a combination of days, like #ALARM_WEEK_FLAG_TUESDAY | #ALARM_WEEK_FLAG_FRIDAY
  * @return @c 0 on success,
  *         otherwise a negative error value
  * @retval #ALARM_ERROR_NONE Successful
  * @retval #ALARM_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #ALARM_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #ALARM_ERROR_NOT_PERMITTED_APP @a app_control is not permitted. @a app_control for UI application is only permitted.
  * @see alarm_schedule_with_recurrence_week_flag()
  * @see	#alarm_week_flag_e
  */
@@ -267,6 +283,7 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag);
  * @return @c 0 on success,
  *         otherwise a negative error value
  * @retval #ALARM_ERROR_NONE Successful
+ * @retval #ALARM_ERROR_INVALID_PARAMETER  Invalid parameter
  * @retval #ALARM_ERROR_CONNECTION_FAIL Failed to connect to an alarm server
  * @retval  #ALARM_ERROR_PERMISSION_DENIED Permission denied
  * @see alarm_schedule_at_date()

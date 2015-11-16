@@ -55,8 +55,7 @@ typedef void (*event_cb)(const char *event_name, bundle *event_data, void *user_
  * @brief Enumeration for Event Error.
  * @since_tizen 2.4
  */
-typedef enum
-{
+typedef enum {
 	EVENT_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	EVENT_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
 	EVENT_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */

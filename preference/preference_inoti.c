@@ -160,7 +160,7 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 						break;
 					}
 
-					if ( (t) && (t->wd == ie.wd) && (t->keyname) ) {
+					if ((t) && (t->wd == ie.wd) && (t->keyname)) {
 
 						res = _preference_keynode_set_keyname(keynode, t->keyname);
 						if (res != PREFERENCE_ERROR_NONE) {
@@ -168,14 +168,11 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 							goto out_func;
 						}
 
-						if ((ie.mask & IN_DELETE_SELF))
-						{
+						if ((ie.mask & IN_DELETE_SELF)) {
 							res = _preference_kdb_del_notify(keynode);
 							if (res != PREFERENCE_ERROR_NONE)
 								ERR("_preference_kdb_del_notify() failed(%d)", res);
-						}
-						else
-						{
+						} else {
 							res = _preference_get_key(keynode);
 							if (res != PREFERENCE_ERROR_NONE)
 								ERR("_preference_get_key() failed(%d)", res);
@@ -183,8 +180,7 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 							INFO("key(%s) is changed. cb(%p) called", t->keyname, t->cb);
 							t->cb(t->keyname, t->cb_data);
 						}
-					}
-					else if ( (t) && (t->keyname == NULL) ) { /* for debugging */
+					} else if ((t) && (t->keyname == NULL)) { /* for debugging */
 						ERR("preference keyname is null.");
 					}
 out_func:
@@ -335,9 +331,8 @@ int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, voi
 	n->cb = cb;
 
 	g_notilist = g_list_append(g_notilist, n);
-	if (!g_notilist) {
+	if (!g_notilist)
 		ERR("g_list_append fail");
-	}
 
 	INFO("cb(%p) is added for %s. tot cb cnt : %d\n", cb, n->keyname, g_list_length(g_notilist));
 
@@ -391,7 +386,7 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 	t.wd = wd;
 
 	noti_list = g_list_find_custom(g_notilist, &t, (GCompareFunc)_preference_inoti_comp_with_wd);
-	if(noti_list) {
+	if (noti_list) {
 		del++;
 
 		n = noti_list->data;
@@ -400,7 +395,7 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 		g_free(n);
 
 		r = inotify_rm_watch(_kdb_inoti_fd, wd);
-		if(r == -1) {
+		if (r == -1) {
 			strerror_r(errno, err_buf, sizeof(err_buf));
 			ERR("Error: inotify_rm_watch [%s]: %s", keyname, err_buf);
 			func_ret = PREFERENCE_ERROR_IO_ERROR;
@@ -410,7 +405,7 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 				keyname, g_list_length(g_notilist));
 	}
 
-	if(g_list_length(g_notilist) == 0) {
+	if (g_list_length(g_notilist) == 0) {
 		close(_kdb_inoti_fd);
 		_kdb_inoti_fd = 0;
 
@@ -425,7 +420,7 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 
 	pthread_mutex_unlock(&_kdb_g_ns_mutex);
 
-	if(del == 0) {
+	if (del == 0) {
 		errno = ENOENT;
 		func_ret = PREFERENCE_ERROR_IO_ERROR;
 	}

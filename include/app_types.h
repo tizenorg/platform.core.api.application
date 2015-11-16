@@ -34,8 +34,7 @@
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
 
-typedef enum
-{
+typedef enum {
 	APP_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	APP_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
 	APP_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY, /**< Out of memory */
