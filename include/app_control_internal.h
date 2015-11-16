@@ -35,6 +35,27 @@ extern "C" {
  */
 
 /**
+ * @brief Definition for app_control data: Connect the previous app with the next app when the sub-app is terminated.
+ * @details If a sub-app is terminated, framework will connect the previous app with the next app.
+ *          By default, this flag is 'false'
+ */
+#define APP_CONTROL_DATA_REROUTE "__K_REROUTE__"
+
+/**
+ * @brief Definition for app_control data: The flag for attaching app.
+ * @details If this flag is set, callee app will be attached to caller app for a while and it will be detached when callee app is lowered.
+ *          By default, this flag is 'false'
+ */
+#define APP_CONTROL_DATA_SHIFT_WINDOW "__K_SHIFT_WINDOW"
+
+/**
+ * @brief Definition for app_control data : The flag for supporting recycling processes.
+ * @details By default, this flag is 'false'. Once it is set to 'true', launched sub-app process will be reused even if it was lowered later.
+ *
+ */
+#define APP_CONTROL_DATA_RECYCLE "__K_RECYCLE"
+
+/**
  * @brief Replaces all data in the app_control with the bundle
  *
  * @remarks This function clears all data in the app_control and adds all key-value pairs in the bundle into the app_control

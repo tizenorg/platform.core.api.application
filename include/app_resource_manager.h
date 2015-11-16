@@ -86,7 +86,8 @@ int app_resource_manager_init(void);
  *         otherwise a negative error value
  * @retval #APP_RESOURCE_ERROR_NONE Successful
  * @retval #APP_RESOURCE_ERROR_INVALID_PARAMETER Invalid Parameter
- * @retval #APP_RESOURCE_ERROR_IO_ERROR Internal I/O Error
+ * @retval #APP_RESOURCE_ERROR_OUT_OF_MEMORY Out of memory
+ * @retval #APP_RESOURCE_ERROR_IO_ERROR Internal I/O Error or failed to find valid resource
  * @see	app_resource_manager_init()
  */
 int app_resource_manager_get(app_resource_e type, const char *id, char **path);

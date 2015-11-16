@@ -51,22 +51,16 @@ static const char *event_error_to_string(event_error_e error)
 	switch (error) {
 	case EVENT_ERROR_NONE:
 		return "NONE";
-
 	case EVENT_ERROR_INVALID_PARAMETER:
 		return "INVALID_PARAMETER";
-
 	case EVENT_ERROR_OUT_OF_MEMORY:
 		return "OUT_OF_MEMORY";
-
 	case EVENT_ERROR_TIMED_OUT:
 		return "TIMED_OUT";
-
 	case EVENT_ERROR_IO_ERROR:
 		return "IO ERROR";
-
 	case EVENT_ERROR_PERMISSION_DENIED:
 		return "PERMISSION DENIED";
-
 	default:
 		return "UNKNOWN";
 	}
@@ -160,14 +154,12 @@ int event_add_event_handler(const char *event_name, event_cb callback, void *use
 		_initialized = 1;
 	}
 
-	if (event_handler == NULL || event_name == NULL || callback == NULL) {
+	if (event_handler == NULL || event_name == NULL || callback == NULL)
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
-	}
 
 	handler = calloc(1, sizeof(event_handler_s));
-	if (handler == NULL) {
+	if (handler == NULL)
 		return event_error(EVENT_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
-	}
 
 	pthread_mutex_lock(&register_sync_lock);
 	earlier_callback = callback;
@@ -177,11 +169,10 @@ int event_add_event_handler(const char *event_name, event_cb callback, void *use
 	pthread_mutex_unlock(&register_sync_lock);
 	if (ret < 0) {
 		free(handler);
-		if (ret == ES_R_ENOTPERMITTED) {
+		if (ret == ES_R_ENOTPERMITTED)
 			return event_error(EVENT_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
-		} else {
+		else
 			return event_error(EVENT_ERROR_IO_ERROR, __FUNCTION__, NULL);
-		}
 	}
 
 	handler->event_name = strdup(event_name);
@@ -221,14 +212,12 @@ int event_remove_event_handler(event_handler_h event_handler)
 		return EVENT_ERROR_NONE;
 	}
 
-	if (event_handler == NULL) {
+	if (event_handler == NULL)
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
-	}
 
 	ret = eventsystem_unregister_application_event(event_handler->reg_id);
-	if (ret < 0) {
+	if (ret < 0)
 		return event_error(EVENT_ERROR_IO_ERROR, __FUNCTION__, NULL);
-	}
 
 	GList *handler_list = (GList *)g_hash_table_lookup(interested_event_table,
 		event_handler->event_name);
@@ -256,26 +245,22 @@ int event_remove_event_handler(event_handler_h event_handler)
 
 int event_publish_app_event(const char *event_name, bundle *event_data)
 {
-	if (event_data == NULL || event_name == NULL) {
+	if (event_data == NULL || event_name == NULL)
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
-	}
 
-	if (eventsystem_send_user_event(event_name, event_data, false) < 0) {
+	if (eventsystem_send_user_event(event_name, event_data, false) < 0)
 		return event_error(EVENT_ERROR_IO_ERROR, __FUNCTION__, NULL);
-	}
 
 	return EVENT_ERROR_NONE;
 }
 
 int event_publish_trusted_app_event(const char *event_name, bundle *event_data)
 {
-	if (event_data == NULL || event_name == NULL) {
+	if (event_data == NULL || event_name == NULL)
 		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
-	}
 
-	if (eventsystem_send_user_event(event_name, event_data, true) < 0) {
+	if (eventsystem_send_user_event(event_name, event_data, true) < 0)
 		return event_error(EVENT_ERROR_IO_ERROR, __FUNCTION__, NULL);
-	}
 
 	return EVENT_ERROR_NONE;
 }
