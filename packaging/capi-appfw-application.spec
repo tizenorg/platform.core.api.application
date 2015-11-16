@@ -22,6 +22,8 @@ BuildRequires:  pkgconfig(vconf-internal-keys)
 BuildRequires:  pkgconfig(eventsystem)
 BuildRequires:  pkgconfig(pkgmgr-info)
 BuildRequires:  pkgconfig(glib-2.0)
+BuildRequires:  pkgconfig(cynara-client)
+BuildRequires:  pkgconfig(cynara-session)
 
 %description
 An Application library in SLP C API package.

@@ -15,8 +15,10 @@
  */
 
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <errno.h>
 
@@ -25,6 +27,8 @@
 #include <appsvc.h>
 #include <aul_svc.h>
 #include <dlog.h>
+#include <cynara-client.h>
+#include <cynara-session.h>
 
 #include <app_control.h>
 
@@ -52,6 +56,8 @@
 #define LAUNCH_MODE_SIZE 8
 #define LAUNCH_MODE_SINGLE "single"
 #define LAUNCH_MODE_GROUP "group"
+
+#define SMACK_LABEL_LEN 255
 
 typedef enum {
 	APP_CONTROL_TYPE_REQUEST,
@@ -812,6 +818,81 @@ static void __handle_launch_result(int launched_pid, void *data)
 	app_control_destroy(reply);
 }
 
+static int __get_client_info(char *smack, char **session)
+{
+	int fd;
+	ssize_t rd_size;
+
+	fd = open("/proc/self/attr/current", O_RDONLY);
+	if (fd < 0) {
+		return APP_CONTROL_ERROR_IO_ERROR;
+	}
+
+	rd_size = read(fd, smack, SMACK_LABEL_LEN);
+	if (rd_size < 0) {
+		close(fd);
+		return APP_CONTROL_ERROR_IO_ERROR;
+	}
+
+	close(fd);
+
+	*session = cynara_session_from_pid(getpid());
+	if (*session == NULL) {
+		return APP_CONTROL_ERROR_IO_ERROR;
+	}
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
+static int __check_privilege_by_cynara(const char *privilege)
+{
+	int ret = APP_CONTROL_ERROR_NONE;
+	int result;
+	char client_smack[SMACK_LABEL_LEN + 1] = {0,};
+	char *client_session = NULL;
+	char user[10] = {0,};
+
+	cynara *p_cynara;
+
+	if (privilege == NULL) {
+		return APP_CONTROL_ERROR_INVALID_PARAMETER;
+	}
+
+	ret = cynara_initialize(&p_cynara, NULL);
+	if (ret != CYNARA_API_SUCCESS) {
+		LOGE("failed to init cynara, [%d]", ret);
+		return APP_CONTROL_ERROR_IO_ERROR;
+	}
+
+	ret = __get_client_info(client_smack, &client_session);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		LOGE("failed to get client info");
+		return APP_CONTROL_ERROR_IO_ERROR;
+	}
+
+	snprintf(user, 10, "%d", getuid());
+
+	result = cynara_check(p_cynara, client_smack, client_session, user, privilege);
+	switch(result) {
+	case CYNARA_API_ACCESS_ALLOWED:
+		LOGD("Access allowed");
+		ret = APP_CONTROL_ERROR_NONE;
+		break;
+	case CYNARA_API_ACCESS_DENIED:
+		LOGD("Access denied");
+		ret = APP_CONTROL_ERROR_PERMISSION_DENIED;
+		break;
+	default:
+		LOGD("cynara_check error");
+		ret = APP_CONTROL_ERROR_IO_ERROR;
+		break;
+	}
+
+	free(client_session);
+	cynara_finish(p_cynara);
+	return ret;
+}
+
 int app_control_send_launch_request(app_control_h app_control, app_control_reply_cb callback, void *user_data)
 {
 	const char *operation;
@@ -840,6 +921,20 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 	}
 
 	// TODO: Check the privilege for call operation
+	if (!strcmp(operation, APP_CONTROL_OPERATION_CALL)) {
+		int ret;
+		ret = __check_privilege_by_cynara("http://tizen.org/privilege/call");
+		if (ret != APP_CONTROL_ERROR_NONE) {
+			if (ret == APP_CONTROL_ERROR_PERMISSION_DENIED) {
+				return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED,\
+						__FUNCTION__, "no privilege for Call operation");
+			} else {
+				return app_control_error(APP_CONTROL_ERROR_LAUNCH_REJECTED,\
+						__FUNCTION__, NULL);
+			}
+		}
+
+	}
 
 	// operation : default
 	if (!strcmp(operation, APP_CONTROL_OPERATION_DEFAULT))
