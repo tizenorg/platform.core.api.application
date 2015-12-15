@@ -22,6 +22,7 @@
 #include <errno.h>
 
 #include <bundle.h>
+#include <bundle_internal.h>
 #include <aul.h>
 #include <appsvc.h>
 #include <dlog.h>
