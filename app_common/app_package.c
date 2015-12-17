@@ -24,7 +24,6 @@
 #include <dlog.h>
 
 #include <app_internal.h>
-#include <app_service_private.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG

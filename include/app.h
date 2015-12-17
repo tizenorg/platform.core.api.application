@@ -19,7 +19,6 @@
 #define __TIZEN_APPFW_APP_H__
 
 #include <tizen.h>
-#include <app_service.h>
 #include <app_control.h>
 #include <app_alarm.h>
 #include <app_common.h>
