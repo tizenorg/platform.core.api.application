@@ -80,7 +80,7 @@ void app_finalizer_execute(void)
 	app_finalizer_h finalizer_executed;
 	app_finalizer_cb finalizer_cb = NULL;
 
-	if (finalizer_node)
+	if (finalizer_node->next)
 		finalizer_node = finalizer_node->next;
 
 	while (finalizer_node) {
