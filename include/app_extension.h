@@ -23,19 +23,6 @@ extern "C" {
 #endif
 
 /**
- * @brief	Gets the preinitialized window object.
- *
- * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @remarks	This API only supports BASIC type window.
- *
- * @param[in] win_name The name to be set for the preinitialized window
- *
- * @return	A @a window object on success,
- *		otherwise @c NULL
- */
-void *app_get_preinitialized_window(const char *win_name);
-
-/**
  * @brief	Gets the preinitialized background object added to the preinitialized window.
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
