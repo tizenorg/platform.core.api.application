@@ -510,3 +510,20 @@ int alarm_get_app_control(int alarm_id, app_control_h *app_control)
 	return ALARM_ERROR_NONE;
 }
 
+int alarm_set_global(int alarm_id, bool global)
+{
+	int ret;
+
+	ret = alarmmgr_set_global(alarm_id, glbal);
+
+	return convert_error_code_to_alarm(__FUNCTION__, ret);
+}
+
+int alarm_get_global(int alarm_id, bool *global)
+{
+	int ret;
+
+	ret = alarmmgr_get_global(alarm_id, global);
+
+	return convert_error_code_to_alarm(__FUNCTION__, ret);
+}
