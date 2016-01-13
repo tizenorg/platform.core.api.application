@@ -340,12 +340,20 @@ char *app_get_resource_path(void);
 
 
 /**
+ * @deprecated Deprecated since 3.0.
  * @brief	Gets the absolute path to the application's shared data directory which is used to share
  *          data with other applications.
  * @details	An application can read and write its own files in the application's shared data
  *          directory and others can only read the files.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @remarks	The returned path should be released.
+ * @remarks	shared/data directory is deprecated since Tizen 3.0.
+ *		You should not use this API when you develop new application.
+ *		Actually, we strongly recommend to stop using shared/data path for all your previous applications.
+ *		Files in shared/data directory can be read by all other applications.
+ *		You cannot control what applications can read the files in shared/data directory.
+ *		If you want to share files with other applications, consider passing path via @ref CAPI_APP_CONTROL_MODULE API.
+ *		The @ref CAPI_APP_CONTROL_MODULE API supports giving permission to other applications by passing path via app_control.
  *
  * @return	The absolute path to the application's shared data directory, @n
  *          otherwise a null pointer if the memory is insufficient
