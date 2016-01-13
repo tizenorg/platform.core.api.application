@@ -340,6 +340,7 @@ char *app_get_resource_path(void);
 
 
 /**
+ * @deprecated Deprecated since 3.0.
  * @brief	Gets the absolute path to the application's shared data directory which is used to share
  *          data with other applications.
  * @details	An application can read and write its own files in the application's shared data
@@ -354,6 +355,7 @@ char *app_get_shared_data_path(void);
 
 
 /**
+ * @deprecated Deprecated since 3.0.
  * @brief	Gets the absolute path to the application's shared resource directory which is used to
  *          share resources with other applications.
  * @details	An application can read its own files in the application's shared resource directory
