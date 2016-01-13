@@ -17,6 +17,8 @@
 #include <string.h>
 #include <aul.h>
 
+#include "app_types.h"
+
 #define _STRDUP(s) ((s) ? strdup(s) : NULL)
 
 char *app_get_data_path(void)
@@ -39,8 +41,18 @@ char *app_get_resource_path(void)
 
 char *app_get_shared_data_path(void)
 {
-	const char *buf = aul_get_app_shared_data_path();
-	return _STRDUP(buf);
+	int ret;
+	char *path = NULL;
+
+	ret = aul_get_app_shared_data_path(&path);
+	if (ret == AUL_R_OK && path)
+		set_last_result(APP_ERROR_NONE);
+	else if (path == NULL)
+		set_last_result(APP_ERROR_OUT_OF_MEMORY);
+	else
+		set_last_result(APP_ERROR_NOT_SUPPORTED);
+
+	return path;
 }
 
 char *app_get_shared_resource_path(void)
