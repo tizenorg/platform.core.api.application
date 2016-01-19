@@ -223,6 +223,19 @@ int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_
  */
 int ui_app_remove_event_handler(app_event_handler_h event_handler);
 
+/**
+ * @brief Gets the preinitialized window object.
+ * @detail This function returns a window object.
+ *         If there is no window object, it will be created by win_elm_add().
+ * @since_tizen 3.0
+ * @remarks This API only supports BASIC type window.
+ *         It should be set up pre-window in the tizen-manifext.xml.
+ *         The pre-window attribute has true, false value.
+ * @param[in] win_name The name to be set for the preinitialized window
+ * @return A @a window object on success,
+ *         otherwise @c NULL
+ */
+void *ui_app_get_default_window(const char *win_name);
 
 /**
  * @}
