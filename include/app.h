@@ -223,6 +223,23 @@ int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_
  */
 int ui_app_remove_event_handler(app_event_handler_h event_handler);
 
+/**
+ * @brief Gets the preinitialized window object.
+ *
+ * @details This function returns a window object that is created by the framework.
+ *          You can get the handle of the preinitialized window using this API.
+ *          Because the window is preinitialized, you can speed up your application's launching time.
+ *          When you set @a preinit-window attribute of the @a ui-application tag as "#true" in the tizen-manifest.xml,
+ *          the framework creates an window for your application beforehand.
+ *          Note that the preinitialized window is created using elm_win_add() as #ELM_WIN_BASIC type.
+ *          If you want to use a window of other types, you cannot use this API.
+ * @since_tizen 3.0
+ * @param[in] win_name The name to be set for the preinitialized window
+ *
+ * @return A @a window object on success,
+ *         otherwise @c NULL
+ */
+void *ui_app_get_default_window(const char *win_name);
 
 /**
  * @}
