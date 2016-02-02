@@ -16,6 +16,7 @@
 
 #include <string.h>
 #include <aul.h>
+#include <tizen_error.h>
 
 #include "app_types.h"
 
@@ -47,7 +48,7 @@ char *app_get_shared_data_path(void)
 	ret = aul_get_app_shared_data_path(&path);
 	if (ret == AUL_R_OK && path)
 		set_last_result(APP_ERROR_NONE);
-	else if (ret = AUL_R_EREJECTED)
+	else if (ret == AUL_R_EREJECTED)
 		set_last_result(APP_ERROR_NOT_SUPPORTED);
 	else
 		set_last_result(APP_ERROR_OUT_OF_MEMORY);

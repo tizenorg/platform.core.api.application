@@ -32,6 +32,9 @@
 
 #include <app_internal.h>
 #include <app_control_internal.h>
+#include <tizen_error.h>
+
+#include "app_extension.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -803,7 +806,7 @@ void *ui_app_get_default_window(const char *win_name)
 	Evas_Object *win;
 
 	if (win_name == NULL) {
-		set_last_error(TIZEN_ERROR_INVALID_PARAMETER);
+		set_last_result(TIZEN_ERROR_INVALID_PARAMETER);
 		return NULL;
 	}
 
@@ -811,12 +814,12 @@ void *ui_app_get_default_window(const char *win_name)
 	if (win == NULL) {
 		win = elm_win_add(NULL, win_name, ELM_WIN_BASIC);
 		if (win == NULL) {
-			set_last_error(TIZEN_ERROR_IO_ERROR);
+			set_last_result(TIZEN_ERROR_IO_ERROR);
 			LOGE("failed to get window");
 			return NULL;
 		}
 	}
 
-	set_last_error(TIZEN_ERROR_NONE);
+	set_last_result(TIZEN_ERROR_NONE);
 	return win;
 }
