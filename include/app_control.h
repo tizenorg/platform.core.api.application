@@ -323,6 +323,14 @@ typedef enum {
 #define APP_CONTROL_OPERATION_SETTING_WIFI "http://tizen.org/appcontrol/operation/setting/wifi"
 
 /**
+ * @brief Definition for the app control operation: Shows VPN service settings.
+ * @details Input: Nothing\n
+ *          Output: Nothing\n
+ * @since_tizen 3.0
+ */
+#define APP_CONTROL_OPERATION_SETTING_VPN "http://tizen.org/appcontrol/operation/setting/vpn"
+
+/**
  * @brief Definition for app_control data: Subject
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
