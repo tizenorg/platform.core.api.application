@@ -801,25 +801,3 @@ int ui_app_remove_event_handler(app_event_handler_h event_handler)
 	return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "cannot find such handler");
 }
 
-void *ui_app_get_default_window(const char *win_name)
-{
-	Evas_Object *win;
-
-	if (win_name == NULL) {
-		set_last_result(TIZEN_ERROR_INVALID_PARAMETER);
-		return NULL;
-	}
-
-	win = (Evas_Object *)app_get_preinitialized_window(win_name);
-	if (win == NULL) {
-		win = elm_win_add(NULL, win_name, ELM_WIN_BASIC);
-		if (win == NULL) {
-			set_last_result(TIZEN_ERROR_IO_ERROR);
-			LOGE("failed to get window");
-			return NULL;
-		}
-	}
-
-	set_last_result(TIZEN_ERROR_NONE);
-	return win;
-}
