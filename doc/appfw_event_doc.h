@@ -269,6 +269,11 @@
  * <td>EVENT_KEY_FONT_SET</td>
  * <td>The value of this key is font name of string type by font-config.</td>
  * </tr>
+ * <tr>
+ * <td>SYSTEM_EVENT_NETWORK_STATUS</td>
+ * <td>EVENT_KEY_NETWORK_STATUS</td>
+ * <td>EVENT_VAL_NETWORK_DISCONNECTED<br/>EVENT_VAL_NETWORK_WIFI</br>EVENT_VAL_NETWORK_CELLULAR</br>EVENT_VAL_NETWORK_ETHERNET</br>EVENT_VAL_NETWORK_BT</br>EVENT_VAL_NETWORK_NET_PROXY</td>
+ * </tr>
  * </table>
  *
  */
