@@ -591,6 +591,34 @@ int app_control_get_launch_mode(app_control_h app_control,
 	return APP_CONTROL_ERROR_NONE;
 }
 
+int app_control_set_defapp(app_control_h app_control, const char *defapp)
+{
+	int ret;
+	const char *op;
+	const char *mime_type;
+	const char *uri;
+
+	if (app_control == NULL || defapp == NULL)
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	/* get op */
+	op = appsvc_get_operation(app_control->data);
+	if (op == NULL)
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	/* get mime_type */
+	mime_type = appsvc_get_mime(app_control->data);
+
+	/* get uri */
+	uri = appsvc_get_uri(app_control->data);
+
+	ret = aul_svc_set_defapp(op, mime_type, uri, defapp);
+	if (ret < 0)
+		app_control_error(APP_CONTROL_ERROR_IO_ERROR, __FUNCTION__, NULL);
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
 static void __update_launch_pid(int launched_pid, void *data)
 {
 	app_control_h app_control;
