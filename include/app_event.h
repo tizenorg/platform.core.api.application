@@ -775,6 +775,62 @@ typedef enum {
 #define EVENT_KEY_FONT_SET "font_set"
 
 /**
+ * @brief Definition for system-event of network : status of network.
+ * @since_tizen 3.0
+ * @see EVENT_KEY_NETWORK_STATUS
+ */
+#define SYSTEM_EVENT_NETWORK_STATUS "tizen.system.event.network_status"
+
+/**
+ * @brief Definition for key of SYSTEM_EVENT_NETWORK_STATUS.
+ * @since_tizen 3.0
+ * @remarks The values of this event indicate the type of the current profile for data connection.
+ * @see EVENT_VAL_NETWORK_DISCONNECTED
+ * @see EVENT_VAL_NETWORK_WIFI
+ * @see EVENT_VAL_NETWORK_CELLULAR
+ * @see EVENT_VAL_NETWORK_ETHERNET
+ * @see EVENT_VAL_NETWORK_BT
+ * @see EVENT_VAL_NETWORK_NET_PROXY
+ */
+#define EVENT_KEY_NETWORK_STATUS "network_status"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_DISCONNECTED "disconnected"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_WIFI "wifi"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_CELLULAR "cellular"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_ETHERNET "ethernet"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_BT "bt"
+
+/**
+ * @brief Definition for value of EVENT_KEY_NETWORK_STATUS.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_NETWORK_NET_PROXY "new_proxy"
+
+/**
  * @brief Adds the event handler for receiving event-data of interested events.
  *
  * @since_tizen 2.4
