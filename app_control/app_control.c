@@ -19,6 +19,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 #include <bundle.h>
 #include <bundle_internal.h>
@@ -26,6 +28,7 @@
 #include <appsvc.h>
 #include <aul_svc.h>
 #include <dlog.h>
+#include <cynara-client.h>
 
 #include <app_control.h>
 
@@ -53,6 +56,8 @@
 #define LAUNCH_MODE_SIZE 8
 #define LAUNCH_MODE_SINGLE "single"
 #define LAUNCH_MODE_GROUP "group"
+
+#define SMACK_LABEL_LEN 255
 
 typedef enum {
 	APP_CONTROL_TYPE_REQUEST,
@@ -144,6 +149,59 @@ static int app_control_new_id()
 {
 	static int sid = 0;
 	return sid++;
+}
+
+int app_control_check_privilege(void)
+{
+	cynara *p_cynara;
+
+	int fd;
+	int ret;
+
+	char client[SMACK_LABEL_LEN + 1] = "";
+	char uid[10] = {0,};
+	char *client_session = "";
+
+	ret = cynara_initialize(&p_cynara, NULL);
+	if (ret != CYNARA_API_SUCCESS) {
+		LOGE("cannot init cynara [%d] failed!", ret);
+		ret = -1;
+		goto out;
+	}
+
+	fd = open("/proc/self/attr/current", O_RDONLY);
+	if (fd < 0) {
+		LOGE("open [%d] failed!", errno);
+		ret = -1;
+		goto out;
+	}
+
+	ret = read(fd, client, SMACK_LABEL_LEN);
+	if (ret < 0) {
+		LOGE("read [%d] failed!", errno);
+		close(fd);
+		goto out;
+	}
+
+	close(fd);
+
+	snprintf(uid, 10, "%d", getuid());
+
+	ret = cynara_check(p_cynara, client, client_session, uid,
+			"http://tizen.org/privilege/systemsettings.admin");
+	if (ret != CYNARA_API_ACCESS_ALLOWED) {
+		LOGE("cynara access check [%d] failed!", ret);
+		ret = -1;
+		goto out;
+	}
+
+	ret = APP_CONTROL_ERROR_NONE;
+
+out:
+	if (p_cynara)
+		cynara_finish(p_cynara);
+
+	return ret;
 }
 
 int app_control_validate_internal_key(const char *key)
@@ -587,6 +645,40 @@ int app_control_get_launch_mode(app_control_h app_control,
 					__FUNCTION__, "launch_mode is not matched");
 		}
 	}
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
+int app_control_set_defapp(app_control_h app_control, const char *defapp)
+{
+	int ret;
+
+	const char *op;
+	const char *mime_type;
+	const char *uri;
+
+	if (app_control_validate(app_control) || defapp == NULL)
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	ret = app_control_check_privilege();
+	if (ret < 0)
+		return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
+
+	op = appsvc_get_operation(app_control->data);
+	if (op == NULL)
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "operation");
+
+	mime_type = appsvc_get_mime(app_control->data);
+	if (mime_type == NULL)
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "mime_type");
+
+	uri = appsvc_get_uri(app_control->data);
+	if (uri == NULL)
+		app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "uri");
+
+	ret = aul_svc_set_defapp(op, mime_type, uri, defapp);
+	if (ret < 0)
+		return app_control_error(APP_CONTROL_ERROR_IO_ERROR, __FUNCTION__, NULL);
 
 	return APP_CONTROL_ERROR_NONE;
 }
