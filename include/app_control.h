@@ -1078,6 +1078,24 @@ int app_control_get_launch_mode(app_control_h app_control,
  * @see #APP_CONTROL_RESULT_APP_STARTED
  */
 int app_control_enable_app_started_result_event(app_control_h app_control);
+
+/**
+ * @brief Set the default application(package name) associated with operation, mime-type and uri.
+ *
+ * @since_tizen 3.0
+ * @privlevel platform
+ * @privilege %http://tizen.org/privilege/systemsettings.admin
+ * @param[in] app_control The app_control handle
+ * @param[in] app_id The ID of the application
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #APP_CONTROL_ERROR_IO_ERROR IO error
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ *
+ */
+int app_control_set_defapp(app_control_h app_control, const char *app_id);
 /**
  * @}
  */
