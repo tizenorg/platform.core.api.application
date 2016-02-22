@@ -504,10 +504,10 @@ typedef enum {
  * @see EVENT_KEY_MSG_TYPE
  * @see EVENT_KEY_MSG_ID
  */
-#define SYSTEM_EVENT_INCOMMING_MSG "tizen.system.event.incoming_msg"
+#define SYSTEM_EVENT_INCOMING_MSG "tizen.system.event.incoming_msg"
 
 /**
- * @brief Definition for key of SYSTEM_EVENT_INCOMMING_MSG.
+ * @brief Definition for key of SYSTEM_EVENT_INCOMING_MSG.
  * @since_tizen 2.4
  * @see EVENT_VAL_SMS
  * @see EVENT_VAL_PUSH
@@ -534,7 +534,7 @@ typedef enum {
 #define EVENT_VAL_CB "cb"
 
 /**
- * @brief Definition for key of SYSTEM_EVENT_INCOMMING_MSG.
+ * @brief Definition for key of SYSTEM_EVENT_INCOMING_MSG.
  * @since_tizen 2.4
  * @remarks The value of this key is a string of unsigned int value : new message id.
  */

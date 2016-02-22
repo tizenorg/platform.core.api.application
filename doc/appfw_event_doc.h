@@ -113,7 +113,7 @@
  * <td>When Earjack CONNECTED</td>
  * </tr>
  * <tr>
- * <td>SYSTEM_EVENT_INCOMMING_MSG</td>
+ * <td>SYSTEM_EVENT_INCOMING_MSG</td>
  * <td>When MSG_TYPE & MSG_ID exist</td>
  * </tr>
  * </table>
@@ -206,7 +206,7 @@
  * <td>EVENT_VAL_NPS_DISABLED<br/>EVENT_VAL_NPS_ENABLED</td>
  * </tr>
  * <tr>
- * <td rowspan="2">SYSTEM_EVENT_INCOMMING_MSG</td>
+ * <td rowspan="2">SYSTEM_EVENT_INCOMING_MSG</td>
  * <td>EVENT_KEY_MSG_TYPE</td>
  * <td>EVENT_VAL_SMS<br/>EVENT_VAL_PUSH<br/>EVENT_VAL_CB</td>
  * </tr>
