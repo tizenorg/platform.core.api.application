@@ -75,7 +75,6 @@ typedef struct app_control_request_context_s {
 
 extern int appsvc_allow_transient_app(bundle *b, unsigned int id);
 extern int appsvc_request_transient_app(bundle *b, unsigned int callee_id, appsvc_host_res_fn cbfunc, void *data);
-extern int aul_invoke_caller_cb(int launch_pid);
 static int app_control_create_reply(bundle *data, struct app_control_s **app_control);
 
 static const char* app_control_error_to_string(app_control_error_e error)
@@ -299,7 +298,7 @@ int app_control_destroy(app_control_h app_control)
 
 	if (app_control->type == APP_CONTROL_TYPE_REQUEST && app_control->launch_pid > 0
 			&& bundle_get_val(app_control->data, AUL_SVC_K_LAUNCH_RESULT_APP_STARTED) == NULL)
-		aul_remove_caller_cb(app_control->launch_pid);
+		aul_remove_caller_cb(app_control->launch_pid, app_control);
 
 	bundle_free(app_control->data);
 	app_control->data = NULL;
@@ -723,7 +722,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 
 		/* launched without app selector */
 		if (strncmp(callee, APP_SELECTOR, strlen(APP_SELECTOR)) != 0)
-			aul_invoke_caller_cb(launch_pid);
+			aul_invoke_caller_cb(request_context);
 
 	} else { /* default case */
 		aul_add_caller_cb(launch_pid, __update_launch_pid, app_control);
