@@ -591,6 +591,46 @@ int app_control_get_launch_mode(app_control_h app_control,
 	return APP_CONTROL_ERROR_NONE;
 }
 
+int app_control_set_defapp(app_control_h app_control, const char *app_id)
+{
+	int ret;
+
+	if (app_control_validate(app_control) || app_id == NULL)
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	ret = aul_svc_set_appid(app_control->data, app_id);
+	if (ret < 0)
+		return app_control_error(APP_CONTROL_ERROR_IO_ERROR, __FUNCTION__, NULL);
+
+	ret = aul_set_default_app_by_operation(app_control->data);
+	if (ret < 0) {
+		if (ret == AUL_R_EILLACC)
+			return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
+		else
+			return app_control_error(APP_CONTROL_ERROR_IO_ERROR, __FUNCTION__, NULL);
+	}
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
+int app_control_unset_defapp(const char *app_id)
+{
+	int ret;
+
+	if (app_id == NULL)
+		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	ret = aul_unset_default_app_by_operation(app_id);
+	if (ret <0) {
+		if (ret == AUL_R_EILLACC)
+			return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
+		else
+			return app_control_error(APP_CONTROL_ERROR_IO_ERROR, __FUNCTION__, NULL);
+	}
+
+	return APP_CONTROL_ERROR_NONE;
+}
+
 static void __update_launch_pid(int launched_pid, void *data)
 {
 	app_control_h app_control;
