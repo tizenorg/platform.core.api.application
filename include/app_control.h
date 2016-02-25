@@ -1080,7 +1080,8 @@ int app_control_get_launch_mode(app_control_h app_control,
 int app_control_enable_app_started_result_event(app_control_h app_control);
 
 /**
- * @brief Set the ID of default application associated with operation, mime-type and uri.
+ * @platform
+ * @brief Sets the ID of default application associated with operation, mime-type and uri.
  *
  * @since_tizen 3.0
  * @privlevel platform
@@ -1098,7 +1099,8 @@ int app_control_enable_app_started_result_event(app_control_h app_control);
 int app_control_set_defapp(app_control_h app_control, const char *app_id);
 
 /**
- * @brief Unset default application setting of an application for app_controls.
+ * @platform
+ * @brief Unsets default application control setting of an application.
  *
  * @details When an user call this API, all the default application settings for the app_id are unset.
  *
