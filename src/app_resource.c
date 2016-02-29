@@ -29,19 +29,19 @@
 
 void *app_get_preinitialized_window(const char *win_name)
 {
-	if (aul_get_preinit_window(win_name) == NULL)
+	if (elm_win_precreated_object_get() == NULL)
 		return NULL;
 
 	appcore_set_preinit_window_name(win_name);
-	return aul_get_preinit_window(win_name);
+	return elm_win_precreated_object_get();
 }
 
 void *app_get_preinitialized_background(void)
 {
-	return aul_get_preinit_background();
+	return elm_bg_precreated_object_get();
 }
 
 void *app_get_preinitialized_conformant(void)
 {
-	return aul_get_preinit_conformant();
+	return elm_conformant_precreated_object_get();
 }
