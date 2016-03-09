@@ -10,7 +10,7 @@ SET(INC_DIR include)
 INCLUDE_DIRECTORIES(${INC_DIR})
 
 SET(requires "dlog bundle appcore-common appcore-efl aul appsvc elementary capi-base-common alarm-service sqlite3 libtzplatform-config pkgmgr-info glib-2.0")
-SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference capi-appfw-event")
+SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appfw-app-control capi-appfw-app-common capi-appfw-preference capi-appfw-event appcore-common libtzplatform-config")
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${fw_name} REQUIRED ${requires})
