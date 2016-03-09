@@ -18,6 +18,7 @@
 #include <appcore-common.h>
 #include <appcore-efl.h>
 #include <aul.h>
+#include <Elementary.h>
 
 #include "app_extension.h"
 
@@ -29,19 +30,19 @@
 
 void *app_get_preinitialized_window(const char *win_name)
 {
-	if (elm_win_precreated_object_get() == NULL)
+	if ((Evas_Object *)elm_win_precreated_object_get() == NULL)
 		return NULL;
 
 	appcore_set_preinit_window_name(win_name);
-	return elm_win_precreated_object_get();
+	return (Evas_Object *)elm_win_precreated_object_get();
 }
 
 void *app_get_preinitialized_background(void)
 {
-	return elm_bg_precreated_object_get();
+	return (Evas_Object *)elm_bg_precreated_object_get();
 }
 
 void *app_get_preinitialized_conformant(void)
 {
-	return elm_conformant_precreated_object_get();
+	return (Evas_Object *)elm_conformant_precreated_object_get();
 }
