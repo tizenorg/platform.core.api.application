@@ -18,6 +18,7 @@
 #include <appcore-common.h>
 #include <appcore-efl.h>
 #include <aul.h>
+#include <Elementary.h>
 
 #include "app_extension.h"
 
