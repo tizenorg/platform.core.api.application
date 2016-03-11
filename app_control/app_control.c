@@ -620,7 +620,7 @@ int app_control_unset_defapp(const char *app_id)
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 
 	ret = aul_unset_default_app_by_operation(app_id);
-	if (ret <0) {
+	if (ret < 0) {
 		if (ret == AUL_R_EILLACC)
 			return app_control_error(APP_CONTROL_ERROR_PERMISSION_DENIED, __FUNCTION__, NULL);
 		else

@@ -15,7 +15,7 @@ SET(pc_requires "capi-base-common vconf-internal-keys capi-appfw-alarm capi-appf
 INCLUDE(FindPkgConfig)
 pkg_check_modules(${fw_name} REQUIRED ${requires})
 FOREACH(flag ${${fw_name}_CFLAGS})
-    SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
+	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag} -Werror")
 ENDFOREACH(flag)
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -fPIC ")
