@@ -56,6 +56,13 @@ extern "C" {
 #define APP_CONTROL_DATA_RECYCLE "__K_RECYCLE"
 
 /**
+ * @brief Definition for app_control data : The value for supporting relocating launched app under the callee app.
+ * @details By default, this value is NULL. Once it is set to app ID, that application will be relocated under the callee app after callee app is resumed.
+ * @remarks The value should be an app ID for main app which has been launched before, otherwise it will be ignored.
+ */
+#define APP_CONTROL_DATA_RELOCATE_BELOW "__K_RELOCATE_BELOW"
+
+/**
  * @brief Replaces all data in the app_control with the bundle
  *
  * @remarks This function clears all data in the app_control and adds all key-value pairs in the bundle into the app_control
