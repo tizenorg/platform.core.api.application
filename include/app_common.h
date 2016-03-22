@@ -80,7 +80,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for suspended state
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 typedef enum {
 	APP_SUSPENDED_STATE_WILL_ENTER = 0, /**< Application will enter the suspended state */
@@ -225,7 +225,7 @@ int app_event_get_device_orientation(app_event_info_h event_info, app_device_ori
 /**
  * @brief Gets the suspended state of the application from given event info.
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @param[in] event_info The handle for getting the suspended state
  * @param[out] state The suspended state of the application
  *
@@ -438,7 +438,7 @@ char *app_get_external_cache_path(void);
 
 
 /**
- * @deprecated Deprecated since 2.4.
+ * @deprecated Deprecated since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @brief	Gets the absolute path to the application's external shared data directory which is
  *          used to share data with other applications.
  * @details	An application can read and write its own files in the application's external shared
@@ -458,7 +458,7 @@ char *app_get_external_shared_data_path(void);
  * @brief       Gets the absolute path to the application's TEP(Tizen Expansion Package) directory.
  *              The resource files are delivered with the expansion package.
  * @details     An application can only read its own files in the application's TEP(Tizen Expansion Package) directory.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks     The returned path should be released.
  *
  * @return      The absolute path to the application's TEP(Tizen Expansion Package) directory, @n

@@ -78,7 +78,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for App Control Launch Mode.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 typedef enum {
 	APP_CONTROL_LAUNCH_MODE_SINGLE = 0, /**< Prefer to launch an application as single mode */
@@ -244,7 +244,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Can be launched by interested System-Event.
  * @details Input : URI and extras data defined in Event module.\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks This operation is for handling event from the platform. This operation can not be requested via app_control_send_launch_request().
  * @remarks Refer to Launch-On-Event section of Event module.
  */
@@ -254,7 +254,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Adds an item.
  * @details Input: It depends on application scenario/configuration.\n
  *          Output: It depends on application scenario/configuration.\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_ADD "http://tizen.org/appcontrol/operation/add"
 
@@ -262,7 +262,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Captures images by camera applications.
  * @details Input: Nothing\n
  *	    Output: APP_CONTROL_DATA_SELECTED in Extra\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_IMAGE_CAPTURE "http://tizen.org/appcontrol/operation/image_capture"
 
@@ -270,7 +270,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Captures videos by camera applications.
  * @details Input: Nothing\n
  *	    Output: APP_CONTROL_DATA_SELECTED in Extra\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_VIDEO_CAPTURE "http://tizen.org/appcontrol/operation/video_capture"
 
@@ -278,7 +278,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows settings to enable Bluetooth.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING_BT_ENABLE "http://tizen.org/appcontrol/operation/setting/bt_enable"
 
@@ -286,7 +286,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows settings to configure Bluetooth visibility.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING_BT_VISIBILITY "http://tizen.org/appcontrol/operation/setting/bt_visibility"
 
@@ -294,7 +294,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows settings to allow configuration of current location sources.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING_LOCATION "http://tizen.org/appcontrol/operation/setting/location"
 
@@ -302,7 +302,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows NFC settings.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING_NFC "http://tizen.org/appcontrol/operation/setting/nfc"
 
@@ -310,7 +310,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows system settings.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING "http://tizen.org/appcontrol/operation/setting"
 
@@ -318,7 +318,7 @@ typedef enum {
  * @brief Definition for the app_control operation: Shows settings to allow configuration of Wi-Fi.
  * @details Input: Nothing\n
  *          Output: Nothing\n
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_OPERATION_SETTING_WIFI "http://tizen.org/appcontrol/operation/setting/wifi"
 
@@ -396,76 +396,76 @@ typedef enum {
 
 /**
  * @brief Definition for app_control data: All-day mode of event ("true" or "false")
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_CALENDAR_ALL_DAY "http://tizen.org/appcontrol/data/calendar/all_day"
 
 
 /**
  * @brief Definition for app_control data: Start time of event (format: YYYY-MM-DD HH:MM:SS)
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_CALENDAR_START_TIME "http://tizen.org/appcontrol/data/calendar/start_time"
 
 
 /**
  * @brief Definition for app_control data: End time of event (format: YYYY-MM-DD HH:MM:SS)
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_CALENDAR_END_TIME "http://tizen.org/appcontrol/data/calendar/end_time"
 
 
 /**
  * @brief Definition for app_control data: E-mail addresses
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_EMAIL "http://tizen.org/appcontrol/data/email"
 
 
 /**
  * @brief Definition for app_control data: Phone numbers
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_PHONE "http://tizen.org/appcontrol/data/phone"
 
 
 /**
  * @brief Definition for app_control data: URLs
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_URL "http://tizen.org/appcontrol/data/url"
 
 
 /**
  * @brief Definition for app_control data: IDs
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_ID "http://tizen.org/appcontrol/data/id"
 
 
 /**
  * @brief Definition for app_control data: Type
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_TYPE "http://tizen.org/appcontrol/data/type"
 
 
 /**
  * @brief Definition for app_control data: Total count
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_TOTAL_COUNT "http://tizen.org/appcontrol/data/total_count"
 
 
 /**
  * @brief Definition for app_control data: Total size (unit : bytes)
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_TOTAL_SIZE "http://tizen.org/appcontrol/data/total_size"
 
 /**
  * @brief Definition for app_control data: Name
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define APP_CONTROL_DATA_NAME "http://tizen.org/appcontrol/data/name"
 
@@ -1034,7 +1034,7 @@ int app_control_is_reply_requested(app_control_h app_control, bool *requested);
  *          This function can just set the preference of caller application to launch an application.
  * @remarks Sub-applications which were launched as group mode always have own process.
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @param[in] app_control The app_control handle
  * @param[in] launch_mode The launch mode of app
  *
@@ -1050,7 +1050,7 @@ int app_control_set_launch_mode(app_control_h app_control,
 /**
  * @brief Gets the launch mode of the application.
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @param[in] app_control The app_control handle
  * @param[out] launch_mode The launch mode of app
  *
@@ -1069,7 +1069,7 @@ int app_control_get_launch_mode(app_control_h app_control,
  * @details The function allows to receive #APP_CONTROL_RESULT_APP_STARTED event on\n
  *         application get launched by app_control.
  * @remarks app_control_reply_cb() will be called on APP_CONTROL_RESULT_APP_STARTED event received.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @param[in] app_control The app_control handle
  * @return 0 on success, otherwise a negative error value
  * @retval #APP_CONTROL_ERROR_NONE Successful
