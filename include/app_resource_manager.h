@@ -34,7 +34,7 @@ extern "C" {
 
 /**
  * @brief Enumeration for Resource Types
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 typedef enum {
 	APP_RESOURCE_TYPE_IMAGE = 0, /**<Image*/
@@ -48,7 +48,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for App Resource Manager Error.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 typedef enum {
 	APP_RESOURCE_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
@@ -60,7 +60,7 @@ typedef enum {
 /**
  * @brief Creates resource manager and get from db.
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks If resource manager is already exist,
  *			It will just return APP_RESOURCE_ERROR_NONE
  * @return @c 0 on success,
@@ -75,7 +75,7 @@ int app_resource_manager_init(void);
 /**
  * @brief Convert resource ID to path name
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks If resource manager is not created yet,
  *			app_resource_manager_init() will be invoked automatically.
  *			Caller should free the returned pointer.
@@ -95,7 +95,7 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path);
 /**
  * @brief Destroys resource manager.
  *
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks Please make sure that the instance of resource manager should be released when the application is closing only.
  * 			It is highly recommended way to improve run-time performance.
  * @return @c 0 on success,

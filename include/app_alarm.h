@@ -156,7 +156,7 @@ int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int perio
  * @brief Sets an alarm to be triggered after a specific time.
  * @details The alarm will go off @a delay seconds later.
  *          To cancel the alarm, call alarm_cancel() with @a alarm_id.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @privlevel	public
  * @privilege	%http://tizen.org/privilege/alarm.set
  * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
@@ -188,7 +188,7 @@ int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *a
  * @brief Sets an alarm to be triggered at a specific time.
  * @details The @a date describes the time of the first occurrence.
  *          To cancel the alarm, call alarm_cancel() with @a alarm_id.
- * @since_tizen 2.4
+ * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @privlevel	public
  * @privilege	%http://tizen.org/privilege/alarm.set
  * @remarks If application is uninstalled after setting an alarm, the alarm is cancelled automatically.
