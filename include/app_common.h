@@ -44,7 +44,7 @@ typedef enum {
 	APP_EVENT_LANGUAGE_CHANGED, /**< The system language changed event */
 	APP_EVENT_DEVICE_ORIENTATION_CHANGED, /**< The device orientation changed event */
 	APP_EVENT_REGION_FORMAT_CHANGED, /**< The region format changed event */
-	APP_EVENT_SUSPENDED_STATE_CHANGED, /**< The suspended state changed event of the application (since 2.4)
+	APP_EVENT_SUSPENDED_STATE_CHANGED, /**< The suspended state changed event of the application (since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif)
 					     @see app_event_get_suspended_state */
 } app_event_type_e;
 
@@ -126,7 +126,7 @@ typedef struct app_event_info* app_event_info_h;
  * @remarks If the given @a event_info has #APP_SUSPENDED_STATE_WILL_ENTER value,
  * the application should not call any asynchronous operations in this callback.
  * After the callback returns, process of the application will be changed to suspended
- * state immediately. Thus, asynchronous operations may work incorrectly. (since 2.4)
+ * state immediately. Thus, asynchronous operations may work incorrectly. (since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif)
  *
  */
 typedef void (*app_event_cb)(app_event_info_h event_info, void *user_data);

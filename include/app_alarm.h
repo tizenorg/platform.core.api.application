@@ -51,7 +51,7 @@ typedef enum {
 	ALARM_ERROR_INVALID_TIME = TIZEN_ERROR_APPLICATION | 0x05,	/**< Invalid time */
 	ALARM_ERROR_INVALID_DATE = TIZEN_ERROR_APPLICATION | 0x06,	/**< Invalid date */
 	ALARM_ERROR_CONNECTION_FAIL = TIZEN_ERROR_APPLICATION | 0x07,	/**< The alarm service connection failed */
-	ALARM_ERROR_NOT_PERMITTED_APP = TIZEN_ERROR_APPLICATION | 0x08, /**< Application is not permitted. (Since 2.4) */
+	ALARM_ERROR_NOT_PERMITTED_APP = TIZEN_ERROR_APPLICATION | 0x08, /**< Application is not permitted. (Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif) */
 	ALARM_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,	/**< Out of memory */
 	ALARM_ERROR_PERMISSION_DENIED = TIZEN_ERROR_PERMISSION_DENIED	/**< Permission denied */
 } alarm_error_e;
@@ -94,14 +94,14 @@ typedef bool (*alarm_registered_alarm_cb)(int alarm_id, void *user_data);
  * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
  *          If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
  *          If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
- *          Since 2.4, this api does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.
+ *          Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, this api does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.
  *          If you want to trigger an alarm exactly, see @see alarm_schedule_once_after_delay()
- *          Since 2.4 If @a app_control is specified with service-application, the application is only allowed to run on which has Background Category.
- *          Since 2.4 If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
+ *          Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif If @a app_control is specified with service-application, the application is only allowed to run on which has Background Category.
+ *          Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
  *
  * @param[in] app_control The destination app_control to perform a specific task when the alarm is triggered
- * @param[in] delay	The amount of time before the first execution (in seconds). Since 2.4, Although this is inexact, the alarm will not fire before this time
- * @param[in] period The amount of time between subsequent alarms (in seconds). Since 2.4, This value does not guarantee the accuracy. The actual interval is calculated by the OS. The minimum value is 600sec
+ * @param[in] delay	The amount of time before the first execution (in seconds). Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, Although this is inexact, the alarm will not fire before this time
+ * @param[in] period The amount of time between subsequent alarms (in seconds). Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, This value does not guarantee the accuracy. The actual interval is calculated by the OS. The minimum value is 600sec
  * @param[out] alarm_id	The alarm ID that uniquely identifies an alarm
  * @return	@c 0 on success,
  *          otherwise a negative error value
@@ -121,7 +121,7 @@ int alarm_schedule_after_delay(app_control_h app_control, int delay, int period,
 
 
 /**
- * @deprecated Deprecated since 2.4. [Use alarm_schedule_once_at_date() instead]
+ * @deprecated Deprecated since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif. [Use alarm_schedule_once_at_date() instead]
  * @brief Sets an alarm to be triggered at a specific time.
  * @details The @a date describes the time of the first occurrence.
  *          If @a period is bigger than @c 0, the alarm will be scheduled after the @a period time.
@@ -228,9 +228,9 @@ int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int 
  * @remarks If the application is uninstalled after setting an alarm, the alarm is cancelled automatically.
  *          If the operation of @a app_control is not specified, #APP_CONTROL_OPERATION_DEFAULT is used for the launch request.
  *          If the operation of @a app_control is #APP_CONTROL_OPERATION_DEFAULT, the package information is mandatory to explicitly launch the application.
- *          Since 2.4, The @a app_control only supports UI application with this api. If @a app_control is not UI application, #ALARM_ERROR_NOT_PERMITTED_APP returned.
+ *          Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, The @a app_control only supports UI application with this api. If @a app_control is not UI application, #ALARM_ERROR_NOT_PERMITTED_APP returned.
  *          When the alarm is expired, Alarm Manager will turn on LCD to prohibit background jobs.
- *          Since 2.4, If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
+ *          Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, If the appid of @a app_control is not specified, this api is not allowed. In other words, the explicit @a app_control is only allowed.
  *
  * @param[in] app_control The destination app_control to perform specific work when the alarm is triggered
  * @param[in] date	The first active alarm time

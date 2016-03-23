@@ -70,7 +70,7 @@ typedef enum {
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
 typedef enum {
-	APP_CONTROL_RESULT_APP_STARTED = 1, /**< Callee application launched actually (Since 2.4) */
+	APP_CONTROL_RESULT_APP_STARTED = 1, /**< Callee application launched actually (Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif) */
 	APP_CONTROL_RESULT_SUCCEEDED = 0, /**< Operation succeeded */
 	APP_CONTROL_RESULT_FAILED = -1, /**< Operation failed by the callee */
 	APP_CONTROL_RESULT_CANCELED = -2, /**< Operation canceled by the platform */
@@ -154,7 +154,7 @@ typedef enum {
 /**
  * @brief Definition for the app_control operation: Delivers some data to someone else.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @deprecated Deprecated since 2.4. Use #APP_CONTROL_OPERATION_SHARE instead.
+ * @deprecated Deprecated since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif. Use #APP_CONTROL_OPERATION_SHARE instead.
  */
 #define APP_CONTROL_OPERATION_SEND "http://tizen.org/appcontrol/operation/send"
 
@@ -162,7 +162,7 @@ typedef enum {
 /**
  * @brief Definition for the app_control operation: Delivers text data to someone else.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @deprecated Deprecated since 2.4. Use #APP_CONTROL_OPERATION_SHARE_TEXT instead.
+ * @deprecated Deprecated since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif. Use #APP_CONTROL_OPERATION_SHARE_TEXT instead.
  */
 #define APP_CONTROL_OPERATION_SEND_TEXT "http://tizen.org/appcontrol/operation/send_text"
 
@@ -218,8 +218,8 @@ typedef enum {
  *	    Output: It depends on application scenario/configuration.\n
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @privlevel public
- * @privilege %http://tizen.org/privilege/download (Since 2.4)
- * @remarks When you request this operation, you must declare this privilege. (Since 2.4)
+ * @privilege %http://tizen.org/privilege/download (Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif)
+ * @remarks When you request this operation, you must declare this privilege. (Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif)
  */
 #define APP_CONTROL_OPERATION_DOWNLOAD "http://tizen.org/appcontrol/operation/download"
 
@@ -382,7 +382,7 @@ typedef enum {
 /**
  * @brief Definition for app_control data: Paths of items
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @remarks Since Tizen 2.4, if all added paths with this key are under the caller application's data path which can be obtained by calling app_get_data_path() function, those will be shared to the callee application. Framework will grant a temporary permission to the callee application for those files and revoke it when the callee application is terminated. Paths should be regular files. The callee application can just read them.
+ * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, if all added paths with this key are under the caller application's data path which can be obtained by calling app_get_data_path() function, those will be shared to the callee application. Framework will grant a temporary permission to the callee application for those files and revoke it when the callee application is terminated. Paths should be regular files. The callee application can just read them.
  */
 #define APP_CONTROL_DATA_PATH "http://tizen.org/appcontrol/data/path"
 
@@ -481,7 +481,7 @@ typedef enum {
  * @param[in] result The result code of the launch request
  * @param[in] user_data	The user data passed from the callback registration function
  * @pre When the callee replies to the launch request, this callback will be invoked.
- * @pre Since 2.4, if #APP_CONTROL_RESULT_APP_STARTED event is enabled,
+ * @pre Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, if #APP_CONTROL_RESULT_APP_STARTED event is enabled,
  *      this callback also will be invoked when the callee app actually launched.
  * @see app_control_send_launch_request()
  * @see app_control_reply_to_launch_request()
@@ -606,7 +606,7 @@ int app_control_get_operation(app_control_h app_control, char **operation);
  * @brief Sets the URI of the data.
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @remarks Since Tizen 2.4, if the parameter 'uri' is started with 'file://' and it is a regular file in this application's data path which can be obtained by calling app_get_data_path() function, it will be shared to the callee application. Framework will grant a temporary permission to the callee application for this file and revoke it when the callee application is terminated. The callee application can just read it.
+ * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, if the parameter 'uri' is started with 'file://' and it is a regular file in this application's data path which can be obtained by calling app_get_data_path() function, it will be shared to the callee application. Framework will grant a temporary permission to the callee application for this file and revoke it when the callee application is terminated. The callee application can just read it.
  * @param[in] app_control The app_control handle
  * @param[in] uri The URI of the data this app_control is operating on (if the @a uri is @c NULL, it clears the previous value)
  * @return @c 0 on success,
@@ -913,7 +913,7 @@ int app_control_foreach_app_matched(app_control_h app_control, app_control_app_m
  * @privlevel	public
  * @privilege	%http://tizen.org/privilege/appmanager.launch
  * @remarks The function returns #APP_CONTROL_ERROR_LAUNCH_REJECTED if the operation value is #APP_CONTROL_OPERATION_LAUNCH_ON_EVENT which is only for handling the event from the platform or other application, refer to @a Event module.
- * @remarks Since Tizen 2.4, the launch request of the service application over out of packages is restricted by the platform. Also, implicit launch requests are NOT delivered to service applications since 2.4. To launch a service application, an explicit launch request with application ID given by app_control_set_app_id() MUST be sent.
+ * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, the launch request of the service application over out of packages is restricted by the platform. Also, implicit launch requests are NOT delivered to service applications since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif. To launch a service application, an explicit launch request with application ID given by app_control_set_app_id() MUST be sent.
  * @param[in] app_control The app_control handle
  * @param[in] callback The callback function to be called when the reply is delivered
  * @param[in] user_data The user data to be passed to the callback function
@@ -938,7 +938,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 /**
  * @brief Sends the terminate request to the application that is launched by app_control. This API is only effective for some applications that are provided by default for handling platform default app_controls. You are not allowed to terminate other general applications using this API.
  *
- * @remarks Since Tizen 2.4, this API can be used to terminate sub-applications which were launched as group mode by caller application.
+ * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, this API can be used to terminate sub-applications which were launched as group mode by caller application.
  *          Once callee application is being terminated by this API, other applications which were launched by callee application as group mode will be terminated as well.
  *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
