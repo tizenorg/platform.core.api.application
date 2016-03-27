@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ int app_resource_manager_get(app_resource_e type, const char *id, char **path);
  *
  * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @remarks Please make sure that the instance of resource manager should be released when the application is closing only.
- * 			It is highly recommended way to improve run-time performance.
+ *	It is highly recommended way to improve run-time performance.
  * @return @c 0 on success,
  *         otherwise a negative error value
  * @retval #APP_RESOURCE_ERROR_NONE Successful
