@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
 
 typedef void (*app_finalizer_cb) (void *data);
 
-int app_error(app_error_e error, const char* function, const char *description);
+int app_error(app_error_e error, const char *function, const char *description);
 
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
 
@@ -262,3 +262,4 @@ void app_efl_exit(void);
 #endif
 
 #endif /* __TIZEN_APPFW_APP_INTERNAL_H__ */
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ typedef enum {
  * @see app_remove_event_handler
  * @see app_event_info_h
  */
-typedef struct app_event_handler* app_event_handler_h;
+typedef struct app_event_handler *app_event_handler_h;
 
 
 /**
@@ -110,7 +110,7 @@ typedef struct app_event_handler* app_event_handler_h;
  * @see app_event_get_device_orientation
  * @see app_event_get_suspended_state
  */
-typedef struct app_event_info* app_event_info_h;
+typedef struct app_event_info *app_event_info_h;
 
 
 /**
@@ -475,3 +475,4 @@ char *app_get_tep_resource_path(void);
 #endif
 
 #endif /* __TIZEN_APPFW_APP_H__ */
+

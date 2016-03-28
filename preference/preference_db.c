@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -320,7 +320,6 @@ int preference_get_double(const char *key, double *value)
 {
 	char type[2];
 	char data[BUF_LEN];
-
 	int ret;
 
 	if (value == NULL) {
@@ -363,7 +362,6 @@ int preference_get_string(const char *key, char **value)
 {
 	char type[2];
 	char data[BUF_LEN];
-
 	int ret;
 
 	if (value == NULL) {
@@ -469,7 +467,7 @@ int preference_is_existing(const char *key, bool *exist)
 	return PREFERENCE_ERROR_NONE;
 }
 
-static pref_changed_cb_node_t* _find_node(const char *key)
+static pref_changed_cb_node_t *_find_node(const char *key)
 {
 	pref_changed_cb_node_t *tmp_node;
 
@@ -501,7 +499,7 @@ static int _add_node(const char *key, preference_changed_cb cb, void *user_data)
 		tmp_node->cb = cb;
 		tmp_node->user_data = user_data;
 	} else {
-		tmp_node = (pref_changed_cb_node_t*)malloc(sizeof(pref_changed_cb_node_t));
+		tmp_node = (pref_changed_cb_node_t *)malloc(sizeof(pref_changed_cb_node_t));
 		if (tmp_node == NULL) {
 			LOGE("OUT_OF_MEMORY(0x%08x)", PREFERENCE_ERROR_OUT_OF_MEMORY);
 			return PREFERENCE_ERROR_OUT_OF_MEMORY;
@@ -794,3 +792,4 @@ int preference_foreach_item(preference_item_cb callback, void *user_data)
 
 	return PREFERENCE_ERROR_NONE;
 }
+

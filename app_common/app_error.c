@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION"
 
-static const char* app_error_to_string(app_error_e error)
+static const char *app_error_to_string(app_error_e error)
 {
 	switch (error) {
 	case APP_ERROR_NONE:
@@ -47,7 +47,7 @@ static const char* app_error_to_string(app_error_e error)
 	}
 }
 
-int app_error(app_error_e error, const char* function, const char *description)
+int app_error(app_error_e error, const char *function, const char *description)
 {
 	if (description)
 		LOGE("[%s] %s(0x%08x) : %s", function, app_error_to_string(error), error, description);
@@ -56,3 +56,4 @@ int app_error(app_error_e error, const char* function, const char *description)
 
 	return error;
 }
+

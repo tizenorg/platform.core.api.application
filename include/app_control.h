@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ typedef unsigned char bundle_raw;
  * @brief App Control handle.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  */
-typedef struct app_control_s* app_control_h;
+typedef struct app_control_s *app_control_h;
 
 
 /**
@@ -1126,3 +1126,4 @@ int app_control_unset_defapp(const char *app_id);
 #endif
 
 #endif /* __TIZEN_APPFW_APP_CONTROL_H__ */
+

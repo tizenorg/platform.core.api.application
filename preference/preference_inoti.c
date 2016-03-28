@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -60,11 +60,12 @@ static pthread_mutex_t _kdb_g_ns_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static GSource *_kdb_handler;
 
-static GList* _preference_copy_noti_list(GList *orig_notilist)
+static GList *_preference_copy_noti_list(GList *orig_notilist)
 {
 	GList *copy_notilist = NULL;
 	struct noti_node *n = NULL;
 	struct noti_node *t = NULL;
+	char err_buf[ERR_LEN] = {0,};
 
 	if (!orig_notilist)
 		return NULL;
@@ -76,7 +77,6 @@ static GList* _preference_copy_noti_list(GList *orig_notilist)
 	while (orig_notilist) {
 		do {
 			t = orig_notilist->data;
-
 			if (t == NULL) {
 				WARN("noti item data is null");
 				break;
@@ -95,7 +95,6 @@ static GList* _preference_copy_noti_list(GList *orig_notilist)
 
 			n->keyname = strndup(t->keyname, PREFERENCE_KEY_PATH_LEN);
 			if (n->keyname == NULL) {
-				char err_buf[ERR_LEN] = {0,};
 				strerror_r(errno, err_buf, sizeof(err_buf));
 				ERR("The memory is insufficient, errno: %d (%s)", errno, err_buf);
 				free(n);
@@ -115,7 +114,7 @@ static GList* _preference_copy_noti_list(GList *orig_notilist)
 
 static void _preference_free_noti_node(gpointer data)
 {
-	struct noti_node *n = (struct noti_node*)data;
+	struct noti_node *n = (struct noti_node *)data;
 	g_free(n->keyname);
 	g_free(n);
 }
@@ -131,6 +130,9 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 	int fd, r, res;
 	struct inotify_event ie;
 	GList *l_notilist = NULL;
+	struct noti_node *t = NULL;
+	GList *noti_list = NULL;
+	keynode_t *keynode;
 
 	fd = g_io_channel_unix_get_fd(src);
 	r = read(fd, &ie, sizeof(ie));
@@ -145,23 +147,17 @@ static gboolean _preference_kdb_gio_cb(GIOChannel *src, GIOCondition cond, gpoin
 			pthread_mutex_unlock(&_kdb_g_ns_mutex);
 
 			if (l_notilist) {
-
-				struct noti_node *t = NULL;
-				GList *noti_list = NULL;
-
 				noti_list = g_list_first(l_notilist);
-
 				while (noti_list) {
 					t = noti_list->data;
 
-					keynode_t* keynode = _preference_keynode_new();
+					keynode = _preference_keynode_new();
 					if (keynode == NULL) {
 						ERR("key malloc fail");
 						break;
 					}
 
 					if ((t) && (t->wd == ie.wd) && (t->keyname)) {
-
 						res = _preference_keynode_set_keyname(keynode, t->keyname);
 						if (res != PREFERENCE_ERROR_NONE) {
 							ERR("_preference_keynode_set_keyname() failed(%d)", res);
@@ -205,6 +201,7 @@ static int _preference_kdb_noti_init(void)
 {
 	GIOChannel *gio;
 	int ret = 0;
+	char err_buf[ERR_LEN] = { 0, };
 
 	pthread_mutex_lock(&_kdb_inoti_fd_mutex);
 
@@ -215,7 +212,6 @@ static int _preference_kdb_noti_init(void)
 	}
 	_kdb_inoti_fd = inotify_init();
 	if (_kdb_inoti_fd == -1) {
-		char err_buf[100] = { 0, };
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
@@ -224,7 +220,6 @@ static int _preference_kdb_noti_init(void)
 
 	ret = fcntl(_kdb_inoti_fd, F_SETFD, FD_CLOEXEC);
 	if (ret < 0) {
-		char err_buf[100] = { 0, };
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
@@ -233,7 +228,6 @@ static int _preference_kdb_noti_init(void)
 
 	ret = fcntl(_kdb_inoti_fd, F_SETFL, O_NONBLOCK);
 	if (ret < 0) {
-		char err_buf[100] = { 0, };
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
@@ -281,7 +275,7 @@ int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, voi
 		return PREFERENCE_ERROR_INVALID_PARAMETER;
 	}
 
-	if (0 != access(path, F_OK)) {
+	if (access(path, F_OK) != 0) {
 		if (errno == ENOENT) {
 			ERR("_preference_kdb_add_notify : Key(%s) does not exist", keyname);
 			return PREFERENCE_ERROR_IO_ERROR;
@@ -364,7 +358,7 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 		return PREFERENCE_ERROR_INVALID_PARAMETER;
 	}
 
-	if (0 != access(path, F_OK)) {
+	if (access(path, F_OK) != 0) {
 		if (errno == ENOENT) {
 			ERR("_preference_kdb_del_notify : Key(%s) does not exist", keyname);
 			return PREFERENCE_ERROR_IO_ERROR;
@@ -427,3 +421,4 @@ int _preference_kdb_del_notify(keynode_t *keynode)
 
 	return func_ret;
 }
+

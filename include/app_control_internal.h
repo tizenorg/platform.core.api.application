@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2014 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -162,3 +162,4 @@ int app_control_request_transient_app(app_control_h app_control, unsigned int ca
 #endif
 
 #endif /* __TIZEN_APPFW_APP_CONTROL_INTERNAL_H__ */
+

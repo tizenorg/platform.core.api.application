@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ extern "C" {
 #define PREF_DIR	".pref/"
 
 #define PREFERENCE_KEY_PATH_LEN	1024
-#define ERR_LEN			128
+#define ERR_LEN			1024
 
 #define PREF_DB_NAME		".pref.db"
 #define PREF_TBL_NAME		"pref"
@@ -149,3 +149,4 @@ inline void _preference_keynode_free(keynode_t *keynode);
 #endif
 
 #endif /* __TIZEN_APPFW_PREFERENCE_INTERNAL_H__ */
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -38,18 +38,18 @@
 
 typedef struct {
 	alarm_registered_alarm_cb cb;
-	void* user_data;
-	bool* foreach_break;
+	void *user_data;
+	bool *foreach_break;
 } alarm_foreach_item_cb_context;
 
 static int alarm_registered_alarm_cb_broker(int alarm_id, void *user_data)
 {
-	alarm_foreach_item_cb_context* foreach_cb_context = NULL;
+	alarm_foreach_item_cb_context *foreach_cb_context = NULL;
 
 	if (user_data == NULL)
 		return 0;
 
-	foreach_cb_context = (alarm_foreach_item_cb_context*)user_data;
+	foreach_cb_context = (alarm_foreach_item_cb_context *)user_data;
 
 	if (foreach_cb_context != NULL && *(foreach_cb_context->foreach_break) == false) {
 		if (foreach_cb_context->cb(alarm_id, foreach_cb_context->user_data) == false)
@@ -59,7 +59,7 @@ static int alarm_registered_alarm_cb_broker(int alarm_id, void *user_data)
 	return 0;
 }
 
-static int convert_error_code_to_alarm(const char* function, alarm_error_t alarm_error)
+static int convert_error_code_to_alarm(const char *function, alarm_error_t alarm_error)
 {
 	switch (alarm_error) {
 	case ERR_ALARM_INVALID_PARAM:
@@ -103,7 +103,7 @@ static int convert_error_code_to_alarm(const char* function, alarm_error_t alarm
 	}
 }
 
-int alarm_get_scheduled_date(int alarm_id, struct tm* date)
+int alarm_get_scheduled_date(int alarm_id, struct tm *date)
 {
 	alarm_error_t result;
 	time_t due_time = 0;
@@ -122,7 +122,7 @@ int alarm_get_scheduled_date(int alarm_id, struct tm* date)
 	return ALARM_ERROR_NONE;
 }
 
-int alarm_get_scheduled_period(int alarm_id, int* period)
+int alarm_get_scheduled_period(int alarm_id, int *period)
 {
 	alarm_error_t result;
 	alarm_entry_t *entry = NULL;
@@ -188,7 +188,7 @@ int alarm_schedule_after_delay(app_control_h app_control, int delay, int period,
 int alarm_schedule_at_date(app_control_h app_control, struct tm *date, int period_in_second, int *alarm_id)
 {
 	alarm_date_t internal_time;
-	alarm_entry_t* alarm_info;
+	alarm_entry_t *alarm_info;
 	bundle *bundle_data;
 	int result;
 
@@ -269,7 +269,7 @@ int alarm_schedule_once_after_delay(app_control_h app_control, int delay, int *a
 int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int *alarm_id)
 {
 	alarm_date_t internal_time;
-	alarm_entry_t* alarm_info;
+	alarm_entry_t *alarm_info;
 	bundle *bundle_data;
 	int result;
 
@@ -344,7 +344,7 @@ int alarm_cancel_all()
 	return convert_error_code_to_alarm(__FUNCTION__, result);
 }
 
-int alarm_foreach_registered_alarm(alarm_registered_alarm_cb callback, void* user_data)
+int alarm_foreach_registered_alarm(alarm_registered_alarm_cb callback, void *user_data)
 {
 	int result;
 	bool foreach_break = false;
@@ -366,7 +366,7 @@ int alarm_foreach_registered_alarm(alarm_registered_alarm_cb callback, void* use
 	return convert_error_code_to_alarm(__FUNCTION__, result);
 }
 
-int alarm_get_current_time(struct tm* date)
+int alarm_get_current_time(struct tm *date)
 {
 	time_t now;
 
@@ -383,7 +383,7 @@ int alarm_get_current_time(struct tm* date)
 int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag, int *alarm_id)
 {
 	alarm_date_t internal_time;
-	alarm_entry_t* alarm_info;
+	alarm_entry_t *alarm_info;
 	bundle *bundle_data;
 	int result;
 
@@ -509,3 +509,4 @@ int alarm_get_app_control(int alarm_id, app_control_h *app_control)
 
 	return ALARM_ERROR_NONE;
 }
+

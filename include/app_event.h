@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2015 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ extern "C" {
  * @brief Event handle.
  * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
-typedef struct event_handler* event_handler_h;
+typedef struct event_handler *event_handler_h;
 
 /**
  * @brief Event callback.
@@ -898,3 +898,4 @@ int event_publish_trusted_app_event(const char *event_name, bundle *event_data);
 #endif
 
 #endif /* __TIZEN_APPFW_EVENT_H__ */
+

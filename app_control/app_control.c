@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ extern int appsvc_allow_transient_app(bundle *b, unsigned int id);
 extern int appsvc_request_transient_app(bundle *b, unsigned int callee_id, appsvc_host_res_fn cbfunc, void *data);
 static int app_control_create_reply(bundle *data, struct app_control_s **app_control);
 
-static const char* app_control_error_to_string(app_control_error_e error)
+static const char *app_control_error_to_string(app_control_error_e error)
 {
 	switch (error) {
 	case APP_CONTROL_ERROR_NONE:
@@ -109,7 +109,7 @@ static const char* app_control_error_to_string(app_control_error_e error)
 	}
 }
 
-int app_control_error(app_control_error_e error, const char* function, const char *description)
+int app_control_error(app_control_error_e error, const char *function, const char *description)
 {
 	if (description)
 		LOGE("[%s] %s(0x%08x) : %s", function, app_control_error_to_string(error), error, description);
@@ -799,7 +799,7 @@ static bool app_control_copy_reply_data_cb(app_control_h app_control, const char
 
 	if (appsvc_data_is_array(app_control->data, key)) {
 		app_control_get_extra_data_array(app_control, key, &value_array, &value_array_length);
-		appsvc_add_data_array(reply_data, key, (const char**)value_array, value_array_length);
+		appsvc_add_data_array(reply_data, key, (const char **)value_array, value_array_length);
 
 		for (value_array_index = 0; value_array_index < value_array_length; value_array_index++)
 			free(value_array[value_array_index]);
@@ -962,7 +962,7 @@ int app_control_get_extra_data_array(app_control_h app_control, const char *key,
 			return app_control_error(APP_CONTROL_ERROR_KEY_NOT_FOUND, __FUNCTION__, NULL);
 	}
 
-	array_data_clone = calloc(array_data_length, sizeof(char*));
+	array_data_clone = calloc(array_data_length, sizeof(char *));
 	if (array_data_clone == NULL)
 		return app_control_error(APP_CONTROL_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
 
@@ -996,19 +996,19 @@ int app_control_is_extra_data_array(app_control_h app_control, const char *key, 
 typedef struct {
 	app_control_h app_control;
 	app_control_extra_data_cb callback;
-	void* user_data;
+	void *user_data;
 	bool foreach_break;
 } foreach_context_extra_data_t;
 
 static void app_control_cb_broker_bundle_iterator(const char *key, const int type, const bundle_keyval_t *kv, void *user_data)
 {
-	foreach_context_extra_data_t* foreach_context = NULL;
+	foreach_context_extra_data_t *foreach_context = NULL;
 	app_control_extra_data_cb extra_data_cb;
 
 	if (key == NULL || !(type == BUNDLE_TYPE_STR || type == BUNDLE_TYPE_STR_ARRAY))
 		return;
 
-	foreach_context = (foreach_context_extra_data_t*)user_data;
+	foreach_context = (foreach_context_extra_data_t *)user_data;
 	if (foreach_context->foreach_break == true)
 		return;
 
@@ -1046,7 +1046,7 @@ int app_control_foreach_extra_data(app_control_h app_control, app_control_extra_
 typedef struct {
 	app_control_h app_control;
 	app_control_app_matched_cb callback;
-	void* user_data;
+	void *user_data;
 	bool foreach_break;
 } foreach_context_launchable_app_t;
 
@@ -1060,7 +1060,7 @@ int app_control_cb_broker_foreach_app_matched(const char *package, void *data)
 		return -1;
 	}
 
-	foreach_context = (foreach_context_launchable_app_t*)data;
+	foreach_context = (foreach_context_launchable_app_t *)data;
 	if (foreach_context->foreach_break == true)
 		return -1;
 
@@ -1198,3 +1198,4 @@ int app_control_enable_app_started_result_event(app_control_h app_control)
 
 	return APP_CONTROL_ERROR_NONE;
 }
+

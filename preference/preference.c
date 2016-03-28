@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ int init_time(void)
 }
 #endif
 
-char* _preference_get_pref_dir_path()
+char *_preference_get_pref_dir_path()
 {
 	char *app_data_path = NULL;
 
@@ -219,7 +219,7 @@ int _preference_get_key_path(keynode_t *keynode, char *path)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	key = (const char*)convert_key;
+	key = (const char *)convert_key;
 
 	snprintf(path, PATH_MAX-1, "%s%s", pref_dir_path, key);
 
@@ -232,6 +232,7 @@ static int _preference_set_key_check_pref_dir()
 {
 	char *pref_dir_path = NULL;
 	mode_t dir_mode = 0664 | 0111;
+	char err_buf[ERR_LEN] = {0,};
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path) {
@@ -241,7 +242,6 @@ static int _preference_set_key_check_pref_dir()
 
 	if (access(pref_dir_path, F_OK) < 0) {
 		if (mkdir(pref_dir_path, dir_mode) < 0) {
-			char err_buf[ERR_LEN] = {0,};
 			strerror_r(errno, err_buf, sizeof(err_buf));
 			ERR("mkdir() failed(%d/%s)", errno, err_buf);
 			return PREFERENCE_ERROR_IO_ERROR;
@@ -251,16 +251,17 @@ static int _preference_set_key_check_pref_dir()
 	return PREFERENCE_ERROR_NONE;
 }
 
-static int _preference_set_key_creation(const char* path)
+static int _preference_set_key_creation(const char *path)
 {
 	int fd;
 	mode_t temp;
+	char err_buf[ERR_LEN] = {0,};
+
 	temp = umask(0000);
 	fd = open(path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
 	umask(temp);
 
 	if (fd == -1) {
-		char err_buf[ERR_LEN] = {0,};
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("open(rdwr,create) error: %d(%s)", errno, err_buf);
 		return PREFERENCE_ERROR_IO_ERROR;
@@ -351,13 +352,14 @@ static void _preference_log_subject_label(void)
 static int _preference_check_retry_err(keynode_t *keynode, int preference_errno, int io_errno, int op_type)
 {
 	int is_busy_err = 0;
+	int rc = 0;
+	char path[PATH_MAX] = {0,};
+	char err_buf[ERR_LEN] = {0,};
 
 	if (preference_errno == PREFERENCE_ERROR_FILE_OPEN) {
 		switch (io_errno) {
 		case ENOENT:
 			if (op_type == PREFERENCE_OP_SET) {
-				int rc = 0;
-				char path[PATH_MAX] = {0,};
 				rc = _preference_get_key_path(keynode, path);
 				if (rc != PREFERENCE_ERROR_NONE) {
 					ERR("_preference_get_key_path error");
@@ -425,10 +427,9 @@ static int _preference_check_retry_err(keynode_t *keynode, int preference_errno,
 		is_busy_err = 0;
 	}
 
-	if (is_busy_err == 1)
+	if (is_busy_err == 1) {
 		return 1;
-	else {
-		char err_buf[ERR_LEN] = {0,};
+	} else {
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("key(%s), check retry err: %d/(%d/%s).", keynode->keyname, preference_errno, io_errno, err_buf);
 		return 0;
@@ -627,13 +628,14 @@ static int _preference_set_key(keynode_t *keynode)
  */
 API int preference_set_int(const char *key, int intval)
 {
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
 
-	int func_ret = PREFERENCE_ERROR_NONE;
-
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -667,12 +669,14 @@ API int preference_set_int(const char *key, int intval)
 */
 API int preference_set_boolean(const char *key, bool boolval)
 {
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
 
-	int func_ret = PREFERENCE_ERROR_NONE;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -705,12 +709,14 @@ API int preference_set_boolean(const char *key, bool boolval)
  */
 API int preference_set_double(const char *key, double dblval)
 {
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
 
-	int func_ret = PREFERENCE_ERROR_NONE;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -743,13 +749,15 @@ API int preference_set_double(const char *key, double dblval)
  */
 API int preference_set_string(const char *key, const char *strval)
 {
+	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is NULL");
 	retvm_if(strval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: value is NULL");
 
-	int func_ret = PREFERENCE_ERROR_NONE;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -849,7 +857,7 @@ retry:
 	/* read data value */
 	switch (type) {
 	case PREFERENCE_TYPE_INT:
-		read_size = fread((void*)&value_int, sizeof(int), 1, fp);
+		read_size = fread((void *)&value_int, sizeof(int), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(int))) {
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
@@ -863,7 +871,7 @@ retry:
 
 		break;
 	case PREFERENCE_TYPE_DOUBLE:
-		read_size = fread((void*)&value_dbl, sizeof(double), 1, fp);
+		read_size = fread((void *)&value_dbl, sizeof(double), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(double))) {
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
@@ -877,7 +885,7 @@ retry:
 
 		break;
 	case PREFERENCE_TYPE_BOOLEAN:
-		read_size = fread((void*)&value_int, sizeof(int), 1, fp);
+		read_size = fread((void *)&value_int, sizeof(int), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(int))) {
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
@@ -1000,13 +1008,15 @@ int _preference_get_key(keynode_t *keynode)
  */
 API int preference_get_int(const char *key, int *intval)
 {
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(intval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
 
-	int func_ret = PREFERENCE_ERROR_IO_ERROR;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1045,13 +1055,15 @@ API int preference_get_int(const char *key, int *intval)
  */
 API int preference_get_boolean(const char *key, bool *boolval)
 {
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(boolval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
 
-	int func_ret = PREFERENCE_ERROR_IO_ERROR;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1091,13 +1103,15 @@ API int preference_get_boolean(const char *key, bool *boolval)
  */
 API int preference_get_double(const char *key, double *dblval)
 {
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(dblval == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
 
-	int func_ret = PREFERENCE_ERROR_IO_ERROR;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1137,13 +1151,16 @@ API int preference_get_double(const char *key, double *dblval)
  */
 API int preference_get_string(const char *key, char **value)
 {
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+	char *tempstr = NULL;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(value == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: output buffer is null");
 
-	int func_ret = PREFERENCE_ERROR_IO_ERROR;
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1153,15 +1170,13 @@ API int preference_get_string(const char *key, char **value)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	char *tempstr = NULL;
 	func_ret = _preference_get_key(pKeyNode);
-
 	if (func_ret != PREFERENCE_ERROR_NONE) {
 		ERR("preference_get_string(%d) : %s error", getpid(), key);
 	} else {
-		if (pKeyNode->type == PREFERENCE_TYPE_STRING)
+		if (pKeyNode->type == PREFERENCE_TYPE_STRING) {
 			tempstr = pKeyNode->value.s;
-		else {
+		} else {
 			ERR("The type(%d) of keynode(%s) is not STR", pKeyNode->type, pKeyNode->keyname);
 			func_ret = PREFERENCE_ERROR_INVALID_PARAMETER;
 		}
@@ -1186,16 +1201,17 @@ API int preference_get_string(const char *key, char **value)
  */
 API int preference_remove(const char *key)
 {
-	START_TIME_CHECK
-
 	char path[PATH_MAX] = {0,};
 	int ret = -1;
 	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
 	int func_ret = PREFERENCE_ERROR_NONE;
+	char err_buf[ERR_LEN] = {0,};
+
+	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	keynode_t* pKeyNode = _preference_keynode_new();
+	keynode_t *pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1221,7 +1237,6 @@ API int preference_remove(const char *key)
 	do {
 		ret = remove(path);
 		if (ret == -1) {
-			char err_buf[ERR_LEN] = {0,};
 			strerror_r(errno, err_buf, sizeof(err_buf));
 			ERR("preference_remove() failed. ret=%d(%s), key(%s)", errno, err_buf, key);
 			func_ret = PREFERENCE_ERROR_IO_ERROR;
@@ -1240,8 +1255,6 @@ API int preference_remove(const char *key)
 
 API int preference_remove_all(void)
 {
-	START_TIME_CHECK
-
 	int ret = -1;
 	int err_retry = PREFERENCE_ERROR_RETRY_CNT;
 	int func_ret = PREFERENCE_ERROR_NONE;
@@ -1250,6 +1263,11 @@ API int preference_remove_all(void)
 	struct dirent *result = NULL;
 	char *pref_dir_path = NULL;
 	char err_buf[ERR_LEN] = {0,};
+	const char *entry;
+	char *keyname = NULL;
+	char path[PATH_MAX] = {0,};
+
+	START_TIME_CHECK
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path) {
@@ -1264,7 +1282,7 @@ API int preference_remove_all(void)
 		return PREFERENCE_ERROR_IO_ERROR;
 	}
 
-	keynode_t* pKeyNode = _preference_keynode_new();
+	keynode_t *pKeyNode = _preference_keynode_new();
 	if (pKeyNode == NULL) {
 		ERR("key malloc fail");
 		closedir(dir);
@@ -1272,10 +1290,7 @@ API int preference_remove_all(void)
 	}
 
 	while (readdir_r(dir, &dent, &result) == 0 && result != NULL) {
-		const char *entry = dent.d_name;
-		char *keyname = NULL;
-		char path[PATH_MAX] = {0,};
-
+		entry = dent.d_name;
 		if (entry[0] == '.')
 			continue;
 
@@ -1327,16 +1342,17 @@ API int preference_remove_all(void)
 
 int preference_is_existing(const char *key, bool *exist)
 {
-	START_TIME_CHECK
-
 	char path[PATH_MAX] = {0,};
 	int ret = -1;
 	int func_ret = PREFERENCE_ERROR_NONE;
+	keynode_t *pKeyNode;
+
+	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(exist == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1367,17 +1383,17 @@ int preference_is_existing(const char *key, bool *exist)
 	return func_ret;
 }
 
-
 API int preference_set_changed_cb(const char *key, preference_changed_cb callback, void *user_data)
 {
+	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+
 	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
 
-	int func_ret = PREFERENCE_ERROR_IO_ERROR;
-
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1408,13 +1424,15 @@ API int preference_set_changed_cb(const char *key, preference_changed_cb callbac
 
 API int preference_unset_changed_cb(const char *key)
 {
-	START_TIME_CHECK
-
 	int func_ret = PREFERENCE_ERROR_IO_ERROR;
+	keynode_t *pKeyNode;
+	char err_buf[ERR_LEN] = {0,};
+
+	START_TIME_CHECK
 
 	retvm_if(key == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: key is null");
 
-	keynode_t* pKeyNode = _preference_keynode_new();
+	pKeyNode = _preference_keynode_new();
 	retvm_if(pKeyNode == NULL, PREFERENCE_ERROR_OUT_OF_MEMORY, "key malloc fail");
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
@@ -1430,7 +1448,6 @@ API int preference_unset_changed_cb(const char *key)
 			_preference_keynode_free(pKeyNode);
 			return PREFERENCE_ERROR_NO_KEY;
 		} else if (errno != 0) {
-			char err_buf[ERR_LEN] = {0,};
 			strerror_r(errno, err_buf, sizeof(err_buf));
 			ERR("preference_unset_changed_cb() failed: key(%s) error(%d/%s)", key, errno, err_buf);
 			_preference_keynode_free(pKeyNode);
@@ -1448,16 +1465,19 @@ API int preference_unset_changed_cb(const char *key)
 
 API int preference_foreach_item(preference_item_cb callback, void *user_data)
 {
-	START_TIME_CHECK
-
-	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
-
 	int ret = 0;
 	DIR *dir;
 	struct dirent dent;
 	struct dirent *result = NULL;
 	char *pref_dir_path = NULL;
 	char err_buf[ERR_LEN] = {0,};
+	const char *entry;
+	char *keyname = NULL;
+	char path[PATH_MAX] = {0,};
+
+
+	START_TIME_CHECK
+	retvm_if(callback == NULL, PREFERENCE_ERROR_INVALID_PARAMETER, "Invalid argument: cb(%p)", callback);
 
 	pref_dir_path = _preference_get_pref_dir_path();
 	if (!pref_dir_path) {
@@ -1473,10 +1493,7 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 	}
 
 	while (readdir_r(dir, &dent, &result) == 0 && result != NULL) {
-		const char *entry = dent.d_name;
-		char *keyname = NULL;
-		char path[PATH_MAX] = {0,};
-
+		entry = dent.d_name;
 		if (entry[0] == '.')
 			continue;
 
@@ -1498,3 +1515,4 @@ API int preference_foreach_item(preference_item_cb callback, void *user_data)
 
 	return PREFERENCE_ERROR_NONE;
 }
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Samsung Electronics Co., Ltd All Rights Reserved
+ * Copyright (c) 2011 - 2016 Samsung Electronics Co., Ltd All Rights Reserved
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -469,7 +469,7 @@ static int _ui_app_appcore_suspended_state_changed(void *event_info, void *data)
 	struct app_event_info event;
 
 	LOGI("_ui_app_appcore_suspended_state_changed");
-	LOGI("[__SUSPEND__] suspended state: %d (0: suspend, 1: wake)", *(int*)event_info);
+	LOGI("[__SUSPEND__] suspended state: %d (0: suspend, 1: wake)", *(int *)event_info);
 
 	event.type = APP_EVENT_SUSPENDED_STATE_CHANGED;
 	event.value = event_info;
