@@ -250,7 +250,7 @@ int alarm_schedule_once_at_date(app_control_h app_control, struct tm *date, int 
  * @see alarm_get_scheduled_date()
  * @see	#alarm_week_flag_e
  */
-int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag,int *alarm_id);
+int alarm_schedule_with_recurrence_week_flag(app_control_h app_control, struct tm *date, int week_flag, int *alarm_id);
 
 
 /**
