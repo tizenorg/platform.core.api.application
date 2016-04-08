@@ -18,6 +18,8 @@
 #ifndef __TIZEN_APPFW_APP_EXTENSION_H__
 #define __TIZEN_APPFW_APP_EXTENSION_H__
 
+#include <app_control.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,6 +59,44 @@ void *app_get_preinitialized_background(void);
  */
 void *app_get_preinitialized_conformant(void);
 
+/**
+ * @platform
+ * @brief Sets the ID of default application associated with operation, mime-type and uri.
+ *
+ * @since_tizen 3.0
+ * @privlevel platform
+ * @privilege %http://tizen.org/privilege/systemsettings.admin
+ * @param[in] app_control The app_control handle
+ * @param[in] app_id The ID of the application
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #APP_CONTROL_ERROR_IO_ERROR IO error
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ *
+ */
+int app_control_set_defapp(app_control_h app_control, const char *app_id);
+
+/**
+ * @platform
+ * @brief Unsets default application control setting of an application.
+ *
+ * @details When an user call this API, all the default application settings for the app_id are unset.
+ *
+ * @since_tizen 3.0
+ * @privlevel platform
+ * @privilege %http://tizen.org/privilege/systemsettings.admin
+ * @param[in] app_id The ID of the application
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_CONTROL_ERROR_NONE Successful
+ * @retval #APP_CONTROL_ERROR_PERMISSION_DENIED Permission denied
+ * @retval #APP_CONTROL_ERROR_IO_ERROR IO error
+ * @retval #APP_CONTROL_ERROR_INVALID_PARAMETER Invalid parameter
+ *
+ */
+int app_control_unset_defapp(const char *app_id);
 #ifdef __cplusplus
 }
 #endif
