@@ -1050,6 +1050,8 @@ int app_control_set_launch_mode(app_control_h app_control,
 /**
  * @brief Gets the launch mode of the application.
  *
+ * @remarks Since Tizen 3.0, if launch mode not set in the caller app control,
+ *	the function returns #APP_CONTROL_LAUNCH_MODE_SINGLE launch mode.
  * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  * @param[in] app_control The app_control handle
  * @param[out] launch_mode The launch mode of app

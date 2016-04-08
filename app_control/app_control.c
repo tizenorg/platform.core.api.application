@@ -573,8 +573,6 @@ int app_control_get_launch_mode(app_control_h app_control,
 	launch_mode = appsvc_get_launch_mode(app_control->data);
 	if (launch_mode == NULL) {
 		*mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
-		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER,
-				__FUNCTION__, "fail to get launch_mode");
 	} else {
 		if (!strcmp(launch_mode, LAUNCH_MODE_SINGLE)) {
 			*mode = APP_CONTROL_LAUNCH_MODE_SINGLE;
