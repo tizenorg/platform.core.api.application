@@ -523,6 +523,12 @@ typedef enum {
 
 /**
  * @brief Definition for value of EVENT_KEY_MSG_TYPE.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_MMS "mms"
+
+/**
+ * @brief Definition for value of EVENT_KEY_MSG_TYPE.
  * @since_tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif
  */
 #define EVENT_VAL_PUSH "push"
@@ -539,6 +545,43 @@ typedef enum {
  * @remarks The value of this key is a string of unsigned int value : new message id.
  */
 #define EVENT_KEY_MSG_ID "msg_id"
+
+/**
+ * @brief Definition for system-event of message : outgoing msg.
+ * @since_tizen 3.0
+ * @privilege %http://tizen.org/privilege/message.read
+ * @remarks If you want to receive this event, you must declare this privilege.
+ * @see EVENT_KEY_OUT_MSG_TYPE
+ * @see EVENT_KEY_OUT_MSG_ID
+ */
+#define SYSTEM_EVENT_OUTGOING_MSG "tizen.system.event.outgoing_msg"
+
+/**
+ * @brief Definition for key of SYSTEM_EVENT_OUTGOING_MSG.
+ * @since_tizen 3.0
+ * @see EVENT_VAL_OUT_MSG_SMS
+ * @see EVENT_VAL_OUT_MSG_MMS
+ */
+#define EVENT_KEY_OUT_MSG_TYPE "msg_type"
+
+/**
+ * @brief Definition for value of EVENT_KEY_OUT_MSG_TYPE.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_SMS "sms"
+
+/**
+ * @brief Definition for value of EVENT_KEY_OUT_MSG_TYPE.
+ * @since_tizen 3.0
+ */
+#define EVENT_VAL_MMS "mms"
+
+/**
+ * @brief Definition for key of SYSTEM_EVENT_OUTGOING_MSG.
+ * @since_tizen 3.0
+ * @remarks The value of this key is a string of unsigned int value : new message id.
+ */
+#define EVENT_KEY_OUT_MSG_ID "msg_id"
 
 /**
  * @brief Definition for system-event of setting : time changed.
