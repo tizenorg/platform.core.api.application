@@ -63,6 +63,12 @@ extern "C" {
 #define APP_CONTROL_DATA_RELOCATE_BELOW "__K_RELOCATE_BELOW"
 
 /**
+ * @brief Definition for app_control data: The value for supporting background launch mode.
+ * @details By default, this flas is 'disable'. Once it is set to 'enable', A window of callee app doesn't appear on the screen.
+ */
+#define APP_CONTROL_DATA_BACKGROUND_LAUNCH "__K_BG_LAUNCH"
+
+/**
  * @brief Replaces all data in the app_control with the bundle
  *
  * @remarks This function clears all data in the app_control and adds all key-value pairs in the bundle into the app_control
