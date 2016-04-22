@@ -514,7 +514,7 @@ int alarm_set_global(int alarm_id, bool global)
 {
 	int ret;
 
-	ret = alarmmgr_set_global(alarm_id, glbal);
+	ret = alarmmgr_set_global(alarm_id, global);
 
 	return convert_error_code_to_alarm(__FUNCTION__, ret);
 }
