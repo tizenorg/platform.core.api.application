@@ -427,7 +427,7 @@ int alarm_get_app_control(int alarm_id, app_control_h *app_control);
  *         otherwise a negative error value
  * @retval #ALARM_ERROR_NONE Successful
  * @retval #ALARM_ERROR_INVALID_PARAMETER Invalid parameter
- * @retval #ALARM_ERROR_NOT_PERMITTED @a alarm_id is not permitted.
+ * @retval #ALARM_ERROR_NOT_PERMITTED_APP @a alarm_id is not permitted
  * @retval #ALARM_ERROR_PERMISSION_DENIED Permission denied
  * @see alarm_schedule_at_date()
  * @see alarm_schedule_after_delay()
@@ -442,13 +442,13 @@ int alarm_set_global(int alarm_id, bool global);
  * @privlevel public
  * @privilege %http://tizen.org/privilege/alarm.get
  * @param[in] alarm_id The alarm ID uniquely identifies an alarm
- * @param[out] global Whether the alarm will launch global application or not.
+ * @param[out] global Whether the alarm will launch global application or not
  * @return @c 0 on success,
  *         otherwise a negative error value
  * @retval #ALARM_ERROR_NONE Successful
  * @retval #ALARM_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #ALARM_ERROR_PERMISSION_DENIED Permission denied
- * @see alarm_set_global();
+ * @see alarm_set_global()
  */
 int alarm_get_global(int alarm_id, bool *global);
 
