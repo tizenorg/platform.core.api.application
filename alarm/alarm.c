@@ -152,13 +152,7 @@ int alarm_get_scheduled_period(int alarm_id, int *period)
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
 
-	result = alarmmgr_free_alarm(entry);
-	if (result != ALARMMGR_RESULT_SUCCESS) {
-		if (entry != NULL)
-			alarmmgr_free_alarm(entry);
-
-		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}
+	alarmmgr_free_alarm(entry);
 
 	(*period) = value;
 
@@ -471,13 +465,7 @@ int alarm_get_scheduled_recurrence_week_flag(int alarm_id, int *week_flag)
 		return convert_error_code_to_alarm(__FUNCTION__, result);
 	}
 
-	result = alarmmgr_free_alarm(entry);
-	if (result != ALARMMGR_RESULT_SUCCESS) {
-		if (entry != NULL)
-			alarmmgr_free_alarm(entry);
-
-		return convert_error_code_to_alarm(__FUNCTION__, result);
-	}
+	alarmmgr_free_alarm(entry);
 
 	(*week_flag) = value;
 
