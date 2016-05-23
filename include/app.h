@@ -107,6 +107,9 @@ typedef void (*app_terminate_cb) (void *user_data);
  *          the passed app_control handle may include only the default operation (#APP_CONTROL_OPERATION_DEFAULT) without any data.
  *          For more information, see The @ref CAPI_APP_CONTROL_MODULE API description.
  *
+ * @remarks After this function returns, the handle of the app_control is freed.
+ *          Therefore, if you want to use the handle in another function, you MUST copy it by using app_control_clone() API.
+ *
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] app_control The handle to the app_control
  * @param[in] user_data	The user data passed from the callback registration function
