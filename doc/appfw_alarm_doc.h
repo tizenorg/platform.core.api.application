@@ -55,7 +55,7 @@
  * </tr>
  * <tr>
  * <td>alarm_schedule_after_delay()</td>
- * <td>Sets an alarm to be triggered after specific time(Since 2.4, this api does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.)</td>
+ * <td>Sets an alarm to be triggered after specific time(Since @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, this api does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.)</td>
  * </tr>
  * </table>
  * \n
