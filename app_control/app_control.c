@@ -687,6 +687,7 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 	bool implicit_default_operation = false;
 	int launch_pid;
 	app_control_request_context_h request_context = NULL;
+	int ret;
 
 	if (app_control_validate(app_control))
 		return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
@@ -719,9 +720,10 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 
 		request_context->reply_cb = callback;
 
-		if (app_control_clone(&request_clone, app_control) != APP_CONTROL_ERROR_NONE) {
+		ret = app_control_clone(&request_clone, app_control);
+		if (ret != APP_CONTROL_ERROR_NONE) {
 			free(request_context);
-			return app_control_error(APP_CONTROL_ERROR_INVALID_PARAMETER, __FUNCTION__, "failed to clone the app_control request handle");
+			return app_control_error(ret, __FUNCTION__, "failed to clone the app_control request handle");
 		}
 
 		request_context->app_control = request_clone;
