@@ -93,6 +93,7 @@ typedef bool (*preference_item_cb)(const char *key, void *user_data);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_get_int()
  */
@@ -109,6 +110,7 @@ int preference_set_int(const char *key, int value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER	Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_NO_KEY	Required key not available
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_set_int()
@@ -126,6 +128,7 @@ int preference_get_int(const char *key, int *value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE	Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER	Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_get_double()
  */
@@ -161,6 +164,7 @@ int preference_get_double(const char *key, double *value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE	Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER	Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_get_string()
  */
@@ -196,6 +200,7 @@ int preference_get_string(const char *key, char **value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE	Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER	Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_get_boolean()
  */
@@ -212,6 +217,7 @@ int preference_set_boolean(const char *key, bool value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE	Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER	Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_NO_KEY	Required key not available
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_set_boolean()
@@ -228,6 +234,8 @@ int preference_get_boolean(const char *key, bool *value);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
+ * @retval #PREFERENCE_ERROR_NO_KEY Required key not available
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  */
 int preference_remove(const char *key);
@@ -244,6 +252,7 @@ int preference_remove(const char *key);
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  */
 int preference_is_existing(const char *key, bool *existing);
@@ -256,6 +265,7 @@ int preference_is_existing(const char *key, bool *existing);
  * @return @c 0 on success,
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_remove()
  */
@@ -292,6 +302,8 @@ int preference_set_changed_cb(const char *key, preference_changed_cb callback, v
  *         otherwise a negative error value
  * @retval #PREFERENCE_ERROR_NONE Successful
  * @retval #PREFERENCE_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #PREFERENCE_ERROR_OUT_OF_MEMORY	Out of memory
+ * @retval #PREFERENCE_ERROR_NO_KEY Required key not available
  * @retval #PREFERENCE_ERROR_IO_ERROR Internal I/O Error
  * @see	preference_set_changed_cb()
  */
