@@ -257,6 +257,10 @@ void app_exit(void);
  */
 void app_efl_exit(void);
 
+int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data);
+
+void ui_app_fini(void);
+
 #ifdef __cplusplus
 }
 #endif

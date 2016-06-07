@@ -676,24 +676,21 @@ static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
 	return APP_ERROR_NONE;
 }
 
-int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
-{
-	struct ui_app_context app_context = {
-		.package = NULL,
-		.app_name = NULL,
-		.state = APP_STATE_NOT_RUNNING,
-		.callback = callback,
-		.data = user_data
-	};
+static struct ui_app_context __app_context;
+static struct appcore_ops appcore_context = {
+	.data = &__app_context,
+	.create = _ui_app_appcore_create,
+	.terminate = _ui_app_appcore_terminate,
+	.pause = _ui_app_appcore_pause,
+	.resume = _ui_app_appcore_resume,
+	.reset = _ui_app_appcore_reset,
+};
 
-	struct appcore_ops appcore_context = {
-		.data = &app_context,
-		.create = _ui_app_appcore_create,
-		.terminate = _ui_app_appcore_terminate,
-		.pause = _ui_app_appcore_pause,
-		.resume = _ui_app_appcore_resume,
-		.reset = _ui_app_appcore_reset,
-	};
+int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
+{
+	__app_context.state = APP_STATE_NOT_RUNNING;
+	__app_context.callback = callback;
+	__app_context.data = user_data;
 
 	if (argc < 1 || argv == NULL || callback == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
@@ -701,24 +698,54 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	if (callback->create == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
 
-	if (app_context.state != APP_STATE_NOT_RUNNING)
+	if (__app_context.state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
-	if (app_get_id(&(app_context.package)) != APP_ERROR_NONE)
-		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
-
-	if (app_get_package_app_name(app_context.package, &(app_context.app_name)) != APP_ERROR_NONE) {
-		free(app_context.package);
-		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
+	if (__app_context.package == NULL) {
+		if (app_get_id(&__app_context.package) != APP_ERROR_NONE)
+			return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 	}
 
-	app_context.state = APP_STATE_CREATING;
+	if (__app_context.app_name == NULL) {
+		if (app_get_package_app_name(__app_context.package, &__app_context.app_name) != APP_ERROR_NONE) {
+			free(__app_context.package);
+			__app_context.package = NULL;
+			return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
+		}
+	}
 
-	LOGI("app_efl_main");
-	appcore_efl_main(app_context.app_name, &argc, &argv, &appcore_context);
+	__app_context.state = APP_STATE_CREATING;
 
-	free(app_context.package);
-	free(app_context.app_name);
+	LOGI("app_efl_init");
+	return appcore_efl_init(__app_context.app_name, &argc, &argv, &appcore_context);
+}
+
+void ui_app_fini(void)
+{
+	appcore_efl_fini();
+
+	if (__app_context.app_name) {
+		free(__app_context.app_name);
+		__app_context.app_name = NULL;
+	}
+
+	if (__app_context.package) {
+		free(__app_context.package);
+		__app_context.package = NULL;
+	}
+}
+
+int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
+{
+	int ret;
+
+	ret = ui_app_init(argc, argv, callback, user_data);
+	if (ret != APP_ERROR_NONE)
+		return ret;
+
+	elm_run();
+
+	ui_app_fini();
 
 	return APP_ERROR_NONE;
 }
