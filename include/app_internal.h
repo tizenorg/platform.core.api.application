@@ -257,6 +257,33 @@ void app_exit(void);
  */
 void app_efl_exit(void);
 
+/**
+ * @brief Initialize the application main loop.
+ *
+ * @details After calling this API, the application main loop doesn't run.
+ * @since_tizen 3.0
+ * @param[in] argc The argument count
+ * @param[in] argv The argument vector
+ * @param[in] callback The set of callback functions to handle application lifecycle events
+ * @param[in] user_data The user data to be passed to the callback functions
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT The application is illegally launched, not launched by the launch system
+ * @retval #APP_ERROR_ALREADY_RUNNING The main loop already starts
+ * @sett ui_app_fini()
+ */
+int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data);
+
+/**
+ * @brief Finalize the application main loop.
+ *
+ * @since_tizen 3.0
+ * @see ui_app_init()
+ */
+void ui_app_fini(void);
+
 #ifdef __cplusplus
 }
 #endif
