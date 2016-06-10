@@ -42,12 +42,6 @@
 
 #define LOG_TAG "CAPI_APPFW_APPLICATION"
 
-typedef enum {
-	APP_STATE_NOT_RUNNING, /* The application has been launched or was running but was terminated */
-	APP_STATE_CREATING, /* The application is initializing the resources on app_create_cb callback */
-	APP_STATE_RUNNING, /* The application is running in the foreground and background */
-} app_state_e;
-
 typedef struct {
 	char *package;
 	char *app_name;
@@ -344,14 +338,6 @@ void app_unset_appcore_event_cb(void)
 static Eina_List *handler_list[UI_APP_EVENT_MAX] = {NULL, };
 static int handler_initialized = 0;
 static int appcore_initialized = 0;
-
-struct ui_app_context {
-	char *package;
-	char *app_name;
-	app_state_e state;
-	ui_app_lifecycle_callback_s *callback;
-	void *data;
-};
 
 static void _free_handler_list(void)
 {
@@ -676,81 +662,84 @@ static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
 	return APP_ERROR_NONE;
 }
 
-static struct ui_app_context __app_context;
-static struct appcore_ops appcore_context = {
-	.data = &__app_context,
-	.create = _ui_app_appcore_create,
-	.terminate = _ui_app_appcore_terminate,
-	.pause = _ui_app_appcore_pause,
-	.resume = _ui_app_appcore_resume,
-	.reset = _ui_app_appcore_reset,
-};
-
-int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
+int ui_app_init(int argc, char **argv, struct ui_app_context *app_context)
 {
-	__app_context.state = APP_STATE_NOT_RUNNING;
-	__app_context.callback = callback;
-	__app_context.data = user_data;
+	struct appcore_ops appcore_context = {
+		.data = app_context,
+		.create = _ui_app_appcore_create,
+		.terminate = _ui_app_appcore_terminate,
+		.pause = _ui_app_appcore_pause,
+		.resume = _ui_app_appcore_resume,
+		.reset = _ui_app_appcore_reset,
+	};
 
-	if (argc < 1 || argv == NULL || callback == NULL)
+	if (argc < 1 || argv == NULL || app_context == NULL || app_context->callback == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
 
-	if (callback->create == NULL)
+	if (app_context->callback->create == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
 
-	if (__app_context.state != APP_STATE_NOT_RUNNING)
+	if (app_context->state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
-	if (__app_context.package == NULL) {
-		if (app_get_id(&__app_context.package) != APP_ERROR_NONE)
+	if (app_context->package == NULL) {
+		if (app_get_id(&app_context->package) != APP_ERROR_NONE)
 			return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package");
 	}
 
-	if (__app_context.app_name == NULL) {
-		if (app_get_package_app_name(__app_context.package, &__app_context.app_name) != APP_ERROR_NONE) {
-			free(__app_context.package);
-			__app_context.package = NULL;
+	if (app_context->app_name == NULL) {
+		if (app_get_package_app_name(app_context->package, &app_context->app_name) != APP_ERROR_NONE) {
+			free(app_context->package);
+			app_context->package = NULL;
 			return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
 		}
 	}
 
-	__app_context.state = APP_STATE_CREATING;
+	app_context->state = APP_STATE_CREATING;
 
 	LOGI("app_efl_init");
-	return appcore_efl_init(__app_context.app_name, &argc, &argv, &appcore_context);
+	return appcore_efl_init(app_context->app_name, &argc, &argv, &appcore_context);
 }
 
-void ui_app_fini(void)
+void ui_app_fini(struct ui_app_context *app_context)
 {
+	if (app_context == NULL)
+		return;
+
 	appcore_efl_fini();
 
-	if (__app_context.app_name) {
-		free(__app_context.app_name);
-		__app_context.app_name = NULL;
+	if (app_context->app_name) {
+		free(app_context->app_name);
+		app_context->app_name = NULL;
 	}
 
-	if (__app_context.package) {
-		free(__app_context.package);
-		__app_context.package = NULL;
+	if (app_context->package) {
+		free(app_context->package);
+		app_context->package = NULL;
 	}
 }
 
 int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data)
 {
 	int ret;
+	struct ui_app_context app_context = {
+		.package = NULL,
+		.app_name = NULL,
+		.state = APP_STATE_NOT_RUNNING,
+		.callback = callback,
+		.data = user_data
+	};
 
-	ret = ui_app_init(argc, argv, callback, user_data);
+	ret = ui_app_init(argc, argv, &app_context);
 	if (ret != APP_ERROR_NONE) {
-		free(__app_context.app_name);
-		__app_context.app_name = NULL;
-		free(__app_context.package);
-		__app_context.package = NULL;
+		free(app_context.app_name);
+		free(app_context.package);
 		return ret;
 	}
 
 	elm_run();
 
-	ui_app_fini();
+	ui_app_fini(&app_context);
 
 	return APP_ERROR_NONE;
 }

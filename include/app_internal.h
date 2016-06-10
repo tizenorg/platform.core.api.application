@@ -42,6 +42,12 @@ extern "C" {
 #define PATH_FMT_RO_RES_DIR "/res"
 #define PATH_FMT_RO_LOCALE_DIR "/local"
 
+typedef enum {
+	APP_STATE_NOT_RUNNING, /* The application has been launched or was running but was terminated */
+	APP_STATE_CREATING, /* The application is initializing the resources on app_create_cb callback */
+	APP_STATE_RUNNING, /* The application is running in the foreground and background */
+} app_state_e;
+
 struct app_event_handler {
 	app_event_type_e type;
 	app_event_cb cb;
@@ -51,6 +57,14 @@ struct app_event_handler {
 struct app_event_info {
 	app_event_type_e type;
 	void *value;
+};
+
+struct ui_app_context {
+	char *package;
+	char *app_name;
+	app_state_e state;
+	ui_app_lifecycle_callback_s *callback;
+	void *data;
 };
 
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
@@ -264,8 +278,7 @@ void app_efl_exit(void);
  * @since_tizen 3.0
  * @param[in] argc The argument count
  * @param[in] argv The argument vector
- * @param[in] callback The set of callback functions to handle application lifecycle events
- * @param[in] user_data The user data to be passed to the callback functions
+ * @param[in] app_context The handle of ui app context
  *
  * @return 0 on success, otherwise a negative error value
  * @retval #APP_ERROR_NONE Successful
@@ -274,15 +287,16 @@ void app_efl_exit(void);
  * @retval #APP_ERROR_ALREADY_RUNNING The main loop already starts
  * @sett ui_app_fini()
  */
-int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data);
+int ui_app_init(int argc, char **argv, struct ui_app_context *app_context);
 
 /**
  * @brief Finalize the application main loop.
  *
  * @since_tizen 3.0
+ * @param[in] app_context The handle of ui app context
  * @see ui_app_init()
  */
-void ui_app_fini(void);
+void ui_app_fini(struct ui_app_context *app_context);
 
 #ifdef __cplusplus
 }
