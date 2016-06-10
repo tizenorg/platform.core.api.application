@@ -51,12 +51,13 @@ typedef enum {
 typedef struct {
 	char *package;
 	char *app_name;
-	app_state_e state;
 	app_event_callback_s *callback;
 	void *data;
 } app_context_s;
 
 typedef app_context_s *app_context_h;
+
+static app_state_e state = APP_STATE_NOT_RUNNING;
 
 static int app_appcore_create(void *data);
 static int app_appcore_pause(void *data);
@@ -83,7 +84,6 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 	app_context_s app_context = {
 		.package = NULL,
 		.app_name = NULL,
-		.state = APP_STATE_NOT_RUNNING,
 		.callback = callback,
 		.data = user_data
 	};
@@ -103,7 +103,7 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 	if (callback->create == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
 
-	if (app_context.state != APP_STATE_NOT_RUNNING)
+	if (state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
 	if (app_get_id(&(app_context.package)) != APP_ERROR_NONE)
@@ -114,7 +114,7 @@ int app_efl_main(int *argc, char ***argv, app_event_callback_s *callback, void *
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
 	}
 
-	app_context.state = APP_STATE_CREATING;
+	state = APP_STATE_CREATING;
 
 	appcore_efl_main(app_context.app_name, argc, argv, &appcore_context);
 
@@ -132,6 +132,7 @@ void app_exit(void)
 void app_efl_exit(void)
 {
 	elm_exit();
+	state = APP_STATE_NOT_RUNNING;
 }
 
 int app_appcore_create(void *data)
@@ -157,7 +158,7 @@ int app_appcore_create(void *data)
 	if (create_cb == NULL || create_cb(app_context->data) == false)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "app_create_cb() returns false");
 
-	app_context->state = APP_STATE_RUNNING;
+	state = APP_STATE_RUNNING;
 
 	return APP_ERROR_NONE;
 }
@@ -348,7 +349,6 @@ static int appcore_initialized = 0;
 struct ui_app_context {
 	char *package;
 	char *app_name;
-	app_state_e state;
 	ui_app_lifecycle_callback_s *callback;
 	void *data;
 };
@@ -580,7 +580,7 @@ static int _ui_app_appcore_create(void *data)
 	if (create_cb == NULL || create_cb(app_context->data) == false)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "app_create_cb() returns false");
 
-	app_context->state = APP_STATE_RUNNING;
+	state = APP_STATE_RUNNING;
 
 	return APP_ERROR_NONE;
 }
@@ -679,7 +679,6 @@ static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
 static struct ui_app_context __app_context = {
 	.package = NULL,
 	.app_name = NULL,
-	.state = APP_STATE_NOT_RUNNING,
 	.callback = NULL,
 	.data = NULL
 };
@@ -703,7 +702,7 @@ int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	if (callback->create == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
 
-	if (__app_context.state != APP_STATE_NOT_RUNNING)
+	if (state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
 	if (__app_context.package == NULL) {
@@ -719,7 +718,7 @@ int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 		}
 	}
 
-	__app_context.state = APP_STATE_CREATING;
+	state = APP_STATE_CREATING;
 
 	LOGI("app_efl_init");
 	return appcore_efl_init(__app_context.app_name, &argc, &argv, &__appcore_context);
@@ -729,9 +728,10 @@ void ui_app_fini(void)
 {
 	appcore_efl_fini();
 
+	state = APP_STATE_NOT_RUNNING;
+
 	__app_context.data = NULL;
 	__app_context.callback = NULL;
-	__app_context.state = APP_STATE_NOT_RUNNING;
 
 	if (__app_context.app_name) {
 		free(__app_context.app_name);
@@ -749,7 +749,6 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	struct ui_app_context app_context = {
 		.package = NULL,
 		.app_name = NULL,
-		.state = APP_STATE_NOT_RUNNING,
 		.callback = callback,
 		.data = user_data
 	};
@@ -768,7 +767,7 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	if (callback->create == NULL)
 		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, "app_create_cb() callback must be registered");
 
-	if (app_context.state != APP_STATE_NOT_RUNNING)
+	if (state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
 	if (app_get_id(&(app_context.package)) != APP_ERROR_NONE)
@@ -779,7 +778,7 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
 	}
 
-	app_context.state = APP_STATE_CREATING;
+	state = APP_STATE_CREATING;
 
 	LOGI("app_efl_main");
 	appcore_efl_main(app_context.app_name, &argc, &argv, &appcore_context);
@@ -793,6 +792,7 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 void ui_app_exit(void)
 {
 	app_efl_exit();
+	state = APP_STATE_NOT_RUNNING;
 }
 
 int ui_app_add_event_handler(app_event_handler_h *event_handler, app_event_type_e event_type, app_event_cb callback, void *user_data)
