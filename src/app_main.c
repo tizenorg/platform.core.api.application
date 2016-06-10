@@ -790,6 +790,26 @@ int ui_app_main(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	return APP_ERROR_NONE;
 }
 
+int ui_app_main_v2(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data, ui_app_runnable custom_loop)
+{
+	int ret;
+
+	if (argc < 1 || argv == NULL || callback == NULL || custom_loop == NULL)
+		return app_error(APP_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	ret = ui_app_init(argc, argv, callback, user_data);
+	if (ret != APP_ERROR_NONE) {
+		ui_app_fini();
+		return ret;
+	}
+
+	custom_loop();
+
+	ui_app_fini();
+
+	return APP_ERROR_NONE;
+}
+
 void ui_app_exit(void)
 {
 	app_efl_exit();

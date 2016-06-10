@@ -53,6 +53,8 @@ struct app_event_info {
 	void *value;
 };
 
+typedef void (*ui_app_runnable)(void);
+
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
 
 typedef void (*app_finalizer_cb) (void *data);
@@ -283,6 +285,32 @@ int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
  * @see ui_app_init()
  */
 void ui_app_fini(void);
+
+/**
+ * @brief Runs the application's main loop by using customizing loop.
+ *
+ * @since_tizen 3.0
+ * @param[in] argc The argument count
+ * @param[in] argv The argument vector
+ * @param[in] callback The set of callback functions to handle application lifecycle events
+ * @param[in] user_data The user data to be passed to the callback functions
+ * @param[in] custom_loop The customizing loop
+ *
+ * @return 0 on success, otherwise a negative error value
+ * @retval #APP_ERROR_NONE Successful
+ * @retval #APP_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #APP_ERROR_INVALID_CONTEXT The application is illegally launched, not launched by the launch system
+ * @retval #APP_ERROR_ALREADY_RUNNING The main loop already starts
+ *
+ * @see app_create_cb()
+ * @see app_terminate_cb()
+ * @see app_pause_cb()
+ * @see app_resume_cb()
+ * @see app_control_cb()
+ * @see ui_app_exit()
+ * @see #ui_app_lifecycle_callback_s
+ */
+int ui_app_main_v2(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data, ui_app_runnable custom_loop);
 
 #ifdef __cplusplus
 }
