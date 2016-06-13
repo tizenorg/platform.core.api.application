@@ -53,6 +53,8 @@ struct app_event_info {
 	void *value;
 };
 
+typedef struct appcore_ops *appcore_context_h;
+
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm);
 
 typedef void (*app_finalizer_cb) (void *data);
@@ -266,6 +268,7 @@ void app_efl_exit(void);
  * @param[in] argv The argument vector
  * @param[in] callback The set of callback functions to handle application lifecycle events
  * @param[in] user_data The user data to be passed to the callback functions
+ * @param[in] handle The handle of appcore context
  *
  * @return 0 on success, otherwise a negative error value
  * @retval #APP_ERROR_NONE Successful
@@ -274,15 +277,17 @@ void app_efl_exit(void);
  * @retval #APP_ERROR_ALREADY_RUNNING The main loop already starts
  * @sett ui_app_fini()
  */
-int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data);
+int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data, appcore_context_h *handle);
 
 /**
  * @brief Finalize the application main loop.
  *
  * @since_tizen 3.0
+ * @param[in] handle The handle of appcore context
+ *
  * @see ui_app_init()
  */
-void ui_app_fini(void);
+void ui_app_fini(appcore_context_h handle);
 
 #ifdef __cplusplus
 }
