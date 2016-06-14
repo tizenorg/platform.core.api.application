@@ -724,7 +724,7 @@ static void __destroy_ui_app_context(struct ui_app_context *handle)
 	free(handle);
 }
 
-static int __create_appcore_context(struct ui_app_context *app_context, appcore_context_h *handle)
+static int __create_appcore_context(struct ui_app_context *app_context, struct appcore_ops **handle)
 {
 	struct appcore_ops *appcore_context;
 
@@ -744,7 +744,7 @@ static int __create_appcore_context(struct ui_app_context *app_context, appcore_
 	return APP_ERROR_NONE;
 }
 
-static void __destroy_appcore_context(appcore_context_h handle)
+static void __destroy_appcore_context(struct appcore_ops *handle)
 {
 	if (handle == NULL)
 		return;
@@ -755,7 +755,8 @@ static void __destroy_appcore_context(appcore_context_h handle)
 
 int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, void *user_data, appcore_context_h *handle)
 {
-	struct ui_app_context *app_context = NULL;
+	struct ui_app_context *app_context;
+	struct appcore_ops *appcore_context;
 	int ret;
 
 	if (argc < 1 || argv == NULL || callback == NULL || handle == NULL)
@@ -767,10 +768,12 @@ int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	if (app_state != APP_STATE_NOT_RUNNING)
 		return app_error(APP_ERROR_ALREADY_RUNNING, __FUNCTION__, NULL);
 
-	if (__create_ui_app_context(callback, user_data, &app_context) != APP_ERROR_NONE)
+	ret = __create_ui_app_context(callback, user_data, &app_context);
+	if (ret != APP_ERROR_NONE)
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 
-	if (__create_appcore_context(app_context, handle) != APP_ERROR_NONE) {
+	ret = __create_appcore_context(app_context, &appcore_context);
+	if (ret != APP_ERROR_NONE) {
 		__destroy_ui_app_context(app_context);
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 	}
@@ -778,11 +781,14 @@ int ui_app_init(int argc, char **argv, ui_app_lifecycle_callback_s *callback, vo
 	app_state = APP_STATE_CREATING;
 
 	LOGI("app_efl_init");
-	ret = appcore_efl_init(app_context->app_name, &argc, &argv, *handle);
+	ret = appcore_efl_init(app_context->app_name, &argc, &argv, appcore_context);
 	if (ret != APP_ERROR_NONE) {
-		__destroy_appcore_context(*handle);
+		app_state = APP_STATE_NOT_RUNNING;
+		__destroy_appcore_context(appcore_context);
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, NULL);
 	}
+
+	*handle = appcore_context;
 
 	return APP_ERROR_NONE;
 }
