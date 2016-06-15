@@ -268,7 +268,7 @@ void app_efl_exit(void);
  * @param[in] argv The argument vector
  * @param[in] callback The set of callback functions to handle application lifecycle events
  * @param[in] user_data The user data to be passed to the callback functions
- * @param[in] handle The handle of appcore context
+ * @param[out] handle The appcore_context handle to be newly created on success
  *
  * @return 0 on success, otherwise a negative error value
  * @retval #APP_ERROR_NONE Successful
