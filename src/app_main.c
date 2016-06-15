@@ -698,7 +698,15 @@ static int __create_ui_app_context(ui_app_lifecycle_callback_s *callback, void *
 		return app_error(APP_ERROR_INVALID_CONTEXT, __FUNCTION__, "failed to get the package's app name");
 	}
 
-	app_context->callback = callback;
+	app_context->callback = (ui_app_lifecycle_callback_s *)malloc(sizeof(ui_app_lifecycle_callback_s));
+	if (app_context->callback == NULL) {
+		free(app_context->app_name);
+		free(app_context->package);
+		free(app_context);
+		return app_error(APP_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+	}
+	memcpy(app_context->callback, callback, sizeof(ui_app_lifecycle_callback_s));
+
 	app_context->data = user_data;
 
 	*handle = app_context;
@@ -710,6 +718,11 @@ static void __destroy_ui_app_context(struct ui_app_context *handle)
 {
 	if (handle == NULL)
 		return;
+
+	if (handle->callback) {
+		free(handle->callback);
+		handle->callback = NULL;
+	}
 
 	if (handle->app_name) {
 		free(handle->app_name);
