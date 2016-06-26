@@ -390,7 +390,7 @@ typedef enum {
 /**
  * @brief Definition for app_control data: Paths of items
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
- * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, if all added paths with this key are under the caller application's data path which can be obtained by calling app_get_data_path() function, those will be shared to the callee application. Framework will grant a temporary permission to the callee application for those files and revoke it when the callee application is terminated. Paths should be regular files. The callee application can just read them.
+ * @remarks Since Tizen @if MOBILE 2.4 @elseif WEARABLE 3.0 @endif, if all added paths with this key are under the caller application's data path which can be obtained by calling app_get_data_path() function, those will be shared to the callee application. Framework will grant a temporary permission to the callee application for those files and revoke it when the callee application is terminated. Paths should be regular files. The callee application can just open them. If the directory permission is required, the operation is not allowed.
  */
 #define APP_CONTROL_DATA_PATH "http://tizen.org/appcontrol/data/path"
 
