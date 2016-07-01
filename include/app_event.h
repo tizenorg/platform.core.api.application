@@ -933,6 +933,20 @@ int event_publish_app_event(const char *event_name, bundle *event_data);
 int event_publish_trusted_app_event(const char *event_name, bundle *event_data);
 
 /**
+ * @brief Keeps last User-Event data for receiver applications.
+ *
+ * @since_tizen 3.0
+ * @remarks The receiver applications will be received this last event data after adding their new hanlders via event_add_event_handler API since the sender application called this API.
+ * @param[in] event_name The event's name to keep last event data
+ * @return 0 on success, otherwise a negative error value
+ * @retval #EVENT_ERROR_NONE Successful
+ * @retval #EVENT_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #EVENT_ERROR_IO_ERROR Sending operation failed
+ * @retval #EVENT_ERROR_OUT_OF_MEMORY Out of memory
+ */
+int event_keep_last_event_data(const char *event_name);
+
+/**
  * @}
  */
 
