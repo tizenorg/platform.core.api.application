@@ -264,3 +264,21 @@ int event_publish_trusted_app_event(const char *event_name, bundle *event_data)
 
 	return EVENT_ERROR_NONE;
 }
+
+int event_keep_last_event_data(const char *event_name)
+{
+	int ret;
+
+	if (event_name == NULL)
+		return event_error(EVENT_ERROR_INVALID_PARAMETER, __FUNCTION__, NULL);
+
+	ret = eventsystem_keep_last_event_data(event_name);
+	if (ret < 0) {
+		if (ret == ES_R_ENOMEM)
+			return event_error(EVENT_ERROR_OUT_OF_MEMORY, __FUNCTION__, NULL);
+		else
+			return event_error(EVENT_ERROR_IO_ERROR, __FUNCTION__, NULL);
+	}
+
+	return EVENT_ERROR_NONE;
+}
