@@ -738,6 +738,11 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		bundle_del(app_control->data, BUNDLE_KEY_OPERATION);
 
 	if (launch_pid < 0) {
+		if (request_context->app_control)
+			app_control_destroy(request_context->app_control);
+
+		free(request_context);
+
 		if (launch_pid == APPSVC_RET_ENOMATCH)
 			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, NULL);
 		else if (launch_pid == APPSVC_RET_EILLACC)
@@ -761,7 +766,9 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		aul_add_caller_cb(launch_pid, __handle_launch_result, request_context);
 
 		/* launched without app selector */
-		if (strncmp(callee, APP_SELECTOR, strlen(APP_SELECTOR)) != 0)
+		if ((strcmp(callee, APP_SELECTOR) != 0) ||
+				(strcmp(callee, SHARE_PANEL) != 0))
+
 			aul_invoke_caller_cb(request_context);
 
 	} else { /* default case */
