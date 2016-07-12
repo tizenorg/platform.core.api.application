@@ -195,6 +195,7 @@ int app_appcore_terminate(void *data)
 	return APP_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 int app_appcore_pause(void *data)
 {
 	app_context_h app_context = data;
@@ -209,7 +210,9 @@ int app_appcore_pause(void *data)
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
+/* LCOV_EXCL_START */
 int app_appcore_resume(void *data)
 {
 	app_context_h app_context = data;
@@ -224,6 +227,7 @@ int app_appcore_resume(void *data)
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
 int app_appcore_reset(bundle *appcore_bundle, void *data)
 {
@@ -276,6 +280,7 @@ int app_appcore_low_battery(void *event_info, void *data)
 	return APP_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 int app_appcore_rotation_event(void *event_info, enum appcore_rm rm, void *data)
 {
 	app_context_h app_context = data;
@@ -295,6 +300,7 @@ int app_appcore_rotation_event(void *event_info, enum appcore_rm rm, void *data)
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
 int app_appcore_lang_changed(void *event_info, void *data)
 {
@@ -403,6 +409,7 @@ static int _ui_app_appcore_low_battery(void *event_info, void *data)
 	return APP_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static int _ui_app_appcore_rotation_event(void *event_info, enum appcore_rm rm, void *data)
 {
 	Eina_List *l;
@@ -420,6 +427,7 @@ static int _ui_app_appcore_rotation_event(void *event_info, enum appcore_rm rm, 
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
 static int _ui_app_appcore_lang_changed(void *event_info, void *data)
 {
@@ -462,6 +470,7 @@ static int _ui_app_appcore_region_changed(void *event_info, void *data)
 	return APP_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static int _ui_app_appcore_suspended_state_changed(void *event_info, void *data)
 {
 	Eina_List *l;
@@ -480,6 +489,7 @@ static int _ui_app_appcore_suspended_state_changed(void *event_info, void *data)
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
 static void _ui_app_appcore_set_event_cb(app_event_type_e event_type)
 {
@@ -611,6 +621,7 @@ static int _ui_app_appcore_terminate(void *data)
 	return APP_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static int _ui_app_appcore_pause(void *data)
 {
 	LOGI("app_appcore_pause");
@@ -627,7 +638,9 @@ static int _ui_app_appcore_pause(void *data)
 
 	return APP_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
+/* LCOV_EXCL_START */
 static int _ui_app_appcore_resume(void *data)
 {
 	LOGI("app_appcore_resume");
@@ -644,7 +657,7 @@ static int _ui_app_appcore_resume(void *data)
 
 	return APP_ERROR_NONE;
 }
-
+/* LCOV_EXCL_STOP */
 
 static int _ui_app_appcore_reset(bundle *appcore_bundle, void *data)
 {

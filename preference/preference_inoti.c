@@ -95,10 +95,12 @@ static GList *_preference_copy_noti_list(GList *orig_notilist)
 
 			n->keyname = strndup(t->keyname, PREFERENCE_KEY_PATH_LEN);
 			if (n->keyname == NULL) {
+				/* LCOV_EXCL_START */
 				strerror_r(errno, err_buf, sizeof(err_buf));
 				ERR("The memory is insufficient, errno: %d (%s)", errno, err_buf);
 				free(n);
 				break;
+				/* LCOV_EXCL_STOP */
 			}
 			n->wd = t->wd;
 			n->cb_data = t->cb_data;
@@ -206,32 +208,40 @@ static int _preference_kdb_noti_init(void)
 	pthread_mutex_lock(&_kdb_inoti_fd_mutex);
 
 	if (0 < _kdb_inoti_fd) {
+		/* LCOV_EXCL_START */
 		ERR("Error: invalid _kdb_inoti_fd");
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 	_kdb_inoti_fd = inotify_init();
 	if (_kdb_inoti_fd == -1) {
+		/* LCOV_EXCL_START */
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 
 	ret = fcntl(_kdb_inoti_fd, F_SETFD, FD_CLOEXEC);
 	if (ret < 0) {
+		/* LCOV_EXCL_START */
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 
 	ret = fcntl(_kdb_inoti_fd, F_SETFL, O_NONBLOCK);
 	if (ret < 0) {
+		/* LCOV_EXCL_START */
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("inotify init: %s", err_buf);
 		pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 
 	pthread_mutex_unlock(&_kdb_inoti_fd_mutex);
@@ -295,6 +305,7 @@ int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, voi
 
 	list = g_list_find_custom(g_notilist, &t, (GCompareFunc)_preference_inoti_comp_with_wd);
 	if (list) {
+		/* LCOV_EXCL_START */
 		WARN("_preference_kdb_add_notify : key(%s) change callback(%p)", keyname, cb);
 
 		node = list->data;
@@ -303,22 +314,27 @@ int _preference_kdb_add_notify(keynode_t *keynode, preference_changed_cb cb, voi
 		node->cb = cb;
 
 		goto out_func;
+		/* LCOV_EXCL_STOP */
 	}
 
 	n = calloc(1, sizeof(noti_node_s));
 	if (n == NULL) {
+		/* LCOV_EXCL_START */
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("_preference_kdb_add_notify : add noti(%s)", err_buf);
 		func_ret = PREFERENCE_ERROR_IO_ERROR;
 		goto out_func;
+		/* LCOV_EXCL_STOP */
 	}
 
 	n->keyname = strndup(keyname, PREFERENCE_KEY_PATH_LEN);
 	if (n->keyname == NULL) {
+		/* LCOV_EXCL_START */
 		strerror_r(errno, err_buf, sizeof(err_buf));
 		ERR("The memory is insufficient, errno: %d (%s)", errno, err_buf);
 		free(n);
 		goto out_func;
+		/* LCOV_EXCL_STOP */
 	}
 	n->wd = wd;
 	n->cb_data = data;

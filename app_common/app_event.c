@@ -20,6 +20,7 @@
 #include <app_common.h>
 #include <app_internal.h>
 
+/* LCOV_EXCL_START */
 app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm)
 {
 	app_device_orientation_e dev_orientation;
@@ -44,6 +45,7 @@ app_device_orientation_e app_convert_appcore_rm(enum appcore_rm rm)
 
 	return dev_orientation;
 }
+/* LCOV_EXCL_STOP */
 
 static int _app_convert_low_memory(void *val)
 {

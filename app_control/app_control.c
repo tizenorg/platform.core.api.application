@@ -156,6 +156,7 @@ int app_control_validate_internal_key(const char *key)
 	return 0;
 }
 
+/* LCOV_EXCL_START */
 static void app_control_request_result_broker(bundle *appsvc_bundle, int appsvc_request_code, appsvc_result_val appsvc_result, void *appsvc_data)
 {
 	app_control_request_context_h request_context;
@@ -208,6 +209,7 @@ static void app_control_request_result_broker(bundle *appsvc_bundle, int appsvc_
 
 	free(request_context);
 }
+/* LCOV_EXCL_STOP */
 
 int app_control_create_request(bundle *data, app_control_h *app_control)
 {
@@ -271,6 +273,7 @@ int app_control_create_event(bundle *data, struct app_control_s **app_control)
 	return APP_CONTROL_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static int app_control_create_reply(bundle *data, struct app_control_s **app_control)
 {
 	struct app_control_s *app_control_reply;
@@ -290,6 +293,7 @@ static int app_control_create_reply(bundle *data, struct app_control_s **app_con
 
 	return APP_CONTROL_ERROR_NONE;
 }
+/* LCOV_EXCL_STOP */
 
 int app_control_destroy(app_control_h app_control)
 {
@@ -628,6 +632,7 @@ int app_control_unset_defapp(const char *app_id)
 	return APP_CONTROL_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static void __update_launch_pid(int launched_pid, void *data)
 {
 	app_control_h app_control;
@@ -639,6 +644,7 @@ static void __update_launch_pid(int launched_pid, void *data)
 
 	app_control->launch_pid = launched_pid;
 }
+/* LCOV_EXCL_STOP */
 
 static void __handle_launch_result(int launched_pid, void *data)
 {
@@ -793,6 +799,7 @@ int app_control_send_terminate_request(app_control_h app_control)
 	return APP_CONTROL_ERROR_NONE;
 }
 
+/* LCOV_EXCL_START */
 static bool app_control_copy_reply_data_cb(app_control_h app_control, const char *key, void *user_data)
 {
 	bundle *reply_data = user_data;
@@ -822,6 +829,7 @@ static bool app_control_copy_reply_data_cb(app_control_h app_control, const char
 
 	return true;
 }
+/* LCOV_EXCL_STOP */
 
 int app_control_reply_to_launch_request(app_control_h reply, app_control_h request, app_control_result_e result)
 {
@@ -1059,6 +1067,7 @@ typedef struct {
 	bool foreach_break;
 } foreach_context_launchable_app_t;
 
+/* LCOV_EXCL_START */
 int app_control_cb_broker_foreach_app_matched(const char *package, void *data)
 {
 	foreach_context_launchable_app_t *foreach_context;
@@ -1084,6 +1093,7 @@ int app_control_cb_broker_foreach_app_matched(const char *package, void *data)
 
 	return 0;
 }
+/* LCOV_EXCL_STOP */
 
 int app_control_foreach_app_matched(app_control_h app_control, app_control_app_matched_cb callback, void *user_data)
 {

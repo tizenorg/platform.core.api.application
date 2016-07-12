@@ -92,10 +92,12 @@ char *_preference_get_pref_dir_path()
 		g_pref_dir_path = (char *)malloc(PREFERENCE_KEY_PATH_LEN + 1);
 
 		if ((app_data_path = app_get_data_path()) == NULL) {
+			/* LCOV_EXCL_START */
 			ERR("IO_ERROR(0x%08x) : fail to get data directory", PREFERENCE_ERROR_IO_ERROR);
 			free(g_pref_dir_path);
 			g_pref_dir_path = NULL;
 			return NULL;
+			/* LCOV_EXCL_STOP */
 		}
 
 		snprintf(g_pref_dir_path, PREFERENCE_KEY_PATH_LEN, "%s%s", app_data_path, PREF_DIR);
@@ -283,6 +285,7 @@ static int _preference_set_file_lock(int fd, short type)
 	return fcntl(fd, F_SETLK, &l);
 }
 
+/* LCOV_EXCL_START */
 static int _preference_get_pid_of_file_lock_owner(int fd, short type)
 {
 	struct flock l;
@@ -302,6 +305,7 @@ static int _preference_get_pid_of_file_lock_owner(int fd, short type)
 	else
 		return l.l_pid;
 }
+/* LCOV_EXCL_STOP */
 
 static int _preference_set_read_lock(int fd)
 {
@@ -318,6 +322,7 @@ static int _preference_set_unlock(int fd)
 	return _preference_set_file_lock(fd, F_UNLCK);
 }
 
+/* LCOV_EXCL_START */
 static void _preference_log_subject_label(void)
 {
 	int fd;
@@ -348,6 +353,7 @@ static void _preference_log_subject_label(void)
 
 	close(fd);
 }
+/* LCOV_EXCL_STOP */
 
 static int _preference_check_retry_err(keynode_t *keynode, int preference_errno, int io_errno, int op_type)
 {
@@ -362,23 +368,29 @@ static int _preference_check_retry_err(keynode_t *keynode, int preference_errno,
 			if (op_type == PREFERENCE_OP_SET) {
 				rc = _preference_get_key_path(keynode, path);
 				if (rc != PREFERENCE_ERROR_NONE) {
+					/* LCOV_EXCL_START */
 					ERR("_preference_get_key_path error");
 					_preference_log_subject_label();
 					break;
+					/* LCOV_EXCL_STOP */
 				}
 
 				rc = _preference_set_key_check_pref_dir();
 				if (rc != PREFERENCE_ERROR_NONE) {
+					/* LCOV_EXCL_START */
 					ERR("_preference_set_key_check_pref_dir() failed.");
 					_preference_log_subject_label();
 					break;
+					/* LCOV_EXCL_STOP */
 				}
 
 				rc = _preference_set_key_creation(path);
 				if (rc != PREFERENCE_ERROR_NONE) {
+					/* LCOV_EXCL_START */
 					ERR("_preference_set_key_creation error : %s", path);
 					_preference_log_subject_label();
 					break;
+					/* LCOV_EXCL_STOP */
 				}
 				INFO("%s key is created", keynode->keyname);
 
@@ -469,12 +481,14 @@ retry:
 
 	ret = _preference_set_write_lock(fileno(fp));
 	if (ret == -1) {
+		/* LCOV_EXCL_START */
 		func_ret = PREFERENCE_ERROR_FILE_LOCK;
 		err_no = errno;
 		ERR("file(%s) lock owner(%d)",
 			keynode->keyname,
 			_preference_get_pid_of_file_lock_owner(fileno(fp), F_WRLCK));
 		goto out_return;
+		/* LCOV_EXCL_STOP */
 	}
 
 	/* write keyname and size */
@@ -482,6 +496,7 @@ retry:
 
 	ret = fwrite((void *)&keyname_len, sizeof(int), 1, fp);
 	if (ret <= 0) {
+		/* LCOV_EXCL_START */
 		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
@@ -489,10 +504,12 @@ retry:
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_WRITE;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	ret = fwrite((void *)keynode->keyname, keyname_len, 1, fp);
 	if (ret <= 0) {
+		/* LCOV_EXCL_START */
 		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
@@ -500,11 +517,13 @@ retry:
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_WRITE;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	/* write key type */
 	ret = fwrite((void *)&(keynode->type), sizeof(int), 1, fp);
 	if (ret <= 0) {
+		/* LCOV_EXCL_START */
 		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
@@ -512,6 +531,7 @@ retry:
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_WRITE;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	/* write key value */
@@ -541,6 +561,7 @@ retry:
 	}
 
 	if (is_write_error) {
+		/* LCOV_EXCL_START */
 		if (!errno) {
 			LOGW("number of written items is 0. try again");
 			errno = EAGAIN;
@@ -548,6 +569,7 @@ retry:
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_WRITE;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	fflush(fp);
@@ -610,10 +632,12 @@ static int _preference_set_key(keynode_t *keynode)
 		g_posix_errno = PREFERENCE_ERROR_NONE;
 		g_preference_errno = PREFERENCE_ERROR_NONE;
 	} else {
+		/* LCOV_EXCL_START */
 		strerror_r(io_errno, err_buf, 100);
 		ERR("_preference_set_key(%s) step(%d) failed(%d / %s)", keynode->keyname, ret, io_errno, err_buf);
 		g_posix_errno = io_errno;
 		g_preference_errno = ret;
+		/* LCOV_EXCL_STOP */
 	}
 
 	return ret;
@@ -640,9 +664,11 @@ API int preference_set_int(const char *key, int intval)
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
 	if (func_ret != PREFERENCE_ERROR_NONE) {
+		/* LCOV_EXCL_START */
 		ERR("set key name error");
 		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 	_preference_keynode_set_value_int(pKeyNode, intval);
 
@@ -681,9 +707,11 @@ API int preference_set_boolean(const char *key, bool boolval)
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
 	if (func_ret != PREFERENCE_ERROR_NONE) {
+		/* LCOV_EXCL_START */
 		ERR("set key name error");
 		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 	_preference_keynode_set_value_boolean(pKeyNode, boolval);
 
@@ -721,9 +749,11 @@ API int preference_set_double(const char *key, double dblval)
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
 	if (func_ret != PREFERENCE_ERROR_NONE) {
+		/* LCOV_EXCL_START */
 		ERR("set key name error");
 		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 	_preference_keynode_set_value_double(pKeyNode, dblval);
 
@@ -762,9 +792,11 @@ API int preference_set_string(const char *key, const char *strval)
 
 	func_ret = _preference_keynode_set_keyname(pKeyNode, key);
 	if (func_ret != PREFERENCE_ERROR_NONE) {
+		/* LCOV_EXCL_START */
 		ERR("set key name error");
 		_preference_keynode_free(pKeyNode);
 		return PREFERENCE_ERROR_IO_ERROR;
+		/* LCOV_EXCL_STOP */
 	}
 	_preference_keynode_set_value_string(pKeyNode, strval);
 
@@ -819,39 +851,47 @@ retry:
 
 	ret = _preference_set_read_lock(fileno(fp));
 	if (ret == -1) {
+		/* LCOV_EXCL_START */
 		func_ret = PREFERENCE_ERROR_FILE_LOCK;
 		err_no = errno;
 		goto out_return;
+		/* LCOV_EXCL_STOP */
 	}
 
 	read_size = fread((void *)&keyname_len, sizeof(int), 1, fp);
 	if ((read_size <= 0) || (read_size > sizeof(int))) {
+		/* LCOV_EXCL_START */
 		if (!ferror(fp))
 			errno = ENODATA;
 
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_FREAD;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	ret = fseek(fp, keyname_len, SEEK_CUR);
 	if (ret) {
+		/* LCOV_EXCL_START */
 		if (!ferror(fp))
 			errno = ENODATA;
 
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_FREAD;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	read_size = fread((void *)&type, sizeof(int), 1, fp);
 	if (read_size <= 0) {
+		/* LCOV_EXCL_START */
 		if (!ferror(fp))
 			errno = ENODATA;
 
 		err_no = errno;
 		func_ret = PREFERENCE_ERROR_FILE_FREAD;
 		goto out_unlock;
+		/* LCOV_EXCL_STOP */
 	}
 
 	/* read data value */
@@ -859,12 +899,14 @@ retry:
 	case PREFERENCE_TYPE_INT:
 		read_size = fread((void *)&value_int, sizeof(int), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(int))) {
+			/* LCOV_EXCL_START */
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
 
 			err_no = errno;
 			func_ret = PREFERENCE_ERROR_FILE_FREAD;
 			goto out_unlock;
+			/* LCOV_EXCL_STOP */
 		} else {
 			_preference_keynode_set_value_int(keynode, value_int);
 		}
@@ -873,12 +915,14 @@ retry:
 	case PREFERENCE_TYPE_DOUBLE:
 		read_size = fread((void *)&value_dbl, sizeof(double), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(double))) {
+			/* LCOV_EXCL_START */
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
 
 			err_no = errno;
 			func_ret = PREFERENCE_ERROR_FILE_FREAD;
 			goto out_unlock;
+			/* LCOV_EXCL_STOP */
 		} else {
 			_preference_keynode_set_value_double(keynode, value_dbl);
 		}
@@ -887,12 +931,14 @@ retry:
 	case PREFERENCE_TYPE_BOOLEAN:
 		read_size = fread((void *)&value_int, sizeof(int), 1, fp);
 		if ((read_size <= 0) || (read_size > sizeof(int))) {
+			/* LCOV_EXCL_START */
 			if (!ferror(fp))
 				LOGW("number of read items for value is wrong. err : %d", errno);
 
 			err_no = errno;
 			func_ret = PREFERENCE_ERROR_FILE_FREAD;
 			goto out_unlock;
+			/* LCOV_EXCL_STOP */
 		} else {
 			_preference_keynode_set_value_boolean(keynode, value_int);
 		}
@@ -951,6 +997,7 @@ out_return:
 		strerror_r(err_no, err_buf, 100);
 
 		if (_preference_check_retry_err(keynode, func_ret, err_no, PREFERENCE_OP_GET)) {
+			/* LCOV_EXCL_START */
 			if (retry_cnt < PREFERENCE_ERROR_RETRY_CNT) {
 				retry_cnt++;
 				usleep((retry_cnt)*PREFERENCE_ERROR_RETRY_SLEEP_UTIME);
@@ -963,6 +1010,7 @@ out_return:
 				ERR("_preference_get_key_filesys(%s) step(%d) faild(%d / %s) over the retry count.",
 					keynode->keyname, func_ret, err_no, err_buf);
 			}
+			/* LCOV_EXCL_STOP */
 		}
 	}
 
@@ -1298,14 +1346,17 @@ API int preference_remove_all(void)
 
 		ret = _preference_get_key_name(path, &keyname);
 		if (ret != PREFERENCE_ERROR_NONE) {
+			/* LCOV_EXCL_START */
 			ERR("_preference_get_key_name() failed(%d)", ret);
 			_preference_keynode_free(pKeyNode);
 			closedir(dir);
 			return PREFERENCE_ERROR_IO_ERROR;
+			/* LCOV_EXCL_STOP */
 		}
 
 		ret = preference_unset_changed_cb(keyname);
 		if (ret != PREFERENCE_ERROR_NONE) {
+			/* LCOV_EXCL_START */
 			if (ret == PREFERENCE_ERROR_NO_KEY) {
 				ERR("can't find %s's cb()", keyname);
 			} else {
@@ -1315,14 +1366,17 @@ API int preference_remove_all(void)
 				free(keyname);
 				return PREFERENCE_ERROR_IO_ERROR;
 			}
+			/* LCOV_EXCL_STOP */
 		}
 
 		do {
 			ret = remove(path);
 			if (ret == -1) {
+				/* LCOV_EXCL_START */
 				strerror_r(errno, err_buf, sizeof(err_buf));
 				ERR("preference_remove_all error: %d(%s)", errno, err_buf);
 				func_ret = PREFERENCE_ERROR_IO_ERROR;
+				/* LCOV_EXCL_STOP */
 			} else {
 				func_ret = PREFERENCE_ERROR_NONE;
 				break;
