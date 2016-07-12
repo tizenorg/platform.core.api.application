@@ -738,10 +738,12 @@ int app_control_send_launch_request(app_control_h app_control, app_control_reply
 		bundle_del(app_control->data, BUNDLE_KEY_OPERATION);
 
 	if (launch_pid < 0) {
-		if (request_context->app_control)
-			app_control_destroy(request_context->app_control);
+		if (request_context) {
+			if (request_context->app_control)
+				app_control_destroy(request_context->app_control);
 
-		free(request_context);
+			free(request_context);
+		}
 
 		if (launch_pid == APPSVC_RET_ENOMATCH)
 			return app_control_error(APP_CONTROL_ERROR_APP_NOT_FOUND, __FUNCTION__, NULL);
