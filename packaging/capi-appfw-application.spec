@@ -23,6 +23,12 @@ BuildRequires:  pkgconfig(eventsystem)
 BuildRequires:  pkgconfig(pkgmgr-info)
 BuildRequires:  pkgconfig(glib-2.0)
 
+%if "%{?profile}" == "wearable"
+%define tizen_feature_input_delegate 1
+%else
+%define tizen_feature_input_delegate 0
+%endif
+
 %description
 An Application library in SLP C API package.
 
@@ -39,8 +45,14 @@ An Application library in SLP C API (Development) package.
 cp %{SOURCE1001} .
 
 %build
+%if 0%{?tizen_feature_input_delegate}
+TIZEN_FEATURE_INPUT_DELEGATE=ON
+%endif
+
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
-%cmake . -DFULLVER=%{version} -DMAJORVER=${MAJORVER}
+%cmake -DFULLVER=%{version} -DMAJORVER=${MAJORVER} \
+		 -DTIZEN_FEATURE_INPUT_DELEGATE:BOOL=${TIZEN_FEATURE_INPUT_DELEGATE} \
+		 .
 %__make %{?jobs:-j%jobs}
 
 %install
