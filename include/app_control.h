@@ -334,7 +334,7 @@ typedef enum {
  * @brief Definition for the app control operation: Select the type of input method to receive input from user.
  * @details Input: It depends on application scenario/configuration.\n
  *          Output: APP_CONTROL_DATA_TEXT in Extra.\n
- * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
+ * @since_tizen @if WEARABLE 2.3.2 @endif
  */
 #define APP_CONTROL_OPERATION_GET_INPUT "http://tizen.org/appcontrol/operation/get_input"
 
@@ -479,31 +479,28 @@ typedef enum {
 
 /**
  * @brief Definition for app_control data: Select the type of input method
- * @details Type: "input_selector"    Show multiple input types to be selected from user.
- *                "input_voice"       Launch input method with voice type.
+ * @details Type: "input_voice"       Launch input method with voice type.
  *                "input_emoticon"    Launch input method with emoticon type.
- *                "input_reply"       Launch input method with smart reply type.
- *                "input_handwriting" Launch input method with handwriting type.
  *                "input_keyboard"    Launch input method with keyboard type.
- * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
+ * @since_tizen @if WEARABLE 2.3.2 @endif
  */
 #define APP_CONTROL_DATA_INPUT_TYPE "http://tizen.org/appcontrol/data/input_type"
 
 /**
  * @brief Definition for app_control data: Send the pre inputted text such as "http://" in web
- * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
+ * @since_tizen @if WEARABLE 2.3.2 @endif
  */
 #define APP_CONTROL_DATA_INPUT_DEFAULT_TEXT "http://tizen.org/appcontrol/data/input_default_text"
 
 /**
  * @brief Definition for app_control data: Send guide text to show to user such as "Input user name"
- * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
+ * @since_tizen @if WEARABLE 2.3.2 @endif
  */
 #define APP_CONTROL_DATA_INPUT_GUIDE_TEXT "http://tizen.org/appcontrol/data/input_guide_text"
 
 /**
  * @brief Definition for app_control data: Send text to receive answer result from smart reply
- * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
+ * @since_tizen @if WEARABLE 2.3.2 @endif
  */
 #define APP_CONTROL_DATA_INPUT_PREDICTION_HINT "http://tizen.org/appcontrol/data/input_prediction_hint"
 
