@@ -479,11 +479,8 @@ typedef enum {
 
 /**
  * @brief Definition for app_control data: Select the type of input method
- * @details Type: "input_selector"    Show multiple input types to be selected from user.
- *                "input_voice"       Launch input method with voice type.
+ * @details Type: "input_voice"       Launch input method with voice type.
  *                "input_emoticon"    Launch input method with emoticon type.
- *                "input_reply"       Launch input method with smart reply type.
- *                "input_handwriting" Launch input method with handwriting type.
  *                "input_keyboard"    Launch input method with keyboard type.
  * @since_tizen @if WEARABLE 2.3.2 @elseif MOBILE 3.0 @endif
  */
