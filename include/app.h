@@ -18,11 +18,8 @@
 #ifndef __TIZEN_APPFW_APP_H__
 #define __TIZEN_APPFW_APP_H__
 
-#include <tizen.h>
 #include <app_control.h>
-#include <app_alarm.h>
 #include <app_common.h>
-#include <app_preference.h>
 #include <app_i18n.h>
 #include <app_types.h>
 
