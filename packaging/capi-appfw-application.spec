@@ -14,7 +14,6 @@ BuildRequires:  pkgconfig(appcore-efl)
 BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(appsvc)
 BuildRequires:  pkgconfig(elementary)
-BuildRequires:  pkgconfig(alarm-service)
 BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(sqlite3)
 BuildRequires:  pkgconfig(libtzplatform-config)
@@ -58,7 +57,6 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %{_libdir}/libcapi-appfw-application.so.*
 %{_libdir}/libcapi-appfw-app-control.so.*
 %{_libdir}/libcapi-appfw-app-common.so.*
-%{_libdir}/libcapi-appfw-alarm.so.*
 %{_libdir}/libcapi-appfw-preference.so.*
 %{_libdir}/libcapi-appfw-event.so.*
 
@@ -71,7 +69,6 @@ cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 %{_libdir}/libcapi-appfw-application.so
 %{_libdir}/libcapi-appfw-app-control.so
 %{_libdir}/libcapi-appfw-app-common.so
-%{_libdir}/libcapi-appfw-alarm.so
 %{_libdir}/libcapi-appfw-preference.so
 %{_libdir}/libcapi-appfw-event.so
 
