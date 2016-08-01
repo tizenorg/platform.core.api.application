@@ -49,7 +49,7 @@ char *app_get_shared_data_path(void)
 	if (ret == AUL_R_OK && path)
 		set_last_result(APP_ERROR_NONE);
 	else if (ret == AUL_R_EREJECTED)
-		set_last_result(APP_ERROR_NOT_SUPPORTED);
+		set_last_result(APP_ERROR_PERMISSION_DENIED);
 	else
 		set_last_result(APP_ERROR_OUT_OF_MEMORY);
 
