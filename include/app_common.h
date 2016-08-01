@@ -340,32 +340,25 @@ char *app_get_resource_path(void);
 
 
 /**
- * @deprecated Deprecated since 3.0.
  * @brief	Gets the absolute path to the application's shared data directory which is used to share
  *          data with other applications.
  * @details	An application can read and write its own files in the application's shared data
  *          directory and others can only read the files.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
+ * @privlevel	public
+ * @privilege	%http://tizen.org/privilege/appdir.shareddata
  * @remarks	The returned path should be released. @n
- *		shared/data directory is not supported since Tizen 3.0.
- *		You MUST NOT use this API when you develop new application.
- *		Actually, we strongly recommend to stop using shared/data path for all your previous applications.
- *		Files in shared/data directory can be read by all other applications.
- *		You cannot control what applications can read the files in shared/data directory.
+ *		Since Tizen 3.0, an application that want to use shared/data directory should declare http://tizen.org/privilege/appdir.shareddata privilege. If the application doesn't declare the privilege, the framework will not create shared/data directory for the application.
+ *		You should consider privacy when you decide to use shared/data directory, because you cannot control what applications can read the files in shared/data directory.
  *		If you want to share files with other applications, consider passing path via @ref CAPI_APP_CONTROL_MODULE API.
  *		The @ref CAPI_APP_CONTROL_MODULE API supports giving permission to other applications by passing path via app_control. @n
- *		shared/data directory is only available for applications with api-version lower than 3.0 from Tizen 3.0 platform.
- *		The applications with api-version from 3.0 cannot access other applications' shared/data directory.
- *		For example, a Tizen @if Mobile 2.4 @elseif WEARABLE 2.3.1 @endif application can access another Tizen @if Mobile 2.4 @elseif WEARABLE 2.3.1 @endif application's shared/data directory as it did in Tizen @if Mobile 2.4 @elseif WEARABLE 2.3.1 @endif platform.
- *		However, a Tizen 3.0 application cannot access another application's shared/data directory even the another application is Tizen @if Mobile 2.4 @elseif WEARABLE 2.3.1 @endif application.
- *		Note that Tizen 3.0 platform only supports shared/data directory among applications with api-version lower than 3.0 for minimum backward compatibility. @n
  *		The specific error code can be obtained using the get_last_result(). Error codes are described in Exception section.
  *
  * @return	The absolute path to the application's shared data directory, @n
- *          otherwise a null pointer if the memory is insufficient. It will return NULL for 3.0 application, and set to APP_ERROR_NOT_SUPPORTED.
+ *		Otherwise a null pointer if the memory is insufficient. It will return NULL for 3.0 application that doesn't declare privilege, and set to APP_ERROR_PERMISSION_DENIED.
  * @exception	APP_ERROR_NONE Success
  * @exception	APP_ERROR_OUT_OF_MEMORY Out of memory
- * @exception	APP_ERROR_NOT_SUPPORTED Not supported
+ * @exception	APP_ERROR_PERMISSION_DENIED Permission denied
  */
 char *app_get_shared_data_path(void);
 
